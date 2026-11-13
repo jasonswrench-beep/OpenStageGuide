@@ -74,12 +74,20 @@ export const TOOL_ICONS = {
   help: "circle-question-mark",
 };
 
+/** What the Edit menu does with no editor open: nothing, and every command is dimmed. */
+const NO_EDIT = { command: () => {}, state: () => ({ canUndo: false, canRedo: false, hasRows: false }) };
+
 /**
- * The menus, with the commands that do things through `ctx`.
- * @param {{ hasGuide: () => boolean, openTool: (id: string) => void, updateGuide: () => void, newGuide: () => void, openGuide: () => void, closeGuide: () => void, search: () => void, keys: () => void, about: () => void }} ctx
+ * The menus, with the commands that do things through `ctx`. `ctx.edit` is the editor's side of the Edit menu: command(name) does one
+ * (undo, redo, cut, copy, paste, add, kind, moveUp, moveDown, delete) and state() says what can be done now.
+ * @typedef {{ command: (name: string) => unknown, state: () => { canUndo: boolean, canRedo: boolean, hasRows: boolean } }} EditApi
+ * @param {{ edit?: EditApi, hasGuide: () => boolean, openTool: (id: string) => void, updateGuide: () => void, newGuide: () => void, openGuide: () => void, closeGuide: () => void, search: () => void, keys: () => void, about: () => void }} ctx
  * @returns {{ menus: MenuDef[], quick: MenuCommand[] }}  the menus, and the commands of the navy bar while a guide is open
  */
 export function buildMenus(ctx) {
+  const editor = ctx.edit ?? NO_EDIT;
+  const can = (/** @type {"canUndo" | "canRedo" | "hasRows"} */ what) => () => ctx.hasGuide() && editor.state()[what];
+  const edits = (/** @type {string} */ name) => () => void editor.command(name);
   /** @param {string} id @returns {MenuCommand} */
   const tool = (id) => {
     const t = /** @type {Record<string, any>} */ (TOOLS)[id];
@@ -96,6 +104,25 @@ export function buildMenus(ctx) {
       "-",
       tool("saveBackup"),
       tool("restoreBackup"),
+    ],
+  };
+  /** @type {MenuDef} */
+  const edit = {
+    id: "edit",
+    label: "Edit",
+    items: [
+      { label: "Undo", icon: "undo-2", keys: "Ctrl+Z", title: "Take back the last change, whether you typed it or a tool made it", run: edits("undo"), enabled: can("canUndo") },
+      { label: "Redo", icon: "redo-2", keys: "Ctrl+Y", title: "Bring back what Undo took away", run: edits("redo"), enabled: can("canRedo") },
+      "-",
+      { label: "Cut", icon: "scissors", keys: "Ctrl+X", title: "Take the paragraphs you are on or have chosen away, to paste elsewhere", run: edits("cut"), enabled: can("hasRows") },
+      { label: "Copy", icon: "copy", keys: "Ctrl+C", title: "Copy the paragraphs you are on or have chosen", run: edits("copy"), enabled: can("hasRows") },
+      { label: "Paste", icon: "clipboard-paste", keys: "Ctrl+V", title: "Put the paragraphs you cut or copied after the one you are on", run: edits("paste"), enabled: can("hasRows") },
+      "-",
+      { label: "Add paragraph below", icon: "plus", keys: "Ctrl+Enter", title: "A new paragraph after this one, ready to type in", run: edits("add"), enabled: can("hasRows") },
+      { label: "Kind of paragraph...", icon: "pilcrow", title: "Make this paragraph normal text, block text, a facilitator note or a heading", run: edits("kind"), enabled: can("hasRows") },
+      { label: "Move up", icon: "arrow-up", keys: "Alt+Up", title: "Move the paragraphs you are on or have chosen above the one before", run: edits("moveUp"), enabled: can("hasRows") },
+      { label: "Move down", icon: "arrow-down", keys: "Alt+Down", title: "Move the paragraphs you are on or have chosen below the one after", run: edits("moveDown"), enabled: can("hasRows") },
+      { label: "Delete paragraph", icon: "trash", keys: "Delete", title: "Delete the paragraphs you are on or have chosen (Undo brings them back)", run: edits("delete"), enabled: can("hasRows") },
     ],
   };
   /** @type {MenuDef} */
@@ -121,7 +148,7 @@ export function buildMenus(ctx) {
     { label: "Update guide", icon: "refresh-cw", title: "Renumber the headings and forms, and correct the times", run: ctx.updateGuide },
     { label: "Make workbook", icon: "book-open", title: "Make the participant workbook", run: () => ctx.openTool("participantWorkbook") },
   ];
-  return { menus: [file, ...middle, help], quick };
+  return { menus: [file, edit, ...middle, help], quick };
 }
 
 export function menuEntries(/** @type {MenuDef[]} */ menus, /** @type {string} */ id) {

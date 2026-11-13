@@ -190,3 +190,56 @@ export function joinWords(previous,current,io){
   if(isHeading(current.style))return null;
   return {xml:setWords(previous.xml,previous.style,a.text+b.text,io),offset:a.text.length};
 }
+
+// ---- the kind of a paragraph
+
+// The kinds of paragraph an author can change one to another. Each is a style the guide already has, so the tools, the checks and the
+// workbook treat it as they treat the same style made any other way. The headings that give the guide its structure (the title, modules,
+// lessons, assessments, form titles) are not here: their numbers and times are written by the program.
+export const KINDS=Object.freeze([
+  {id:'normal',label:'Normal text',style:'Normal',styleId:null,note:'Ordinary text.'},
+  {id:'body',label:'Block text',style:'OSG Cue Body',styleId:'OSGCueBody',note:'The words of a block, under its cue.'},
+  {id:'notes',label:'Facilitator note',style:'OSG Facilitator Notes',styleId:'OSGNotes',note:'Shaded, and left out of the participant workbook.'},
+  {id:'h1',label:'Heading 1',style:'heading 1',styleId:'Heading1',note:'A page heading, such as Acknowledgements.'},
+  {id:'h2',label:'Heading 2',style:'heading 2',styleId:'Heading2',note:'A heading inside a page.'}
+]);
+const STRUCTURAL=new Set(['OSG Guide Title','OSG Module','OSG Lesson','OSG Assessment','OSG Form Title','OSG Form Title Facilitator','Title']);
+
+/** Whether a paragraph's kind can be changed, and if not, why. @returns {{ok:boolean, reason?:string}} */
+export function kindChange(xml,style,io){
+  if(STRUCTURAL.has(style))return {ok:false,reason:'The title, modules, lessons and forms are made by the tools, and keep their kind.'};
+  const info=readParagraph(xml,style,io);
+  if(!info.editable)return {ok:false,reason:info.reason};
+  if(info.lead.length)return {ok:false,reason:'A block\'s cue line and a labelled note keep their kind. Change the cue with the tools.'};
+  return {ok:true};
+}
+
+/**
+ * The paragraph in another style. Everything else in it stays; a heading is not a list item, so the list goes when a paragraph becomes one.
+ * @param {string} xml @param {string} style @param {string|null} styleId the style's id, or null for Normal text
+ */
+export function withStyle(xml,style,styleId,io){
+  const can=kindChange(xml,style,io);
+  if(!can.ok)throw new Error(can.reason);
+  if(styleId!==null&&!/^[A-Za-z][A-Za-z0-9]*$/.test(styleId))throw new Error('That kind of paragraph is not known.');
+  const root=io.parse(xml).documentElement;
+  const doc=root.ownerDocument;
+  let pPr=named(root,'pPr');
+  let pStyle=pPr&&named(pPr,'pStyle');
+  if(styleId===null){
+    if(pStyle)pPr.removeChild(pStyle);
+  }else{
+    if(!pPr){
+      pPr=doc.createElementNS(W,'w:pPr');
+      root.insertBefore(pPr,root.firstChild);
+    }
+    if(!pStyle){
+      pStyle=doc.createElementNS(W,'w:pStyle');
+      pPr.insertBefore(pStyle,pPr.firstChild);
+    }
+    pStyle.setAttributeNS(W,'w:val',styleId);
+    if(/^Heading\d$/.test(styleId)){const list=named(pPr,'numPr');if(list)pPr.removeChild(list);}
+  }
+  if(pPr&&!kids(pPr).length)root.removeChild(pPr);
+  return serialize(root,io);
+}

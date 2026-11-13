@@ -43,7 +43,7 @@ try{
   ok(page.url().endsWith('/program/'),'the address / goes to the program');
   ok((await page.locator('h1').innerText())==='OpenStage Guide','the welcome page has its heading');
   ok(await page.locator('main#main').count()===1&&await page.locator('a.skip').count()===1,'a main region and a skip link');
-  ok((await page.locator('[role=menubar] > .menubar-slot').count())===8,'eight menus: File, Guide, Write, Bring in, E-learning, Check, Make, Help');
+  ok((await page.locator('[role=menubar] > .menubar-slot').count())===9,'nine menus: File, Edit, Guide, Write, Bring in, E-learning, Check, Make, Help');
   ok(await page.locator('#bar-buttons button').count()===0,'no guide buttons on the navy bar before a guide is open');
   ok(/no guides yet/i.test(await page.locator('.recent').innerText()),'it says there are no guides yet');
   await shot('1-welcome.png');

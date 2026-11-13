@@ -2,7 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {DOMParser,XMLSerializer} from '@xmldom/xmldom';
-import {readParagraph,setWords,wordsOf,splitWords,joinWords,nextParagraphSpec,paragraphWith,cleanWords,isHeading,isLocked,MAX_WORDS} from '../src/guide-edit.mjs';
+import {readParagraph,setWords,wordsOf,splitWords,joinWords,nextParagraphSpec,paragraphWith,cleanWords,isHeading,isLocked,MAX_WORDS,KINDS,kindChange,withStyle} from '../src/guide-edit.mjs';
 import {pictureRun,para,run,makeContext} from '../src/guide-ooxml.mjs';
 import {formTitleBlock,citationControl,checkList,formTable} from '../src/guide-forms-ooxml.mjs';
 import {STYLE_IDS} from '../src/guide-styles.mjs';
@@ -202,4 +202,52 @@ test('words typed in any order give back what was typed (a thousand random edits
   }
   assert.match(xml,/w:val="OSGCueBody"/);
   assert.equal((xml.match(/<w:r>/g)||[]).length<=1,true,'one run, however many edits');
+});
+
+test('the kinds a paragraph can be changed to are styles the guide already has; the structure the program writes is not among them',()=>{
+  assert.deepEqual(KINDS.map(k=>k.label),['Normal text','Block text','Facilitator note','Heading 1','Heading 2']);
+  assert.ok(KINDS.every(k=>k.note&&k.note.length>5));
+  for(const k of KINDS)if(k.styleId!==null)assert.match(k.styleId,/^[A-Za-z][A-Za-z0-9]*$/);
+  assert.deepEqual(KINDS.map(k=>k.style),['Normal','OSG Cue Body','OSG Facilitator Notes','heading 1','heading 2'],'the names the guide reads them by');
+});
+
+test('which paragraphs can change kind, and why the others cannot',async()=>{
+  const g=await guide();
+  assert.equal(kindChange(g.by('OSG Cue Body').xml,'OSG Cue Body',io).ok,true);
+  assert.equal(kindChange(g.all.find(p=>p.style==='Normal'&&p.text==='Facilitator guide').xml,'Normal',io).ok,true);
+  assert.equal(kindChange(g.all.find(p=>p.style==='heading 1').xml,'heading 1',io).ok,true);
+  for(const style of ['OSG Module','OSG Lesson','OSG Guide Title']){
+    const c=kindChange(g.by(style).xml,style,io);
+    assert.equal(c.ok,false,style);assert.match(c.reason,/made by the tools/);
+  }
+  const cue=kindChange(g.by('OSG Cue').xml,'OSG Cue',io);
+  assert.equal(cue.ok,false);assert.match(cue.reason,/cue line/);
+  const labelled=g.block.find(p=>p.style==='OSG Facilitator Notes');
+  assert.equal(kindChange(labelled.xml,labelled.style,io).ok,false,'a note with its label in front keeps its kind');
+  assert.equal(kindChange(g.by('OSG Time').xml,'OSG Time',io).ok,false,'locked');
+  assert.equal(kindChange('',  'Normal',io).ok,false,'nothing to change');
+});
+
+test('changing the kind changes the style and nothing else: the words, other properties and a list stay (a heading is not a list)',()=>{
+  const W2=`xmlns:w="${W}"`;
+  const body=`<w:p ${W2}><w:pPr><w:pStyle w:val="OSGCueBody"/><w:keepNext/></w:pPr><w:r><w:t>Hi there</w:t></w:r></w:p>`;
+  const note=withStyle(body,'OSG Cue Body','OSGNotes',io);
+  assert.match(note,/w:val="OSGNotes"/);assert.match(note,/<w:keepNext\/>/);
+  assert.equal(readParagraph(note,'OSG Facilitator Notes',io).text,'Hi there');
+  const plain=withStyle(body,'OSG Cue Body',null,io);
+  assert.ok(!/pStyle/.test(plain));assert.match(plain,/<w:keepNext\/>/,'the other property is kept');
+  const bare=`<w:p ${W2}><w:r><w:t>Hi</w:t></w:r></w:p>`;
+  assert.match(withStyle(bare,'Normal','Heading2',io),/<w:pPr><w:pStyle w:val="Heading2"\/><\/w:pPr>/,'a paragraph with no properties gets some');
+  assert.ok(!/pPr/.test(withStyle(withStyle(bare,'Normal','OSGNotes',io),'OSG Facilitator Notes',null,io)),'and loses them again when nothing is left');
+  const list=`<w:p ${W2}><w:pPr><w:pStyle w:val="OSGCueBody"/><w:numPr><w:ilvl w:val="0"/><w:numId w:val="3"/></w:numPr></w:pPr><w:r><w:t>Step</w:t></w:r></w:p>`;
+  assert.match(withStyle(list,'OSG Cue Body','OSGNotes',io),/<w:numId w:val="3"\/>/,'a list item stays a list item');
+  assert.ok(!/numPr/.test(withStyle(list,'OSG Cue Body','Heading1',io)),'a heading is not a list item');
+});
+
+test('a kind that is not a plain id, or a paragraph that cannot change kind, is refused',()=>{
+  const W2=`xmlns:w="${W}"`;
+  const body=`<w:p ${W2}><w:pPr><w:pStyle w:val="OSGCueBody"/></w:pPr><w:r><w:t>Hi</w:t></w:r></w:p>`;
+  for(const bad of ['"><w:evil/>','a b','1x','','x"y'])assert.throws(()=>withStyle(body,'OSG Cue Body',bad,io),/not known/,bad);
+  const mod=`<w:p ${W2}><w:pPr><w:pStyle w:val="OSGModule"/></w:pPr><w:r><w:t>Module 1: A</w:t></w:r></w:p>`;
+  assert.throws(()=>withStyle(mod,'OSG Module',null,io),/made by the tools/);
 });

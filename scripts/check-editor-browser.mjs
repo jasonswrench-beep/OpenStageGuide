@@ -40,7 +40,8 @@ try{
   const stores=[];
   page.on('request',r=>{if(r.method()==='PUT'&&r.url().endsWith('/project'))stores.push(new URL(r.frame().url()).pathname);});
   const shot=name=>page.screenshot({path:path.join(SHOTS,name)});
-  const saved=()=>page.waitForFunction(()=>document.querySelector('.bar-context-state')?.getAttribute('data-state')==='saved',null,{timeout:10000});
+  // (the page saves 0.4 seconds after the last change, so what is on disk is read only after that has passed and it says Saved)
+  const saved=async()=>{await page.waitForTimeout(600);await page.waitForFunction(()=>document.querySelector('.bar-context-state')?.getAttribute('data-state')==='saved',null,{timeout:10000});};
   const rows=()=>page.locator('#work-guide [data-index]');
   const row=re=>page.locator('#work-guide [data-index]').filter({hasText:re}).first();
   const active=()=>page.evaluate(()=>{const a=document.activeElement;return a?{tag:a.tagName,index:a.dataset?.index??null,label:a.getAttribute('aria-label'),value:a.value??null,start:a.selectionStart??null}:null;});
@@ -191,6 +192,95 @@ try{
   const cue=onDisk().find(p=>p.text.includes('Really?'));
   ok(!!cue&&cue.xml.includes('<w:drawing>')&&cue.xml.includes('OSGCueLabel')&&cue.xml.includes('<w:tab/>'),'on disk the cue line still has its picture, its name and its tab');
   await shot('4-cue.png');
+
+  // ---- whole paragraphs: choose, move, delete, add, kind, copy, cut, paste
+  const order=()=>onDisk().map(p=>p.text);
+  const selectedCount=()=>page.locator('#work-guide [data-selected="true"]').count();
+  const status=()=>page.locator('#status').innerText();
+  await saved();
+  const original=order();
+  await row(/^About This Guide$/).focus();
+  await page.keyboard.press('Shift+ArrowDown');
+  await page.keyboard.press('Shift+ArrowDown');
+  ok(await selectedCount()===3,'Shift+Down chooses rows together: three are chosen');
+  ok(/3 paragraphs selected/.test(await status()),'and says so');
+  await shot('5-selected.png');
+  await page.keyboard.press('Alt+ArrowDown');
+  await saved();
+  let now=order();
+  ok(now.indexOf('Say where this program fits: who it is for, what need it meets and how it connects to other training.')<now.indexOf('About This Guide'),'Alt+Down moves the chosen rows below the next one, and it is on disk');
+  ok(await selectedCount()===3,'the rows stay chosen after the move');
+  await page.keyboard.press('Control+z');
+  await saved();
+  ok(JSON.stringify(order())===JSON.stringify(original),'Ctrl+Z puts them back exactly as they were');
+  await page.keyboard.press('Escape');
+  ok(await selectedCount()===0,'Escape clears the choice');
+
+  const prep=/^List what the facilitator needs before the session/;
+  await row(prep).focus();
+  await page.keyboard.press('Delete');
+  await saved();
+  ok(!order().some(t=>/^List what the facilitator needs/.test(t)),'Delete takes the paragraph away, on disk too');
+  ok(/deleted/.test(await status()),'and says that Ctrl+Z brings it back');
+  await page.keyboard.press('Control+z');
+  await saved();
+  ok(order().some(t=>/^List what the facilitator needs/.test(t)),'Ctrl+Z brings it back');
+
+  await row(/^Say what this guide is for/).focus();
+  await page.keyboard.press('Control+Enter');
+  a=await active();
+  ok(a.tag==='TEXTAREA'&&a.value==='','Ctrl+Enter adds a paragraph below and goes into it');
+  await page.keyboard.type('Added by the author.');
+  await page.keyboard.press('Escape');
+  await saved();
+  now=order();
+  ok(now.indexOf('Added by the author.')===now.indexOf('Say what this guide is for and who should use it.')+1,'it is right after the paragraph it was added below, on disk');
+
+  await page.getByRole('menuitem',{name:/^Edit/}).click();
+  await page.getByRole('menuitem',{name:/Kind of paragraph/}).click();
+  await page.locator('dialog[open] input[value="notes"]').waitFor();
+  ok(await page.locator('dialog[open] input[type=radio]').count()===5,'Edit, Kind of paragraph offers the five kinds');
+  await page.locator('dialog[open] input[value="notes"]').check();
+  await page.getByRole('button',{name:'Change'}).click();
+  await saved();
+  ok(onDisk().find(p=>p.text==='Added by the author.').style==='OSG Facilitator Notes','the paragraph is now a facilitator note, on disk');
+  ok(await row(/^Added by the author\.$/).evaluate(e=>e.classList.contains('g-notes')),'and drawn as one');
+
+  await row(/^Added by the author\.$/).focus();
+  await page.keyboard.press('Control+c');
+  ok(/Copied/.test(await status()),'Ctrl+C copies');
+  await row(/^Say where this program fits/).focus();
+  await page.keyboard.press('Control+v');
+  await saved();
+  const added=onDisk().filter(p=>p.text==='Added by the author.');
+  ok(added.length===2&&added.every(p=>p.style==='OSG Facilitator Notes'),'Ctrl+V pastes a second one, still a facilitator note');
+  await page.keyboard.press('Control+z');
+  await saved();
+  ok(onDisk().filter(p=>p.text==='Added by the author.').length===1,'and Ctrl+Z takes it away again');
+  await row(/^Added by the author\.$/).focus();
+  await page.keyboard.press('Control+x');
+  await saved();
+  ok(onDisk().filter(p=>p.text==='Added by the author.').length===0,'Ctrl+X takes it out');
+  await row(/^Say where this program fits/).focus();
+  await page.keyboard.press('Control+v');
+  await saved();
+  ok(onDisk().filter(p=>p.text==='Added by the author.').length===1,'and Ctrl+V puts it back somewhere else');
+
+  await row(/^Say what this guide is for/).click();
+  await page.keyboard.press('End');
+  await page.evaluate(()=>{const ta=document.querySelector('#work-guide textarea');const dt=new DataTransfer();dt.setData('text/plain','First pasted.\nSecond pasted.\n\nThird pasted.');ta.dispatchEvent(new ClipboardEvent('paste',{clipboardData:dt,bubbles:true,cancelable:true}));});
+  await saved();
+  now=order();
+  const at=now.indexOf('Say what this guide is for and who should use it.First pasted.');
+  ok(at>=0&&now[at+1]==='Second pasted.'&&now[at+2]==='Third pasted.','several lines pasted into the words become a paragraph each (the blank line is dropped)');
+  a=await active();
+  ok(a.tag==='TEXTAREA'&&a.value==='Third pasted.','the keyboard is at the end of what was pasted');
+  await page.keyboard.press('Escape');
+  await page.getByRole('menuitem',{name:/^Edit/}).click();
+  await page.getByRole('menuitem',{name:/^Undo/}).click();
+  await saved();
+  ok(!order().includes('Third pasted.'),'Edit, Undo undoes the paste');
+  await shot('6-edited.png');
 
   // ---- what cannot be changed is read, not rewritten
   await row(/Time: 10 minutes/).focus();

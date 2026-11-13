@@ -54,6 +54,8 @@
 export const UI_ICONS = /** @type {const} */ ({
   "archive": [{"tag":"rect","width":20,"height":5,"x":2,"y":3,"rx":1},{"tag":"path","d":"M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"},{"tag":"path","d":"M10 12h4"}],
   "archive-restore": [{"tag":"rect","width":20,"height":5,"x":2,"y":3,"rx":1},{"tag":"path","d":"M4 8v11a2 2 0 0 0 2 2h2"},{"tag":"path","d":"M20 8v11a2 2 0 0 1-2 2h-2"},{"tag":"path","d":"m9 15 3-3 3 3"},{"tag":"path","d":"M12 12v9"}],
+  "arrow-down": [{"tag":"path","d":"M12 5v14"},{"tag":"path","d":"m19 12-7 7-7-7"}],
+  "arrow-up": [{"tag":"path","d":"m5 12 7-7 7 7"},{"tag":"path","d":"M12 19V5"}],
   "book-open": [{"tag":"path","d":"M12 5v16"},{"tag":"path","d":"M20.001 19A2 2 0 0022 17V5a2 2 0 00-1.999-2L16 3.002A5 5 0 0012 5a5 5 0 00-4-2H4a2 2 0 00-2 2v12a2 2 0 001.999 2H8a5 5 0 014 2 5 5 0 014-2z"}],
   "book-open-check": [{"tag":"path","d":"M12 5v16"},{"tag":"path","d":"m16 12 2 2 4-4"},{"tag":"path","d":"M22 6V5a2 2 0 00-1.999-2L16 3.002A5 5 0 0012 5a5 5 0 00-4-2H4a2 2 0 00-2 2v12a2 2 0 001.999 2H8a5 5 0 014 2 5 5 0 014-2h4.001A2 2 0 0022 17v-1.344"}],
   "check": [{"tag":"path","d":"M20 6 9 17l-5-5"}],
@@ -62,6 +64,7 @@ export const UI_ICONS = /** @type {const} */ ({
   "circle-check": [{"tag":"circle","cx":12,"cy":12,"r":10},{"tag":"path","d":"m16 9-5.5 5.5L8 12"}],
   "circle-question-mark": [{"tag":"circle","cx":12,"cy":12,"r":10},{"tag":"path","d":"M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"},{"tag":"path","d":"M12 17h.01"}],
   "clipboard-list": [{"tag":"rect","width":8,"height":4,"x":8,"y":2,"rx":1,"ry":1},{"tag":"path","d":"M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"},{"tag":"path","d":"M12 11h4"},{"tag":"path","d":"M12 16h4"},{"tag":"path","d":"M8 11h.01"},{"tag":"path","d":"M8 16h.01"}],
+  "clipboard-paste": [{"tag":"path","d":"M11 14h10"},{"tag":"path","d":"M16 4h2a2 2 0 0 1 2 2v1.344"},{"tag":"path","d":"m17 18 4-4-4-4"},{"tag":"path","d":"M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 1.793-1.113"},{"tag":"rect","x":8,"y":2,"width":8,"height":4,"rx":1}],
   "clock": [{"tag":"circle","cx":12,"cy":12,"r":10},{"tag":"path","d":"M12 6v6l4 2"}],
   "copy": [{"tag":"rect","width":14,"height":14,"x":8,"y":8,"rx":2,"ry":2},{"tag":"path","d":"M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"}],
   "ellipsis": [{"tag":"circle","cx":12,"cy":12,"r":1},{"tag":"circle","cx":19,"cy":12,"r":1},{"tag":"circle","cx":5,"cy":12,"r":1}],
@@ -86,10 +89,13 @@ export const UI_ICONS = /** @type {const} */ ({
   "monitor-play": [{"tag":"path","d":"M15.033 9.44a.647.647 0 0 1 0 1.12l-4.065 2.352a.645.645 0 0 1-.968-.56V7.648a.645.645 0 0 1 .967-.56z"},{"tag":"path","d":"M12 17v4"},{"tag":"path","d":"M8 21h8"},{"tag":"rect","x":2,"y":3,"width":20,"height":14,"rx":2}],
   "palette": [{"tag":"path","d":"M12 22a1 1 0 0 1 0-20 10 9 0 0 1 10 9 5 5 0 0 1-5 5h-2.25a1.75 1.75 0 0 0-1.4 2.8l.3.4a1.75 1.75 0 0 1-1.4 2.8z"},{"tag":"circle","cx":13.5,"cy":6.5,"r":0.5,"fill":"currentColor"},{"tag":"circle","cx":17.5,"cy":10.5,"r":0.5,"fill":"currentColor"},{"tag":"circle","cx":6.5,"cy":12.5,"r":0.5,"fill":"currentColor"},{"tag":"circle","cx":8.5,"cy":7.5,"r":0.5,"fill":"currentColor"}],
   "pencil": [{"tag":"path","d":"M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"},{"tag":"path","d":"m15 5 4 4"}],
+  "pilcrow": [{"tag":"path","d":"M13 4v16"},{"tag":"path","d":"M17 4v16"},{"tag":"path","d":"M19 4H9.5a4.5 4.5 0 0 0 0 9H13"}],
   "plus": [{"tag":"path","d":"M5 12h14"},{"tag":"path","d":"M12 5v14"}],
   "presentation": [{"tag":"path","d":"M2 3h20"},{"tag":"path","d":"M21 3v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V3"},{"tag":"path","d":"m7 21 5-5 5 5"}],
   "printer": [{"tag":"path","d":"M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"},{"tag":"path","d":"M6 9V3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6"},{"tag":"rect","x":6,"y":14,"width":12,"height":8,"rx":1}],
+  "redo-2": [{"tag":"path","d":"m15 14 5-5-5-5"},{"tag":"path","d":"M20 9H9.5A5.5 5.5 0 0 0 4 14.5A5.5 5.5 0 0 0 9.5 20H13"}],
   "refresh-cw": [{"tag":"path","d":"M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"},{"tag":"path","d":"M21 3v5h-5"},{"tag":"path","d":"M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"},{"tag":"path","d":"M8 16H3v5"}],
+  "scissors": [{"tag":"circle","cx":6,"cy":6,"r":3},{"tag":"path","d":"M8.12 8.12 12 12"},{"tag":"path","d":"M20 4 8.12 15.88"},{"tag":"circle","cx":6,"cy":18,"r":3},{"tag":"path","d":"M14.8 14.8 20 20"}],
   "search": [{"tag":"path","d":"m21 21-4.34-4.34"},{"tag":"circle","cx":11,"cy":11,"r":8}],
   "settings": [{"tag":"path","d":"M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"},{"tag":"circle","cx":12,"cy":12,"r":3}],
   "square-pen": [{"tag":"path","d":"M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"},{"tag":"path","d":"M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z"}],
@@ -97,6 +103,7 @@ export const UI_ICONS = /** @type {const} */ ({
   "target": [{"tag":"circle","cx":12,"cy":12,"r":10},{"tag":"circle","cx":12,"cy":12,"r":6},{"tag":"circle","cx":12,"cy":12,"r":2}],
   "trash": [{"tag":"path","d":"M10 11v6"},{"tag":"path","d":"M14 11v6"},{"tag":"path","d":"M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"},{"tag":"path","d":"M3 6h18"},{"tag":"path","d":"M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"}],
   "triangle-alert": [{"tag":"path","d":"m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"},{"tag":"path","d":"M12 9v4"},{"tag":"path","d":"M12 17h.01"}],
+  "undo-2": [{"tag":"path","d":"M9 14 4 9l5-5"},{"tag":"path","d":"M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11"}],
   "x": [{"tag":"path","d":"M18 6 6 18"},{"tag":"path","d":"m6 6 12 12"}],
 });
 

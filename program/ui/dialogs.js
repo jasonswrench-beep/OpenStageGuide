@@ -97,6 +97,41 @@ export function chooseGuide(doc, guides, when) {
   });
 }
 
+/**
+ * Choose one of a few things, each with a name and a line about it. Resolves to the id of the one chosen, or null.
+ * @param {Document} doc @param {{ title: string, intro?: string, confirm: string, options: { id: string, label: string, note?: string }[], current?: string }} opts
+ */
+export function chooseOne(doc, opts) {
+  return openDialog(doc, {
+    title: opts.title,
+    intro: opts.intro,
+    body: () => [
+      el(
+        doc,
+        "ul",
+        { class: "dialog-list", role: "radiogroup", "aria-label": opts.title },
+        ...opts.options.map((o, i) =>
+          el(
+            doc,
+            "li",
+            {},
+            el(
+              doc,
+              "label",
+              {},
+              el(doc, "input", { type: "radio", name: "dlg-choice", value: o.id, ...((opts.current ? o.id === opts.current : i === 0) ? { checked: "" } : {}) }),
+              el(doc, "span", {}, el(doc, "strong", { text: o.label }), ...(o.note ? [el(doc, "span", { class: "hint", text: ` ${o.note}` })] : [])),
+            ),
+          ),
+        ),
+      ),
+    ],
+    confirm: opts.confirm,
+    first: (d) => /** @type {HTMLElement | null} */ (d.querySelector("input[type=radio]:checked")),
+    finish: (d) => /** @type {HTMLInputElement | null} */ (d.querySelector("input[type=radio]:checked"))?.value ?? null,
+  });
+}
+
 /** @param {Document} doc */
 export function aboutDialog(doc) {
   return openDialog(doc, {

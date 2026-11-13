@@ -315,3 +315,5 @@ dialog h2 { margin: 0 0 10px; }
 .page textarea.g-edit { flex: 1 1 auto; min-width: 0; width: 100%; box-sizing: border-box; font: inherit; line-height: inherit; color: inherit; background: var(--card); border: 1px solid var(--accent); border-radius: 4px; padding: 2px 6px; margin: 0; resize: none; overflow: hidden; }
 .page textarea.g-edit:focus-visible { outline: 3px solid var(--focus); outline-offset: 1px; }
 .page .g-blank { min-height: 1.6em; }
+.page [data-selected="true"] { background: var(--tint); box-shadow: inset 4px 0 0 var(--accent); }
+.page [data-selected="true"]:hover:not(.g-editing) { background: var(--tint); }

@@ -10,7 +10,7 @@ const W14 = "http://schemas.microsoft.com/office/word/2010/wordml";
 const REF = "osg-ref:";
 
 /**
- * @typedef {{ tag: string, cls?: string, text?: string, attrs?: Record<string, string>, height?: number, index?: number, children?: Node_[] }} Node_
+ * @typedef {{ tag: string, cls?: string, text?: string, attrs?: Record<string, string>, height?: number, index?: number, span?: number, children?: Node_[] }} Node_
  * @typedef {{ xml?: string, text?: string, style?: string, builtIn?: string }} Entry
  */
 
@@ -204,7 +204,12 @@ export function describeGuide(entries, parseXml, options = {}) {
       out.push({ tag: "p", cls: "g-other", text: entry.text ?? "", index });
       continue;
     }
-    if (root.localName === "tbl") out.push({ ...tableNode(root), index });
+    if (root.localName === "tbl") {
+      // The other cells of the table are the entries after it that carry no XML.
+      let span = 1;
+      while (entries[index + span] && !(entries[index + span].xml ?? "").trim()) span++;
+      out.push({ ...tableNode(root), index, span });
+    }
     else if (root.localName === "p") {
       const node = paragraphNode(root, entry.style ?? "Normal");
       if (node) out.push({ ...node, index });
