@@ -282,6 +282,55 @@ try{
   ok(!order().includes('Third pasted.'),'Edit, Undo undoes the paste');
   await shot('6-edited.png');
 
+  // ---- the Insert menu: elements, a table, and a form from a template
+  const insertMenu=async label=>{await page.getByRole('menuitem',{name:/^Insert/}).click();await page.getByRole('menuitem',{name:label}).click();};
+  const styles=()=>onDisk().map(p=>p.style);
+  await row(/^Say where this program fits/).focus();
+  const linesBefore=styles().filter(x=>x==='OSG Form Line').length;
+  await insertMenu(/Lines to write on/);
+  await page.locator('dialog[open] #dlg-f-count').fill('99');
+  await page.getByRole('button',{name:'Insert'}).click();
+  ok(/1 to 12/.test(await page.locator('dialog[open] .problem').innerText()),'a number that is too big is explained in the dialog, which stays open');
+  await page.locator('dialog[open] #dlg-f-count').fill('5');
+  await page.locator('dialog[open] #dlg-f-label').fill('Your answer');
+  await page.getByRole('button',{name:'Insert'}).click();
+  await saved();
+  ok(styles().filter(x=>x==='OSG Form Line').length===linesBefore+5,'five lines to write on are in the guide, on disk');
+  now=order();
+  ok(now.indexOf('Your answer')===now.indexOf('Say where this program fits: who it is for, what need it meets and how it connects to other training.')+1,'with their label, right after the paragraph the author was on');
+  ok(await selectedCount()>=6,'what was inserted is chosen, so it can be moved or deleted');
+  ok(/inserted/.test(await status()),'and the program says Ctrl+Z takes it back');
+  await page.keyboard.press('Control+z');
+  await saved();
+  ok(styles().filter(x=>x==='OSG Form Line').length===linesBefore,'one Ctrl+Z takes the whole insert back');
+
+  await row(/^Say where this program fits/).focus();
+  await insertMenu(/Table to fill in/);
+  await page.locator('dialog[open] #dlg-f-columns').fill('Topic, Notes, Action');
+  await page.locator('dialog[open] #dlg-f-rows').fill('3');
+  await page.locator('dialog[open] #dlg-f-caption').fill('Session notes');
+  await page.getByRole('button',{name:'Insert'}).click();
+  await saved();
+  const tables=onDisk().filter(p=>/^<w:tbl[\s>]/.test(p.xml));
+  ok(tables.length===1&&/Topic/.test(tables[0].xml)&&/tblHeader/.test(tables[0].xml),'a table with a header row and the three columns is in the guide');
+  ok(await page.locator('#work-guide table.g-table').count()===1,'and is drawn as one row of the guide');
+  ok((await page.locator('#work-guide table.g-table th').allInnerTexts()).join('|')==='Topic|Notes|Action','with its column names as header cells');
+  await shot('7-table.png');
+
+  await row(/^Say where this program fits/).focus();
+  await insertMenu(/^Form\.\.\./);
+  await page.locator('dialog[open] #dlg-f-template').selectOption('checklist');
+  await page.locator('dialog[open] #dlg-f-title').fill('Preparation list');
+  await page.getByRole('button',{name:'Insert'}).click();
+  await saved();
+  ok(onDisk().some(p=>p.style==='OSG Form Title'&&p.text==='Checklist: Preparation list'),'a form from the Checklist template is in the guide, with its title');
+  ok(onDisk().some(p=>p.style==='OSG Form Print'),'with its print line');
+  await page.getByRole('button',{name:'Update guide'}).click();
+  await page.waitForTimeout(1200);
+  await saved();
+  ok(onDisk().some(p=>/^Checklist [A-Z0-9.]+: Preparation list$/.test(p.text)),'Update guide numbers it');
+  await shot('8-form.png');
+
   // ---- what cannot be changed is read, not rewritten
   await row(/Time: 10 minutes/).focus();
   await page.keyboard.press('Enter');

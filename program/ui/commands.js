@@ -77,11 +77,25 @@ export const TOOL_ICONS = {
 /** What the Edit menu does with no editor open: nothing, and every command is dimmed. */
 const NO_EDIT = { command: () => {}, state: () => ({ canUndo: false, canRedo: false, hasRows: false }) };
 
+/** The Insert menu: each item is a command of `ctx.insert` (see forms.js), after its name. */
+const INSERT_ITEMS = /** @type {{ name: string, label: string, icon: UiIconName, title: string }[]} */ ([
+  { name: "form", label: "Form...", icon: "file-text", title: "Start a handout, worksheet, checklist or other form from a template" },
+  { name: "lines", label: "Lines to write on...", icon: "pencil-line", title: "Ruled lines for a written answer" },
+  { name: "box", label: "Writing box...", icon: "square", title: "An empty box for a drawing or a longer answer" },
+  { name: "fields", label: "Row of fields...", icon: "text-cursor-input", title: "Name, Date, Signature: labels with a line to write on after each" },
+  { name: "checklist", label: "Check list...", icon: "list-todo", title: "Items with a check box each, and who and when" },
+  { name: "table", label: "Table to fill in...", icon: "table", title: "A header row naming each column, and empty rows to write in" },
+  { name: "rating", label: "Rating grid...", icon: "grid-3x3", title: "Statements to rate on a scale, with an optional column for evidence" },
+  { name: "cards", label: "Cards to cut apart...", icon: "id-card", title: "Cards in a grid with cut lines, to hand out" },
+  { name: "source", label: "Source line...", icon: "quote", title: "A short credit or permission line under a form" },
+]);
+
 /**
  * The menus, with the commands that do things through `ctx`. `ctx.edit` is the editor's side of the Edit menu: command(name) does one
  * (undo, redo, cut, copy, paste, add, kind, moveUp, moveDown, delete) and state() says what can be done now.
+ * `ctx.insert(name)` makes one of the INSERT_ITEMS (a form, lines, a table...) after the row the author is on.
  * @typedef {{ command: (name: string) => unknown, state: () => { canUndo: boolean, canRedo: boolean, hasRows: boolean } }} EditApi
- * @param {{ edit?: EditApi, hasGuide: () => boolean, openTool: (id: string) => void, updateGuide: () => void, newGuide: () => void, openGuide: () => void, closeGuide: () => void, search: () => void, keys: () => void, about: () => void }} ctx
+ * @param {{ edit?: EditApi, insert?: (name: string) => unknown, hasGuide: () => boolean, openTool: (id: string) => void, updateGuide: () => void, newGuide: () => void, openGuide: () => void, closeGuide: () => void, search: () => void, keys: () => void, about: () => void }} ctx
  * @returns {{ menus: MenuDef[], quick: MenuCommand[] }}  the menus, and the commands of the navy bar while a guide is open
  */
 export function buildMenus(ctx) {
@@ -126,6 +140,15 @@ export function buildMenus(ctx) {
     ],
   };
   /** @type {MenuDef} */
+  const insert = {
+    id: "insert",
+    label: "Insert",
+    items: INSERT_ITEMS.flatMap((i, n) => [
+      ...(n === 1 ? /** @type {MenuEntry[]} */ (["-"]) : []),
+      /** @type {MenuCommand} */ ({ label: i.label, icon: i.icon, title: i.title, run: () => void ctx.insert?.(i.name), enabled: ctx.hasGuide }),
+    ]),
+  };
+  /** @type {MenuDef} */
   const help = {
     id: "help",
     label: "Help",
@@ -148,7 +171,7 @@ export function buildMenus(ctx) {
     { label: "Update guide", icon: "refresh-cw", title: "Renumber the headings and forms, and correct the times", run: ctx.updateGuide },
     { label: "Make workbook", icon: "book-open", title: "Make the participant workbook", run: () => ctx.openTool("participantWorkbook") },
   ];
-  return { menus: [file, edit, ...middle, help], quick };
+  return { menus: [file, edit, insert, ...middle, help], quick };
 }
 
 export function menuEntries(/** @type {MenuDef[]} */ menus, /** @type {string} */ id) {

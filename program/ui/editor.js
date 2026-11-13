@@ -692,6 +692,28 @@ export function mountEditor(doc, host, guide, ui) {
     });
   }
 
+  /**
+   * Put a block (a form, a table, lines to write on) after the row the author is on, choose what was put in, and say how to take it back.
+   * @param {(ctx: any) => string} build @param {string} what
+   */
+  async function insertBlock(build, what) {
+    const rows = targetRows();
+    const last = rows[rows.length - 1] ?? shown[shown.length - 1] ?? null;
+    await settle();
+    stopEdit();
+    const after = last ? idx(last) + spanOf(last) - 1 : -1;
+    const before = entries.length;
+    await guide.insert(build, last ? { where: "after", after, spare: false, select: "last" } : { where: "start", spare: false, select: "last" });
+    selection = null;
+    render();
+    const added = entries.length - before;
+    if (added > 0) {
+      select(after + 1, after + added);
+      focusRow(rowNear(after + 1));
+    }
+    ui.say(`${what} inserted. Ctrl+Z takes it back.`);
+  }
+
   /** @param {EventTarget | null} target @returns {Row | null} */
   function rowOf(target) {
     const el = target instanceof Element ? target.closest("[data-index]") : null;
@@ -770,6 +792,10 @@ export function mountEditor(doc, host, guide, ui) {
     /** A command of the Edit menu, for the rows the author is on or has chosen. @param {string} name */
     command(name) {
       return run(() => (name === "undo" || name === "redo" ? history(name === "redo", false) : command(name)));
+    },
+    /** Put a block after the row the author is on. @param {(ctx: any) => string} build @param {string} what */
+    insert(build, what) {
+      return run(() => insertBlock(build, what));
     },
     /** What the Edit menu needs to know to dim what cannot be done now. */
     state() {

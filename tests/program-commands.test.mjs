@@ -15,9 +15,9 @@ function make(){
 }
 const items=menus=>menus.flatMap(m=>m.items.filter(i=>i!=='-'));
 
-test('the menus are File, Edit, one for each group of the ribbon, and Help, in that order',()=>{
+test('the menus are File, Edit, Insert, one for each group of the ribbon, and Help, in that order',()=>{
   const {menus}=make();
-  assert.deepEqual(menus.map(m=>[m.id,m.label]),[['file','File'],['edit','Edit'],['guide','Guide'],['write','Write'],['bring','Bring in'],['elearning','E-learning'],['check','Check'],['make','Make'],['help','Help']]);
+  assert.deepEqual(menus.map(m=>[m.id,m.label]),[['file','File'],['edit','Edit'],['insert','Insert'],['guide','Guide'],['write','Write'],['bring','Bring in'],['elearning','E-learning'],['check','Check'],['make','Make'],['help','Help']]);
   assert.equal(GROUPS.length,7,'the ribbon has seven groups: six become menus and Protect is split between File and Help');
 });
 
@@ -126,4 +126,26 @@ test('with no editor the Edit menu is there, dimmed, and does nothing',()=>{
   const {menus}=make();
   const edit=menus.find(m=>m.id==='edit');
   for(const i of edit.items.filter(i=>i!=='-')){assert.equal(i.enabled(),false,i.label);i.run();}
+});
+
+test('the Insert menu: a form from a template, then the elements a form is made of; dimmed with no guide; each does its own command',()=>{
+  const made=[];
+  let guide=true;
+  const ctx={hasGuide:()=>guide,openTool(){},updateGuide(){},newGuide(){},openGuide(){},closeGuide(){},search(){},keys(){},about(){},insert:name=>made.push(name)};
+  const {menus}=buildMenus(ctx);
+  const insert=menus.find(m=>m.id==='insert');
+  const labels=insert.items.filter(i=>i!=='-').map(i=>i.label);
+  assert.deepEqual(labels,['Form...','Lines to write on...','Writing box...','Row of fields...','Check list...','Table to fill in...','Rating grid...','Cards to cut apart...','Source line...']);
+  assert.equal(insert.items.filter(i=>i==='-').length,1,'the form is set apart from the elements');
+  for(const i of insert.items.filter(i=>i!=='-')){
+    assert.ok(i.icon&&UI_ICONS[i.icon],`${i.label} has an icon the program has`);
+    assert.ok(i.title&&i.title.length>10,`${i.label} says what it makes`);
+    assert.equal(i.enabled(),true);
+  }
+  for(const i of insert.items.filter(i=>i!=='-'))i.run();
+  assert.deepEqual(made,['form','lines','box','fields','checklist','table','rating','cards','source']);
+  guide=false;
+  assert.ok(insert.items.filter(i=>i!=='-').every(i=>i.enabled()===false),'no guide, nothing to insert into');
+  const bare=buildMenus({hasGuide:()=>true,openTool(){},updateGuide(){},newGuide(){},openGuide(){},closeGuide(){},search(){},keys(){},about(){}}).menus.find(m=>m.id==='insert');
+  for(const i of bare.items.filter(i=>i!=='-'))i.run();
 });

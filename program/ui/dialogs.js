@@ -132,6 +132,59 @@ export function chooseOne(doc, opts) {
   });
 }
 
+/**
+ * A dialog of fields to fill in. Each field has an id and a label, and a type: "text", "number", "lines" (a box for several lines), "select"
+ * (with options) or "check". `finish` gets the values by id (text or true/false) and returns the result, or throws a message to show in the
+ * dialog and keep it open. Resolves to the result, or null when the dialog was closed.
+ * @template T
+ * @param {Document} doc
+ * @param {{ title: string, intro?: string, confirm: string, fields: { id: string, label: string, type: "text" | "number" | "lines" | "select" | "check", value?: string | boolean, hint?: string, rows?: number, options?: { value: string, label: string }[] }[], finish: (values: Record<string, string | boolean>) => T }} opts
+ */
+export function askFields(doc, opts) {
+  /** @type {Map<string, HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>} */
+  const inputs = new Map();
+  /** @type {Node[]} */
+  const rows = [];
+  for (const f of opts.fields) {
+    const id = `dlg-f-${f.id}`;
+    /** @type {HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement} */
+    let input;
+    if (f.type === "lines") {
+      input = el(doc, "textarea", { id, rows: String(f.rows ?? 4), spellcheck: "true" });
+      input.value = String(f.value ?? "");
+    } else if (f.type === "select") {
+      input = el(doc, "select", { id }, ...(f.options ?? []).map((o) => el(doc, "option", { value: o.value, text: o.label })));
+      input.value = String(f.value ?? f.options?.[0]?.value ?? "");
+    } else if (f.type === "check") {
+      input = el(doc, "input", { type: "checkbox", id });
+      /** @type {HTMLInputElement} */ (input).checked = f.value === true;
+    } else {
+      input = el(doc, "input", { type: "text", id, autocomplete: "off", ...(f.type === "number" ? { inputmode: "numeric", maxlength: "3" } : { maxlength: "200" }), value: String(f.value ?? "") });
+    }
+    inputs.set(f.id, input);
+    if (f.hint) input.setAttribute("aria-describedby", `${id}-hint`);
+    const hint = f.hint ? [el(doc, "p", { id: `${id}-hint`, class: "hint", text: f.hint })] : [];
+    rows.push(
+      f.type === "check"
+        ? el(doc, "div", { class: "field" }, el(doc, "label", { class: "check-label", for: id }, input, el(doc, "span", { text: ` ${f.label}` })), ...hint)
+        : el(doc, "div", { class: "field" }, el(doc, "label", { class: "field-label", for: id, text: f.label }), input, ...hint),
+    );
+  }
+  return openDialog(doc, {
+    title: opts.title,
+    intro: opts.intro,
+    body: () => rows,
+    confirm: opts.confirm,
+    first: () => inputs.values().next().value ?? null,
+    finish: () => {
+      /** @type {Record<string, string | boolean>} */
+      const values = {};
+      for (const [id, input] of inputs) values[id] = input instanceof HTMLInputElement && input.type === "checkbox" ? input.checked : input.value;
+      return opts.finish(values);
+    },
+  });
+}
+
 /** @param {Document} doc */
 export function aboutDialog(doc) {
   return openDialog(doc, {
