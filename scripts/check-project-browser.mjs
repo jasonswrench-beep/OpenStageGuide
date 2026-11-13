@@ -22,7 +22,7 @@ const ok=(cond,what)=>{if(cond){pass++;console.log('PASS',what);}else{fail++;con
 
 const server=spawn(process.execPath,['scripts/project-server.mjs','--file',file,'--port',String(PORT)],{cwd:APP,stdio:['ignore','pipe','pipe']});
 console.log('server pid',server.pid);
-await new Promise((res,rej)=>{let t='';server.stdout.on('data',d=>{t+=d;if(/OpenStage Guide project at/.test(t))res();});server.stderr.on('data',d=>rej(new Error(String(d))));setTimeout(()=>rej(new Error('server did not start')),15000);});
+await new Promise((res,rej)=>{let t='';server.stdout.on('data',d=>{t+=d;if(/OpenStage Guide at/.test(t))res();});server.stderr.on('data',d=>rej(new Error(String(d))));setTimeout(()=>rej(new Error('server did not start')),15000);});
 
 const raw=(method,urlPath,{headers={},body}={})=>new Promise((resolve,reject)=>{
   const req=http.request({host:'127.0.0.1',port:PORT,path:urlPath,method,headers},res=>{let d='';res.on('data',c=>d+=c);res.on('end',()=>resolve({status:res.statusCode,text:d}));});
