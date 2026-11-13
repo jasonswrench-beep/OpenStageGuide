@@ -1,7 +1,7 @@
 // The editor's decisions apart from the page (program/ui/editor-model.js): which rows are drawn again, and what each key does.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {reconcile,rowSignature,sameList,wordsKey,rowKey,wordsLabel} from '../program/ui/editor-model.js';
+import {reconcile,rowSignature,sameList,wordsKey,rowKey,wordsLabel,textKey} from '../program/ui/editor-model.js';
 
 const sig=list=>list.map(x=>rowSignature({style:'S',xml:x}));
 
@@ -147,4 +147,27 @@ test('Word\'s alignment keys work on a row and in the words: Ctrl+L left, Ctrl+E
   assert.deepEqual(wordsKey(k('j',{ctrl:true})),{do:'align',value:'justify'});
   assert.equal(wordsKey(k('j',{ctrl:true,alt:true})),null);
   assert.equal(wordsKey(k('e',{ctrl:true,composing:true})),null);
+});
+
+test('Word\'s keys for the look of words: Ctrl+B, Ctrl+I, Ctrl+U, Ctrl+= lowered, Ctrl+Shift+= raised, Ctrl+Space for none, in the words and on a row',()=>{
+  const k=(key,extra={})=>({key,ctrl:true,...extra});
+  assert.equal(textKey(k('b')),'bold');
+  assert.equal(textKey(k('B',{shift:true})),null,'Ctrl+Shift+B is not bold');
+  assert.equal(textKey(k('i')),'italic');
+  assert.equal(textKey(k('u')),'underline');
+  assert.equal(textKey(k('=')),'subscript');
+  assert.equal(textKey(k('=',{shift:true})),'superscript');
+  assert.equal(textKey(k('+',{shift:true})),'superscript');
+  assert.equal(textKey(k(' ')),'clear');
+  assert.equal(textKey({key:'b'}),null,'a letter alone is a letter');
+  assert.equal(textKey(k('b',{alt:true})),null);
+  assert.equal(textKey({key:'b',meta:true}),'bold','Command on a Mac');
+  const words={start:2,end:5,length:10};
+  assert.deepEqual(wordsKey({...k('b'),...words}),{do:'text',setting:'bold'});
+  assert.deepEqual(wordsKey({...k(' '),...words}),{do:'text',setting:'clear'});
+  assert.equal(wordsKey({...k('b'),...words,composing:true}),null,'not in the middle of a composition');
+  assert.equal(rowKey(k('b')),'bold');
+  assert.equal(rowKey(k('=')),'subscript');
+  assert.equal(rowKey(k(' ')),'clearText');
+  assert.equal(rowKey(k('i')),'italic');
 });

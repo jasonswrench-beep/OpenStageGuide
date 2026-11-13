@@ -734,8 +734,12 @@ export function createDemoAdapter({DOMParserClass=globalThis.DOMParser,Serialize
     listStyles(){return listStyles(currentStyles(),styleIo,new Set(styleEdits.custom.map(c=>c.id)));},
     styleEdits(){return JSON.parse(JSON.stringify(styleEdits));},
     styleUse(){
+      // How many paragraphs use each style, as the style of the paragraph or as the style of some of its words.
       const use={};
-      for(const p of paras)for(const m of String(p.xml||'').matchAll(/<w:pStyle w:val="([^"]+)"/g))use[m[1]]=(use[m[1]]||0)+1;
+      for(const p of paras){
+        const ids=new Set([...String(p.xml||'').matchAll(/<w:(?:pStyle|rStyle) w:val="([^"]+)"/g)].map(m=>m[1]));
+        for(const id of ids)use[id]=(use[id]||0)+1;
+      }
       return use;
     },
     async setStyleEdits(edits,{group}={}){
@@ -743,7 +747,7 @@ export function createDemoAdapter({DOMParserClass=globalThis.DOMParser,Serialize
       applyStyleEdits(stylesPart(),next,styleIo);
       const keep=new Set(next.custom.map(c=>c.id));
       const use=this.styleUse();
-      for(const c of styleEdits.custom)if(!keep.has(c.id)&&use[c.id])throw new Error(`The style ${c.name} is used by ${use[c.id]} paragraph${use[c.id]===1?'':'s'}, so it stays until they have another kind.`);
+      for(const c of styleEdits.custom)if(!keep.has(c.id)&&use[c.id])throw new Error(`The style ${c.name} is used by ${use[c.id]} paragraph${use[c.id]===1?'':'s'}, so it stays until none of them uses it.`);
       remember(group);
       styleEdits=next;
       refreshStyles();

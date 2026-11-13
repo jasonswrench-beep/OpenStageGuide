@@ -69,3 +69,57 @@ export function askParagraphFormat(doc, current, validate) {
     },
   });
 }
+
+/**
+ * How the chosen words look. A box left as it is changes nothing; a look that was switched is given back as on or off, and what "off" means (the
+ * style may have it on) is for the editor to say. Resolves to the changes (possibly none), or null when the dialog was closed.
+ * @param {Document} doc
+ * @param {{ font?: string, size?: number, color?: string, bold?: boolean, italic?: boolean, underline?: boolean, strike?: boolean, script?: string }} current what the words are like now
+ * @param {(change: Record<string, unknown>) => void} validate throws a message for settings that cannot be used
+ * @returns {Promise<Record<string, unknown> | null>}
+ */
+export function askTextFormat(doc, current, validate) {
+  const was = (/** @type {unknown} */ v) => (v === undefined || v === null ? "" : String(v));
+  return askFields(doc, {
+    title: "Text",
+    intro: "How the chosen words look (with none chosen, every word of the paragraph). A box left as it is changes nothing. Underlined words look like links on a screen, so bold or italic is clearer for emphasis.",
+    confirm: "Apply",
+    fields: [
+      { id: "font", label: "Font", type: "text", value: was(current.font), hint: "Any font name. A Word file only names its font, so the computer that opens it needs the font." },
+      { id: "size", label: "Size (points, 6 to 96)", type: "text", value: was(current.size) },
+      { id: "color", label: "Color (six digits after a #)", type: "text", value: was(current.color), hint: "Dark words on a light page read best. Review guide checks the contrast." },
+      { id: "bold", label: "Bold", type: "check", value: current.bold === true },
+      { id: "italic", label: "Italic", type: "check", value: current.italic === true },
+      { id: "underline", label: "Underline", type: "check", value: current.underline === true },
+      { id: "strike", label: "Strikethrough", type: "check", value: current.strike === true },
+      {
+        id: "script",
+        label: "Raised or lowered",
+        type: "select",
+        value: was(current.script),
+        options: [
+          { value: "", label: "As it is" },
+          { value: "superscript", label: "Raised (superscript)" },
+          { value: "subscript", label: "Lowered (subscript)" },
+          { value: "baseline", label: "Neither" },
+        ],
+      },
+    ],
+    finish: (v) => {
+      /** @type {Record<string, unknown>} */
+      const change = {};
+      const font = String(v.font).trim();
+      if (font && font !== was(current.font)) change.font = font;
+      const size = String(v.size).trim();
+      if (size && size !== was(current.size)) change.size = Number(size);
+      const color = String(v.color).trim().toUpperCase();
+      if (color && color !== was(current.color).toUpperCase()) change.color = color;
+      for (const k of ["bold", "italic", "underline", "strike"]) if (v[k] !== (/** @type {Record<string, unknown>} */ (current)[k] === true)) change[k] = v[k] === true;
+      const script = String(v.script);
+      if (script && script !== was(current.script)) change.script = script;
+      validate(change);
+      return change;
+    },
+  });
+}
+

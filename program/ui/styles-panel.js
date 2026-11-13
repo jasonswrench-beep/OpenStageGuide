@@ -38,7 +38,7 @@ export function openStylesPanel(doc, guide, say, startId) {
   const field = (/** @type {string} */ id) => /** @type {HTMLInputElement} */ (doc.getElementById(`sp-${id}`));
 
   function reload(/** @type {string | undefined} */ keep) {
-    list = guide.listStyles().filter((/** @type {any} */ s) => s.type === "paragraph");
+    list = guide.listStyles().filter((/** @type {any} */ s) => s.type === "paragraph" || (s.type === "character" && s.custom));
     edits = guide.styleEdits();
     const select = /** @type {HTMLSelectElement | null} */ (doc.getElementById("sp-list"));
     if (!select) return;
@@ -51,7 +51,7 @@ export function openStylesPanel(doc, guide, say, startId) {
       const g = el(doc, "optgroup", { label });
       for (const s of items) {
         const changed = !!edits.overrides[s.id];
-        g.append(el(doc, "option", { value: s.id, text: `${s.name}${changed ? " (changed)" : ""}` }));
+        g.append(el(doc, "option", { value: s.id, text: `${s.name}${s.type === "character" ? " (character style)" : ""}${changed ? " (changed)" : ""}` }));
       }
       select.append(g);
     };
@@ -73,7 +73,10 @@ export function openStylesPanel(doc, guide, say, startId) {
     for (const k of ["bold", "italic", "underline", "strike"]) if (loaded.font[k] === undefined) loaded.font[k] = false;
     if (loaded.paragraph.keepWithNext === undefined) loaded.paragraph.keepWithNext = false;
     /** @type {HTMLElement} */ (doc.getElementById("sp-name")).textContent = current.name;
-    /** @type {HTMLElement} */ (doc.getElementById("sp-based")).textContent = current.custom
+    const isChar = current.type === "character";
+    /** @type {HTMLElement} */ (doc.getElementById("sp-based")).textContent = isChar
+      ? "A character style of your own: it gives words a look. Give it to words with Format, Character style."
+      : current.custom
       ? `Your own style, based on ${list.find((s) => s.id === current.basedOn)?.name ?? current.basedOn}.`
       : current.basedOn
         ? `Based on ${list.find((s) => s.id === current.basedOn)?.name ?? current.basedOn}.`
@@ -93,6 +96,8 @@ export function openStylesPanel(doc, guide, say, startId) {
     field("keep").checked = loaded.paragraph.keepWithNext === true;
     field("shading").value = show(loaded.shading);
     field("shadingpick").value = loaded.shading ?? "#FFFFFF";
+    // A character style has no alignment, spacing, indents or shading: those boxes are left alone.
+    for (const id of ["alignment", "before", "after", "line", "left", "first", "keep", "shading", "shadingpick"]) field(id).disabled = isChar;
     /** @type {HTMLButtonElement} */ (doc.getElementById("sp-reset")).disabled = current.custom || !edits.overrides[current.id];
     /** @type {HTMLButtonElement} */ (doc.getElementById("sp-delete")).disabled = !current.custom;
     problem("");
@@ -130,6 +135,8 @@ export function openStylesPanel(doc, guide, say, startId) {
     if (number(text("first")) !== undefined) p.firstLineIndent = number(text("first"));
     p.keepWithNext = field("keep").checked;
     if (text("shading")) spec.shading = text("shading").toUpperCase();
+    // Words have no alignment, spacing or shading of their own.
+    if (current?.type === "character") return { font: spec.font };
     return spec;
   }
 
@@ -224,6 +231,23 @@ export function openStylesPanel(doc, guide, say, startId) {
     }
   }
 
+  async function createChar() {
+    const name = await askName(doc, { title: "New character style", label: "Name of the style", confirm: "Create", hint: "A look for words inside a sentence: a font, size, color, bold, italic. Give it to words with Format, Character style." });
+    if (!name) return;
+    const clean = name.replace(/\s+/g, " ").trim();
+    if (list.some((s) => s.name.toLowerCase() === clean.toLowerCase())) {
+      problem(`There is already a style called ${clean}.`);
+      return;
+    }
+    const id = idForName(clean, [...guide.listStyles().map((/** @type {any} */ s) => s.id), ...edits.custom.map((/** @type {any} */ c) => c.id)]);
+    const next = JSON.parse(JSON.stringify(edits));
+    next.custom.push({ id, name: clean, type: "character", basedOn: "DefaultParagraphFont", spec: {} });
+    if (await save(next)) {
+      say(`${clean} is a character style of your own now. Change it here, then give it to words with Format, Character style.`);
+      reload(id);
+    }
+  }
+
   /** @param {string} id @param {string} label @param {string} [type] @param {Record<string, string>} [extra] */
   const input = (id, label, type = "text", extra = {}) =>
     el(doc, "div", { class: "field" }, el(doc, "label", { class: "field-label", for: `sp-${id}`, text: label }), el(doc, "input", { id: `sp-${id}`, type, autocomplete: "off", ...extra }));
@@ -254,7 +278,7 @@ export function openStylesPanel(doc, guide, say, startId) {
         { class: "sp-left" },
         el(doc, "label", { class: "field-label", for: "sp-list", text: "Style" }),
         el(doc, "select", { id: "sp-list", size: "14", "aria-label": "Styles of the guide" }),
-        el(doc, "div", { class: "sp-buttons" }, button("New style...", create, "sp-new"), button("Delete style", remove, "sp-delete")),
+        el(doc, "div", { class: "sp-buttons" }, button("New style...", create, "sp-new"), button("New character style...", createChar, "sp-new-char"), button("Delete style", remove, "sp-delete")),
       );
       const fontField = input("font", "Font", "text", { list: "sp-fonts", maxlength: "64" });
       const colorRow = el(doc, "div", { class: "field" }, el(doc, "label", { class: "field-label", for: "sp-color", text: "Color (six digits after a #)" }), el(doc, "div", { class: "sp-pair" }, el(doc, "input", { id: "sp-color", type: "text", autocomplete: "off", maxlength: "7", placeholder: "#1F3A5F" }), el(doc, "input", { id: "sp-colorpick", type: "color", "aria-label": "Pick a color" })));

@@ -13,7 +13,7 @@ import {ALIGNMENTS,FORMAT_LIMITS} from './guide-format.mjs';
 const W='http://schemas.openxmlformats.org/wordprocessingml/2006/main';
 export const STYLE_LIMITS=Object.freeze({custom:60,name:60,font:64,size:[6,96],space:FORMAT_LIMITS.space,line:FORMAT_LIMITS.line,indent:[0,360],first:[-360,360]});
 const PPR_ORDER=['pStyle','keepNext','keepLines','pageBreakBefore','framePr','widowControl','numPr','suppressLineNumbers','pBdr','shd','tabs','suppressAutoHyphens','kinsoku','wordWrap','overflowPunct','topLinePunct','autoSpaceDE','autoSpaceDN','bidi','adjustRightInd','snapToGrid','spacing','ind','contextualSpacing','mirrorIndents','suppressOverlap','jc','textDirection','textAlignment','textboxTightWrap','outlineLvl','divId','cnfStyle','rPr','sectPr','pPrChange'];
-const RPR_ORDER=['rStyle','rFonts','b','bCs','i','iCs','caps','smallCaps','strike','dstrike','outline','shadow','emboss','imprint','noProof','snapToGrid','vanish','webHidden','color','spacing','w','kern','position','sz','szCs','highlight','u','effect','bdr','shd','fitText','vertAlign','rtl','cs','em','lang','eastAsianLayout','specVanish','oMath'];
+export const RPR_ORDER=['rStyle','rFonts','b','bCs','i','iCs','caps','smallCaps','strike','dstrike','outline','shadow','emboss','imprint','noProof','snapToGrid','vanish','webHidden','color','spacing','w','kern','position','sz','szCs','highlight','u','effect','bdr','shd','fitText','vertAlign','rtl','cs','em','lang','eastAsianLayout','specVanish','oMath'];
 const STYLE_ORDER=['name','aliases','basedOn','next','link','autoRedefine','hidden','uiPriority','semiHidden','unhideWhenUsed','qFormat','locked','personal','personalCompose','personalReply','rsid','pPr','rPr','tblPr','trPr','tcPr','tblStylePr'];
 const FROM_WORD={left:'left',start:'left',center:'center',right:'right',end:'right',both:'justify'};
 const COLOR=/^#[0-9A-Fa-f]{6}$/;
@@ -398,16 +398,22 @@ export function previewStyles(edits,list){
     while(s&&guard++<12){out.unshift(s);s=s.custom?byId.get(s.basedOn):null;}
     return out;
   };
-  return {
+  const view={
     cssFor(name){
       let spec={};
       for(const s of chain(name))spec=mergeSpec(spec,s.custom?s.own:(edits.overrides[s.id]||{}));
       const css=specCss(spec);
       return Object.keys(css).length?css:null;
     },
+    /** The same for a style named by its id, as the words of a run name their character style. */
+    cssForId(id){
+      const s=byId.get(id);
+      return s?view.cssFor(s.name):null;
+    },
     baseOf(name){
       const c=chain(name);
       return c.length&&c[0].custom===false?c[0].name:null;
     }
   };
+  return view;
 }

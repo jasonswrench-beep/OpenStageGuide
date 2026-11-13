@@ -93,6 +93,16 @@ const INSERT_ITEMS = /** @type {{ name: string, label: string, icon: UiIconName,
 
 /** The Format menu's items, each a command of the editor (see editor.js). */
 const FORMAT_ITEMS = /** @type {({ name: string, label: string, icon: UiIconName, keys?: string, title: string, own?: boolean } | "-")[]} */ ([
+  { name: "bold", label: "Bold", icon: "bold", keys: "Ctrl+B", title: "Make the chosen words bold, or take it off" },
+  { name: "italic", label: "Italic", icon: "italic", keys: "Ctrl+I", title: "Slant the chosen words, or take it off" },
+  { name: "underline", label: "Underline", icon: "underline", keys: "Ctrl+U", title: "Underline the chosen words (underlined words look like links on a screen, so bold or italic is clearer)" },
+  { name: "strike", label: "Strikethrough", icon: "strikethrough", title: "Draw a line through the chosen words" },
+  { name: "superscript", label: "Superscript", icon: "superscript", keys: "Ctrl+Shift+=", title: "Raise the chosen words above the line, as in 10 to the power of 3" },
+  { name: "subscript", label: "Subscript", icon: "subscript", keys: "Ctrl+=", title: "Lower the chosen words below the line, as in H2O" },
+  { name: "text", label: "Text...", icon: "type", title: "The font, size and color of the chosen words, and their looks, in one place" },
+  { name: "charStyle", label: "Character style...", icon: "baseline", title: "Give the chosen words one of the character styles you made, or take it off" },
+  { name: "clearText", label: "Clear text formatting", icon: "remove-formatting", keys: "Ctrl+Space", title: "Take away the looks given to the chosen words, so the paragraph's style decides again" },
+  "-",
   { name: "alignLeft", label: "Align left", icon: "text-align-start", keys: "Ctrl+L", title: "Line the paragraphs up on the left, the easiest to read" },
   { name: "alignCenter", label: "Center", icon: "text-align-center", keys: "Ctrl+E", title: "Put the paragraphs in the middle of the line" },
   { name: "alignRight", label: "Align right", icon: "text-align-end", keys: "Ctrl+R", title: "Line the paragraphs up on the right" },

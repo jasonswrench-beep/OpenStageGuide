@@ -316,6 +316,9 @@ dialog h2 { margin: 0 0 10px; }
 .page .g-editing .g-lead { flex: none; color: var(--muted); font-weight: 600; }
 .page textarea.g-edit { flex: 1 1 auto; min-width: 0; width: 100%; box-sizing: border-box; font: inherit; line-height: inherit; color: inherit; background: var(--card); border: 1px solid var(--accent); border-radius: 4px; padding: 2px 6px; margin: 0; resize: none; overflow: hidden; }
 .page textarea.g-edit:focus-visible { outline: 3px solid var(--focus); outline-offset: 1px; }
+/* The box for a paragraph's words, which shows each stretch with its own look (program/ui/richbox.js). */
+.page .g-edit.g-rich { flex: 1 1 auto; min-width: 0; width: 100%; box-sizing: border-box; font: inherit; line-height: inherit; color: inherit; background: var(--card); border: 1px solid var(--accent); border-radius: 4px; padding: 2px 6px; margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; min-height: 1.5em; cursor: text; }
+.page .g-edit.g-rich:focus-visible { outline: 3px solid var(--focus); outline-offset: 1px; }
 .page .g-blank { min-height: 1.6em; }
 .page [data-selected="true"] { background: var(--tint); box-shadow: inset 4px 0 0 var(--accent); }
 .page [data-selected="true"]:hover:not(.g-editing) { background: var(--tint); }
@@ -353,3 +356,13 @@ dialog:has(.si-table) { width: min(900px, 96vw); max-width: 96vw; }
 .si-sample { display: block; max-width: 22rem; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; padding: 2px 4px; color: var(--text); }
 .si-desc { display: block; margin-top: 2px; }
 .si-to { max-width: 100%; }
+
+/* ---- The formatting bar above the guide (program/ui/editor.js) */
+.format-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 2px; position: sticky; top: -20px; z-index: 2; margin: -4px 0 12px; padding: 4px; background: var(--card); border: 1px solid var(--line); border-radius: 8px; }
+.format-tool { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; padding: 0; border: 1px solid transparent; border-radius: 6px; background: transparent; color: var(--text); cursor: pointer; }
+.format-tool:hover { background: var(--tint); }
+.format-tool[aria-pressed="true"] { background: var(--tint); border-color: var(--accent); color: var(--accent); }
+.format-tool:focus-visible { outline: 3px solid var(--focus); outline-offset: 1px; }
+.format-tool .ui-icon { width: 18px; height: 18px; }
+.format-sep { width: 1px; height: 22px; margin: 0 6px; background: var(--line); }
+

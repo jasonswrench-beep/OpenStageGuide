@@ -157,9 +157,9 @@ test('the Format menu: the four alignments with Word\'s keys, the Paragraph dial
   const {menus}=buildMenus({hasGuide:()=>guide,openTool(){},updateGuide(){},newGuide(){},openGuide(){},closeGuide(){},search(){},keys(){},about(){},importStyles(){imported++;},edit:{command:n=>told.push(n),state:()=>state}});
   const fmt=menus.find(m=>m.id==='format');
   const all=fmt.items.filter(i=>i!=='-');
-  assert.deepEqual(all.map(i=>[i.label,i.keys]),[['Align left','Ctrl+L'],['Center','Ctrl+E'],['Align right','Ctrl+R'],['Justify','Ctrl+J'],['Paragraph...',undefined],['Clear paragraph formatting',undefined],['Styles...',undefined],['New style from this paragraph...',undefined],['Styles from a Word file...',undefined]]);
+  assert.deepEqual(all.map(i=>[i.label,i.keys]),[['Bold','Ctrl+B'],['Italic','Ctrl+I'],['Underline','Ctrl+U'],['Strikethrough',undefined],['Superscript','Ctrl+Shift+='],['Subscript','Ctrl+='],['Text...',undefined],['Character style...',undefined],['Clear text formatting','Ctrl+Space'],['Align left','Ctrl+L'],['Center','Ctrl+E'],['Align right','Ctrl+R'],['Justify','Ctrl+J'],['Paragraph...',undefined],['Clear paragraph formatting',undefined],['Styles...',undefined],['New style from this paragraph...',undefined],['Styles from a Word file...',undefined]]);
   for(const i of all){assert.ok(i.icon&&UI_ICONS[i.icon],`${i.label} has an icon`);assert.ok(i.title.length>10);assert.equal(i.enabled(),true);i.run();}
-  assert.deepEqual(told,['alignLeft','alignCenter','alignRight','alignJustify','paragraph','clearFormat','styles','newStyle']);
+  assert.deepEqual(told,['bold','italic','underline','strike','superscript','subscript','text','charStyle','clearText','alignLeft','alignCenter','alignRight','alignJustify','paragraph','clearFormat','styles','newStyle']);
   assert.equal(imported,1,'taking styles from a Word file belongs to the program, not the editor');
   // Taking styles from a Word file needs a guide, not a paragraph; the rest need a paragraph to format.
   const items=all.filter(i=>i.label!=='Styles from a Word file...'),fromFile=all.find(i=>i.label==='Styles from a Word file...');

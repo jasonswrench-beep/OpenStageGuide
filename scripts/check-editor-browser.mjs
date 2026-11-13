@@ -11,6 +11,8 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import JSZip from 'jszip';
 import {parseProject} from '../src/guide-project.mjs';
+import {readParagraph} from '../src/guide-edit.mjs';
+import {fmtOfRpr} from '../src/guide-runs.mjs';
 import {readTable} from '../src/guide-table.mjs';
 import {DOMParser,XMLSerializer} from '@xmldom/xmldom';
 const require=createRequire(import.meta.url);
@@ -48,7 +50,7 @@ try{
   const saved=async()=>{await page.waitForTimeout(600);await page.waitForFunction(()=>document.querySelector('.bar-context-state')?.getAttribute('data-state')==='saved',null,{timeout:10000});};
   const rows=()=>page.locator('#work-guide [data-index]');
   const row=re=>page.locator('#work-guide [data-index]').filter({hasText:re}).first();
-  const active=()=>page.evaluate(()=>{const a=document.activeElement;return a?{tag:a.tagName,index:a.dataset?.index??null,label:a.getAttribute('aria-label'),value:a.value??null,start:a.selectionStart??null}:null;});
+  const active=()=>page.evaluate(()=>{const a=document.activeElement;return a?{tag:a.tagName,words:a.tagName==='TEXTAREA'||a.isContentEditable,index:a.dataset?.index??null,label:a.getAttribute('aria-label'),value:a.value??null,start:a.selectionStart??null}:null;});
 
   // ---- a guide with something in it, made with the tools
   await page.goto(`${BASE}/`);
@@ -103,25 +105,25 @@ try{
   // ---- changing the words of a plain paragraph
   await row(/^Facilitator guide$/).click();
   let a=await active();
-  ok(a.tag==='TEXTAREA'&&a.value==='Facilitator guide'&&a.label==='Paragraph words','a click starts changing the words: a text box with the words and a name');
+  ok(a.words&&a.value==='Facilitator guide'&&a.label==='Paragraph words','a click starts changing the words: a text box with the words and a name');
   await page.keyboard.press('Control+a');
   await page.keyboard.type('Facilitator guide for reframing conflict');
   a=await active();
-  ok(a.tag==='TEXTAREA'&&a.value==='Facilitator guide for reframing conflict','typing keeps the keyboard in the box');
+  ok(a.words&&a.value==='Facilitator guide for reframing conflict','typing keeps the keyboard in the box');
   await saved();
   ok(onDisk().some(p=>p.text==='Facilitator guide for reframing conflict'),'the words are in the project file on disk');
   const long='Line '.repeat(60).trim();
   await page.keyboard.press('Control+a');
   await page.keyboard.type(long,{delay:0});
   a=await active();
-  ok(a.tag==='TEXTAREA'&&a.value===long,'a long, fast run of typing arrives whole and the keyboard stays in the box');
+  ok(a.words&&a.value===long,'a long, fast run of typing arrives whole and the keyboard stays in the box');
   await saved();
   ok(onDisk().some(p=>p.text===long),'and it is all on disk');
   await page.keyboard.press('Control+a');
   await page.keyboard.type('Facilitator guide for reframing conflict');
   await page.keyboard.press('Escape');
   a=await active();
-  ok(a.tag!=='TEXTAREA'&&a.index!==null,'Escape stops changing the words and the row has the keyboard');
+  ok(!a.words&&a.index!==null,'Escape stops changing the words and the row has the keyboard');
   ok((await row(/^Facilitator guide for reframing/).innerText()).trim()==='Facilitator guide for reframing conflict','the row shows the words as they read');
   await shot('2-words.png');
 
@@ -132,23 +134,23 @@ try{
   for(let i=0;i<5;i++)await page.keyboard.press('ArrowRight');
   await page.keyboard.press('Enter');
   a=await active();
-  ok(a.tag==='TEXTAREA'&&a.value.startsWith(' the people and organizations')&&a.start===0,'Enter in the middle: the rest is a new paragraph, with the caret at its start');
+  ok(a.words&&a.value.startsWith(' the people and organizations')&&a.start===0,'Enter in the middle: the rest is a new paragraph, with the caret at its start');
   await saved();
   let disk=onDisk().map(p=>p.text);
   ok(disk.includes('Thank')&&disk.some(t=>t.startsWith(' the people and organizations')),'both paragraphs are on disk');
   await page.keyboard.press('Backspace');
   a=await active();
-  ok(a.tag==='TEXTAREA'&&a.value.startsWith('Thank the people')&&a.start===5,'Backspace at the start joins it back, the caret where they met');
+  ok(a.words&&a.value.startsWith('Thank the people')&&a.start===5,'Backspace at the start joins it back, the caret where they met');
   await saved();
   ok(!onDisk().map(p=>p.text).includes('Thank'),'and the project file has one paragraph again');
   await page.keyboard.press('End');
   await page.keyboard.press('Enter');
   a=await active();
-  ok(a.tag==='TEXTAREA'&&a.value===''&&a.start===0,'Enter at the end makes an empty paragraph and goes into it');
-  ok(await page.locator('#work-guide textarea').count()===1,'only one paragraph is being changed: the row Enter left is drawn as it reads');
+  ok(a.words&&a.value===''&&a.start===0,'Enter at the end makes an empty paragraph and goes into it');
+  ok(await page.locator('#work-guide [contenteditable="true"]').count()===1,'only one paragraph is being changed: the row Enter left is drawn as it reads');
   await page.keyboard.type('A new line of the author\'s own.');
   await page.keyboard.press('Escape');
-  ok(await page.locator('#work-guide textarea').count()===0,'no text box is left when changing the words has stopped');
+  ok(await page.locator('#work-guide [contenteditable="true"]').count()===0,'no text box is left when changing the words has stopped');
   ok(/A new line of the author's own\./.test(await page.locator('#work-guide').innerText()),'the new paragraph is in the guide');
   await shot('3-enter.png');
 
@@ -171,7 +173,7 @@ try{
   // ---- a heading: the number is shown, the title is typed
   await row(/Module 1: Naming it/).click();
   a=await active();
-  ok(a.tag==='TEXTAREA'&&a.value==='Naming it'&&a.label==='Module title','a module heading: the title is in the box');
+  ok(a.words&&a.value==='Naming it'&&a.label==='Module title','a module heading: the title is in the box');
   ok(/Module 1:/.test(await page.locator('#work-guide .g-editing .g-lead').first().innerText()),'and the number the program writes is beside it');
   await page.keyboard.press('Control+a');
   await page.keyboard.type('Naming feelings');
@@ -182,13 +184,13 @@ try{
   await row(/Module 1: Naming feelings/).click();
   await page.keyboard.press('Enter');
   a=await active();
-  ok(a.tag==='TEXTAREA'&&a.label==='Lesson title','Enter in a heading goes on to the next row, not a new paragraph');
+  ok(a.words&&a.label==='Lesson title','Enter in a heading goes on to the next row, not a new paragraph');
   await page.keyboard.press('Escape');
 
   // ---- a cue line keeps its picture and its name
   await row(/What makes it hard\?/).first().click();
   a=await active();
-  ok(a.tag==='TEXTAREA'&&a.label==='Block words'&&a.value.startsWith('What makes it hard?'),'a cue line: the words are in the box, the cue\'s name beside it');
+  ok(a.words&&a.label==='Block words'&&a.value.startsWith('What makes it hard?'),'a cue line: the words are in the box, the cue\'s name beside it');
   await page.keyboard.press('End');
   await page.keyboard.type(' Really?');
   await page.keyboard.press('Escape');
@@ -233,7 +235,7 @@ try{
   await row(/^Say what this guide is for/).focus();
   await page.keyboard.press('Control+Enter');
   a=await active();
-  ok(a.tag==='TEXTAREA'&&a.value==='','Ctrl+Enter adds a paragraph below and goes into it');
+  ok(a.words&&a.value==='','Ctrl+Enter adds a paragraph below and goes into it');
   await page.keyboard.type('Added by the author.');
   await page.keyboard.press('Escape');
   await saved();
@@ -272,13 +274,13 @@ try{
 
   await row(/^Say what this guide is for/).click();
   await page.keyboard.press('End');
-  await page.evaluate(()=>{const ta=document.querySelector('#work-guide textarea');const dt=new DataTransfer();dt.setData('text/plain','First pasted.\nSecond pasted.\n\nThird pasted.');ta.dispatchEvent(new ClipboardEvent('paste',{clipboardData:dt,bubbles:true,cancelable:true}));});
+  await page.evaluate(()=>{const ta=document.querySelector('#work-guide [contenteditable="true"]');const dt=new DataTransfer();dt.setData('text/plain','First pasted.\nSecond pasted.\n\nThird pasted.');ta.dispatchEvent(new ClipboardEvent('paste',{clipboardData:dt,bubbles:true,cancelable:true}));});
   await saved();
   now=order();
   const at=now.indexOf('Say what this guide is for and who should use it.First pasted.');
   ok(at>=0&&now[at+1]==='Second pasted.'&&now[at+2]==='Third pasted.','several lines pasted into the words become a paragraph each (the blank line is dropped)');
   a=await active();
-  ok(a.tag==='TEXTAREA'&&a.value==='Third pasted.','the keyboard is at the end of what was pasted');
+  ok(a.words&&a.value==='Third pasted.','the keyboard is at the end of what was pasted');
   await page.keyboard.press('Escape');
   await page.getByRole('menuitem',{name:/^Edit/}).click();
   await page.getByRole('menuitem',{name:/^Undo/}).click();
@@ -331,7 +333,7 @@ try{
   ok(onDisk().some(p=>p.style==='OSG Form Print'),'with its print line');
   await page.getByRole('button',{name:'Update guide'}).click();
   let numbered=false;
-  for(let i=0;i<25&&!numbered;i++){await saved();numbered=onDisk().some(p=>/^Checklist [A-Z0-9.]+: Preparation list$/.test(p.text));}
+  for(let i=0;i<60&&!numbered;i++){await saved();numbered=onDisk().some(p=>/^Checklist [A-Z0-9.]+: Preparation list$/.test(p.text));}
   ok(numbered,'Update guide numbers it');
   await shot('8-form.png');
 
@@ -499,7 +501,7 @@ try{
   await page.keyboard.press('Control+e');
   await page.waitForTimeout(300);
   a=await active();
-  ok(a.tag==='TEXTAREA'&&a.start===caretBefore&&caretBefore>0,'Ctrl+E while changing the words aligns the paragraph and the caret is where it was ('+caretBefore+')');
+  ok(a.words&&a.start===caretBefore&&caretBefore>0,'Ctrl+E while changing the words aligns the paragraph and the caret is where it was ('+caretBefore+')');
   await saved();
   ok(jc(SAY)==='center','and it is centered on disk');
   await page.keyboard.press('Escape');
@@ -583,6 +585,231 @@ try{
   ok(projectStyles().custom.find(c=>c.name==='Centered note')===undefined&&onDisk().find(p=>p.text==='Say what this guide is for and who should use it.').style==='Normal','one Ctrl+Z takes back the style and the paragraph\'s change together');
   await shot('12-styles.png');
 
+  // ---- formatting inside a sentence: the looks of chosen words, typed in, split, joined, from a menu, and Undo
+  const spansOf=start=>{const p=onDisk().find(q=>q.text.startsWith(start));return p?readParagraph(p.xml,p.style,tableIo).spans.map(sp=>({text:sp.text,...fmtOfRpr(sp.rpr,tableIo)})):null;};
+  const rich=row(/^Say what this guide is for/);
+  await rich.focus();
+  await page.keyboard.press('Enter');
+  a=await active();
+  ok(a.words&&a.value==='Say what this guide is for and who should use it.','the words are in a box that can show their looks');
+  await page.keyboard.press('Home');
+  for(let i=0;i<3;i++)await page.keyboard.press('Shift+ArrowRight');
+  await page.keyboard.press('Control+b');
+  await saved();
+  let sp=spansOf('Say what this guide');
+  ok(sp.length===2&&sp[0].text==='Say'&&sp[0].bold===true&&sp[1].bold===undefined,'Ctrl+B makes the chosen words bold, in the document: '+JSON.stringify(sp));
+  ok(await page.locator('#work-guide [contenteditable="true"] span').first().evaluate(e=>getComputedStyle(e).fontWeight==='700'&&e.textContent==='Say'),'and the box shows them bold as they are typed');
+  a=await active();
+  ok(a.words&&a.start===0,'the words stay chosen, and the keyboard stays in the box');
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.type('XY');
+  await saved();
+  sp=spansOf('SayXY');
+  ok(sp&&sp[0].text==='SayXY'&&sp[0].bold===true,'words typed after bold words are bold: '+JSON.stringify(sp&&sp[0]));
+  await page.keyboard.press('Home');
+  for(let i=0;i<5;i++)await page.keyboard.press('Shift+ArrowRight');
+  await page.keyboard.press('Control+b');
+  await saved();
+  sp=spansOf('SayXY');
+  ok(sp.length===1&&sp[0].bold===undefined,'Ctrl+B again takes it off: the paragraph is one plain stretch again');
+  // italic and a color, then a word raised
+  await page.keyboard.press('Home');
+  for(let i=0;i<5;i++)await page.keyboard.press('Shift+ArrowRight');
+  await page.keyboard.press('Control+i');
+  await page.keyboard.press('Control+Shift+=');
+  await saved();
+  sp=spansOf('SayXY');
+  ok(sp[0].italic===true&&sp[0].script==='superscript','Ctrl+I and Ctrl+Shift+= give italic and raised: '+JSON.stringify(sp[0]));
+  await page.keyboard.press('Control+Space');
+  await saved();
+  sp=spansOf('SayXY');
+  ok(sp.length===1&&sp[0].italic===undefined&&sp[0].script===undefined,'Ctrl+Space takes every look away');
+  // the Text dialog from the Format menu
+  for(let i=0;i<5;i++)await page.keyboard.press('Shift+ArrowRight');
+  await page.keyboard.press('Home');
+  for(let i=0;i<5;i++)await page.keyboard.press('Shift+ArrowRight');
+  await formatMenu(/^Text\.\.\./);
+  await page.locator('#dlg-f-font').waitFor({timeout:5000});
+  await page.fill('#dlg-f-size','2');
+  await page.getByRole('button',{name:'Apply'}).click();
+  ok(/from 6 to 96/.test(await page.locator('dialog[open] .problem').innerText()),'a size that is too small is explained in the dialog, which stays open');
+  await page.fill('#dlg-f-size','14');
+  await page.fill('#dlg-f-color','#C00000');
+  await page.fill('#dlg-f-font','Georgia');
+  await page.check('#dlg-f-italic');
+  await page.getByRole('button',{name:'Apply'}).click();
+  await saved();
+  sp=spansOf('SayXY');
+  ok(sp[0].text==='SayXY'&&sp[0].font==='Georgia'&&sp[0].size===14&&sp[0].color==='#C00000'&&sp[0].italic===true&&sp[1]?.font===undefined,'the dialog gave the words that were chosen a font, size, color and italic, and no others: '+JSON.stringify(sp));
+  a=await active();
+  ok(a.words,'and the keyboard is back in the box');
+  await shot('14-rich.png');
+  // Enter in the middle of the words: both halves keep their look
+  await page.keyboard.press('Home');
+  for(let i=0;i<3;i++)await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('Enter');
+  await saved();
+  const halves=onDisk().map(q=>q.text);
+  const firstAt=halves.indexOf('Say');
+  ok(firstAt>=0&&halves[firstAt+1]==='XY what this guide is for and who should use it.','Enter in the middle makes two paragraphs');
+  ok(spansOf('XY what')[0].font==='Georgia'&&spansOf('XY what')[0].color==='#C00000','the second paragraph starts with the look of the words it was cut from');
+  await page.keyboard.press('Backspace');
+  await saved();
+  sp=spansOf('SayXY');
+  ok(sp.length===2&&sp[0].text==='SayXY'&&sp[0].font==='Georgia'&&sp[1].font===undefined,'Backspace at the start joins them back, each part with its own look: '+JSON.stringify(sp));
+  // Undo takes back the last thing only
+  await page.keyboard.press('Control+z');
+  await saved();
+  ok(onDisk().some(q=>q.text==='Say')&&onDisk().some(q=>q.text.startsWith('XY what')),'Ctrl+Z takes back the join and nothing before it');
+  await page.keyboard.press('Control+z');
+  await page.keyboard.press('Control+z');
+  await saved();
+  sp=spansOf('SayXY');
+  ok(sp.length===1&&sp[0].font===undefined&&sp[0].italic===undefined,'and two more take back the split and the dialog\'s look, one step each');
+  // what the browser itself would do is refused
+  await page.evaluate(()=>{const b=document.querySelector('#work-guide [contenteditable="true"]');const dt=new DataTransfer();dt.setData('text/plain','Plain.');dt.setData('text/html','<b style="color:red">Rich</b>');b.dispatchEvent(new ClipboardEvent('paste',{clipboardData:dt,bubbles:true,cancelable:true}));});
+  await saved();
+  ok(onDisk().some(q=>/Plain\./.test(q.text))&&!onDisk().some(q=>/Rich/.test(q.text)),'a paste brings in the plain words only, never the markup');
+  ok(await page.locator('#work-guide [contenteditable="true"] :not(span)').count()===0,'and the box holds only its own spans: no b, i or div the browser made');
+  // from a menu, without the box: the whole paragraph, then the words that were chosen a moment ago
+  await page.keyboard.press('Escape');
+  await row(/^SayXY/).focus();
+  await formatMenu(/^Bold/);
+  await saved();
+  sp=spansOf('SayXY');
+  ok(sp.length===1&&sp[0].bold===true,'Format, Bold on a paragraph makes all its words bold');
+  await formatMenu(/^Bold/);
+  await saved();
+  ok(spansOf('SayXY').every(x=>x.bold===undefined),'and again takes it off');
+  await row(/^SayXY/).focus();
+  await page.keyboard.press('Enter');
+  await page.keyboard.press('Home');
+  for(let i=0;i<3;i++)await page.keyboard.press('Shift+ArrowRight');
+  await formatMenu(/^Italic/);
+  await saved();
+  sp=spansOf('SayXY');
+  ok(sp[0].text==='Say'&&sp[0].italic===true&&sp[1].text.length>0&&sp[1].italic===undefined,'a look chosen from a menu goes to the words that were chosen, not the whole paragraph: '+JSON.stringify(sp.map(x=>x.text)));
+  a=await active();
+  ok(a.words&&a.start===0,'and the words are chosen still, back in the box');
+  await page.keyboard.press('Escape');
+  await row(/^SayXY/).focus();
+  await page.keyboard.press('Control+z');
+  await saved();
+  ok(spansOf('SayXY').every(x=>x.italic===undefined),'one Ctrl+Z takes back the menu\'s change');
+  // several paragraphs at once
+  await row(/^SayXY/).focus();
+  await page.keyboard.press('Shift+ArrowDown');
+  await page.keyboard.press('Control+i');
+  await saved();
+  const two=onDisk();
+  const firstTwo=[two.findIndex(q=>q.text.startsWith('SayXY')),0];
+  firstTwo[1]=firstTwo[0]+1;
+  ok(spansOf(two[firstTwo[0]].text).every(x=>x.italic===true)&&readParagraph(two[firstTwo[1]].xml,two[firstTwo[1]].style,tableIo).spans.every(x=>fmtOfRpr(x.rpr,tableIo).italic===true),'Ctrl+I on paragraphs chosen together italicizes each of them');
+  await page.keyboard.press('Control+z');
+  await saved();
+  await page.keyboard.press('Escape');
+
+  // ---- a character style: made in the Styles panel, given to words, drawn, changed for every word that has it, and kept while any does
+  await row(/^SayXY/).focus();
+  await formatMenu(/^Styles\.\.\./);
+  await page.locator('#sp-list').waitFor({timeout:5000});
+  await page.waitForFunction(()=>document.querySelectorAll('#sp-list option').length>20,null,{timeout:5000});
+  await page.getByRole('button',{name:'New character style...'}).click();
+  await page.fill('#dlg-name','Warning words');
+  await page.press('#dlg-name','Enter');
+  await page.waitForFunction(()=>document.querySelector('#sp-name')?.textContent==='Warning words');
+  ok(await page.locator('#sp-alignment').isDisabled()&&await page.locator('#sp-shading').isDisabled()&&await page.locator('#sp-before').isDisabled(),'a character style has no alignment, spacing or shading to change');
+  ok(/character style of your own/.test(await page.locator('#sp-based').innerText()),'and the panel says what it is for');
+  await page.locator('#sp-bold').check();
+  await page.locator('#sp-color').fill('#8A1C1C');
+  await page.getByRole('button',{name:'Apply to this style'}).click();
+  await saved();
+  const warn=projectStyles().custom.find(c=>c.name==='Warning words');
+  ok(!!warn&&warn.type==='character'&&warn.basedOn==='DefaultParagraphFont'&&warn.spec.font?.bold===true&&warn.spec.font.color==='#8A1C1C'&&!warn.spec.paragraph&&!warn.spec.shading,'it is kept as a character style that holds only its font settings');
+  await page.locator('dialog[open] button.primary').click();
+  await page.waitForFunction(()=>!document.querySelector('dialog[open]'));
+  await row(/^SayXY/).focus();
+  await page.keyboard.press('Enter');
+  await page.keyboard.press('Home');
+  for(let i=0;i<3;i++)await page.keyboard.press('Shift+ArrowRight');
+  await formatMenu(/^Character style\.\.\./);
+  await page.locator('dialog[open] input[type=radio]').first().waitFor();
+  ok(await page.locator('dialog[open] input[type=radio]').count()===2,'Character style offers none, and the one made');
+  await page.locator('dialog[open] label:has-text("Warning words") input').check();
+  await page.getByRole('button',{name:'Apply'}).click();
+  await page.waitForFunction(()=>/in a character style/.test(document.querySelector('#status')?.textContent||''),null,{timeout:15000});
+  await saved();
+  sp=spansOf('SayXY');
+  ok(sp[0].text==='Say'&&sp[0].style===warn.id&&sp[1].style===undefined,'the chosen words are in the character style, in the document: '+JSON.stringify(sp.map(x=>[x.text,x.style])));
+  a=await active();
+  ok(a.words&&a.start===0,'and the words are chosen still, back in the box');
+  ok(await page.locator('#work-guide [contenteditable="true"] span').first().evaluate(e=>getComputedStyle(e).fontWeight==='700'&&getComputedStyle(e).color==='rgb(138, 28, 28)'),'the box draws the style\'s look');
+  await page.keyboard.press('Escape');
+  ok(await row(/^SayXY/).locator('span').first().evaluate(e=>getComputedStyle(e).fontWeight==='700'&&getComputedStyle(e).color==='rgb(138, 28, 28)'),'and so does the paragraph as it reads');
+  // changing the style changes every word that has it
+  await formatMenu(/^Styles\.\.\./);
+  await page.locator('#sp-list').waitFor();
+  await page.locator('#sp-list').selectOption({label:'Warning words (character style)'});
+  await page.locator('#sp-color').fill('#102037');
+  await page.getByRole('button',{name:'Apply to this style'}).click();
+  await saved();
+  await page.getByRole('button',{name:'Delete style'}).click();
+  ok(/used by 1 paragraph, so it stays/.test(await page.locator('#sp-problem').innerText()),'a character style in use cannot be deleted, and the panel says why');
+  await page.locator('dialog[open] button.primary').click();
+  await page.waitForFunction(()=>!document.querySelector('dialog[open]'));
+  ok(await row(/^SayXY/).locator('span').first().evaluate(e=>getComputedStyle(e).color==='rgb(16, 32, 55)'),'the words follow the style when it changes');
+  // take it off, and the style can go
+  await row(/^SayXY/).focus();
+  await formatMenu(/^Character style\.\.\./);
+  await page.locator('dialog[open] input[type=radio]').first().waitFor();
+  await page.locator('dialog[open] label:has-text("No character style") input').check();
+  await page.getByRole('button',{name:'Apply'}).click();
+  await page.waitForFunction(()=>/no longer in a character style/.test(document.querySelector('#status')?.textContent||''),null,{timeout:15000});
+  await saved();
+  ok(spansOf('SayXY').every(x=>x.style===undefined),'No character style takes it off the words');
+  await page.keyboard.press('Escape');
+  await formatMenu(/^Styles\.\.\./);
+  await page.locator('#sp-list').waitFor();
+  await page.locator('#sp-list').selectOption({label:'Warning words (character style)'});
+  await page.getByRole('button',{name:'Delete style'}).click();
+  await saved();
+  ok(!projectStyles().custom.some(c=>c.name==='Warning words'),'and then it can be deleted');
+  await page.locator('dialog[open] button.primary').click();
+  await page.waitForFunction(()=>!document.querySelector('dialog[open]'));
+
+  // ---- the formatting bar: the same looks as buttons, which show whether the chosen words have them
+  const bar=page.getByRole('toolbar',{name:'Text formatting'});
+  ok(await bar.count()===1&&await bar.getByRole('button').count()===12,'the guide has a formatting bar with its buttons');
+  ok(await bar.locator('button[tabindex="0"]').count()===1,'with one Tab stop, and the arrow keys along it');
+  const boldButton=bar.getByRole('button',{name:'Bold'});
+  ok(await boldButton.getAttribute('aria-pressed')==='false','Bold is not shown as on while no words are being changed');
+  await row(/^SayXY/).focus();
+  await page.keyboard.press('Enter');
+  await page.keyboard.press('Home');
+  for(let i=0;i<3;i++)await page.keyboard.press('Shift+ArrowRight');
+  await boldButton.click();
+  await page.waitForFunction(()=>document.activeElement?.isContentEditable===true,null,{timeout:5000});
+  a=await active();
+  ok(a.words&&a.start===0,'clicking a button keeps the keyboard in the words, and the words chosen');
+  await saved();
+  sp=spansOf('SayXY');
+  ok(sp[0].text==='Say'&&sp[0].bold===true&&sp[1].bold===undefined,'the Bold button makes the chosen words bold');
+  await page.waitForFunction(()=>document.querySelector('.format-tool[aria-label="Bold"]')?.getAttribute('aria-pressed')==='true',null,{timeout:5000});
+  ok(true,'and shows as on while those words are chosen');
+  await bar.getByRole('button',{name:'Italic'}).click();
+  await saved();
+  sp=spansOf('SayXY');
+  ok(sp[0].bold===true&&sp[0].italic===true,'a second button adds to it');
+  await boldButton.click();
+  await bar.getByRole('button',{name:'Italic'}).click();
+  await saved();
+  ok(spansOf('SayXY').length===1&&spansOf('SayXY')[0].bold===undefined&&spansOf('SayXY')[0].italic===undefined,'and each takes its own look off again');
+  await page.keyboard.press('Escape');
+  await bar.getByRole('button',{name:'Bold'}).focus();
+  await page.keyboard.press('ArrowRight');
+  ok(await page.evaluate(()=>document.activeElement?.getAttribute('aria-label'))==='Italic','the arrow keys move along the bar');
+  await row(/^SayXY/).focus();
+
   // ---- Word files: the guide as a document, its styles as a template, and the styles of a Word file taken in
   const fileMenu=async label=>{await page.getByRole('menuitem',{name:/^File/}).click();await page.getByRole('menuitem',{name:label}).click();};
   const [wordDownload]=await Promise.all([page.waitForEvent('download',{timeout:20000}),fileMenu(/^Save as Word file/)]);
@@ -590,7 +817,7 @@ try{
   const wordZip=await JSZip.loadAsync(fs.readFileSync(await wordDownload.path()));
   const docXml=await wordZip.file('word/document.xml').async('string');
   ok(['[Content_Types].xml','_rels/.rels','word/document.xml','word/_rels/document.xml.rels','word/styles.xml','word/settings.xml','docProps/core.xml'].every(n=>wordZip.file(n)),'the file has the parts a Word file needs');
-  ok(/Getting Started/.test(docXml)&&/Lesson 1\.1: First/.test(docXml)&&/Say what this guide is for/.test(docXml),'the words of the guide are in it');
+  ok(/Getting Started/.test(docXml)&&/Lesson 1\.1: First/.test(docXml)&&/this guide is for and who should use it/.test(docXml),'the words of the guide are in it');
   ok(/TOC \\o "1-2"/.test(docXml),'and a real contents field');
   ok(/<w:sectPr>/.test(docXml),'and the page setup Word needs');
   ok(/<dc:title>Editor guide<\/dc:title>/.test(await wordZip.file('docProps/core.xml').async('string')),'the title of the guide is the title of the file');
@@ -644,7 +871,7 @@ try{
   await row(/Time: 10 minutes/).focus();
   await page.keyboard.press('Enter');
   a=await active();
-  ok(a.tag!=='TEXTAREA','Enter on the time line does not open it');
+  ok(!a.words,'Enter on the time line does not open it');
   ok(/program writes/.test(await page.locator('#status').innerText()),'the program says why');
   const timeBefore=onDisk().find(p=>/Time: 10 minutes/.test(p.text)).xml;
 

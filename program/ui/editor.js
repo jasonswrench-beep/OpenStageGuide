@@ -9,13 +9,16 @@
  *
  * The design is in docs/EDITING-SURFACE-DESIGN-2026-11-13.md. The page writes text and attributes only, never markup.
  */
-import { KINDS, isHeading, joinWords, kindChange, nextParagraphSpec, paragraphWith, readParagraph, setWords, splitWords, withStyle } from "../../src/guide-edit.mjs";
+import { KINDS, isHeading, joinWords, kindChange, nextParagraphSpec, paragraphWith, paragraphWithSpans, readParagraph, setSpans, splitWords, withStyle } from "../../src/guide-edit.mjs";
+import { applyChange, cleanChange, rprAt, slice, summarize } from "../../src/guide-runs.mjs";
 import { canFormat, readParagraphFormat, withParagraphFormat } from "../../src/guide-format.mjs";
 import { idForName } from "../../src/guide-styles-edit.mjs";
 import { addRow, deleteRow, readTable, setCellWords } from "../../src/guide-table.mjs";
 import { previewStyles } from "../../src/guide-styles-edit.mjs";
 import { cellKey, cellWordsKey, reconcile, rowKey, rowSignature, sameList, wordsKey, wordsLabel } from "./editor-model.js";
 import { describeGuide, drawNodes } from "./preview.js";
+import { uiIcon } from "./menubar.js";
+import { createRichBox } from "./richbox.js";
 
 /** @param {string} xml */
 const parseXml = (xml) => new DOMParser().parseFromString(xml, "application/xml");
@@ -26,14 +29,15 @@ const SELECTION_DELAY = 250;
 /**
  * @typedef {{ xml?: string, text?: string, style?: string }} Entry
  * @typedef {{ sig: string, el: HTMLElement }} Row
- * @typedef {{ row: Row, ta: HTMLTextAreaElement, group: string }} Editing
+ * @typedef {ReturnType<typeof createRichBox>} RichBox
+ * @typedef {{ row: Row, ta: RichBox, group: string }} Editing
  */
 
 /**
  * @param {Document} doc
  * @param {HTMLElement} host where the guide is drawn
  * @param {any} guide the guide's document, with its saving
- * @param {{ say: (message: string, bad?: boolean) => void, openStyles: (startId?: string) => Promise<void>, askName: (options: any) => Promise<string | null>, askFormat: (current: any, validate: (fmt: any) => void) => Promise<any>, choose: (options: { title: string, intro?: string, confirm: string, options: { id: string, label: string, note?: string }[], current?: string }) => Promise<string | null> }} ui
+ * @param {{ say: (message: string, bad?: boolean) => void, askText: (current: any, validate: (change: any) => void) => Promise<any>, openStyles: (startId?: string) => Promise<void>, askName: (options: any) => Promise<string | null>, askFormat: (current: any, validate: (fmt: any) => void) => Promise<any>, choose: (options: { title: string, intro?: string, confirm: string, options: { id: string, label: string, note?: string }[], current?: string }) => Promise<string | null> }} ui
  */
 export function mountEditor(doc, host, guide, ui) {
   const page = doc.createElement("article");
@@ -46,7 +50,11 @@ export function mountEditor(doc, host, guide, ui) {
   const empty = doc.createElement("p");
   empty.className = "g-empty";
   empty.textContent = "This guide is empty. Choose Guide overview in the tools beside it to start it.";
-  host.replaceChildren(page, hint);
+  const bar = doc.createElement("div");
+  bar.className = "format-bar";
+  bar.setAttribute("role", "toolbar");
+  bar.setAttribute("aria-label", "Text formatting");
+  host.replaceChildren(bar, page, hint);
 
   /** @type {Entry[]} */
   let entries = [];
@@ -70,6 +78,8 @@ export function mountEditor(doc, host, guide, ui) {
   /** @type {{ row: Row, r: number, c: number, ta: HTMLTextAreaElement, group: string } | null} */
   let cellEditing = null;
   let cellGroups = 0;
+  /** Where words were last chosen in a paragraph, kept for a command chosen from a menu (which takes the focus from the box). @type {{ index: number, start: number, end: number, at: number } | null} */
+  let textSel = null;
   /** What was last cut or copied inside the guide: whole paragraphs, to be pasted back as they were. @type {{ paragraphs: { xml: string, style: string }[], text: string } | null} */
   let clip = null;
 
@@ -209,6 +219,7 @@ export function mountEditor(doc, host, guide, ui) {
     if (!editing) return;
     const e = editing;
     editing = null;
+    textSel = { index: idx(e.row), start: e.ta.selectionStart, end: e.ta.selectionEnd, at: Date.now() };
     redrawRow(e.row);
   }
 
@@ -236,13 +247,7 @@ export function mountEditor(doc, host, guide, ui) {
       return;
     }
     stopEdit();
-    const ta = doc.createElement("textarea");
-    ta.className = "g-edit";
-    ta.rows = 1;
-    ta.value = info.text;
-    ta.spellcheck = true;
-    ta.setAttribute("aria-label", wordsLabel(entry.style ?? "Normal"));
-    ta.setAttribute("aria-describedby", "edit-hint");
+    const ta = createRichBox(doc, { spans: info.spans, label: wordsLabel(entry.style ?? "Normal"), describedby: "edit-hint", io, styleCss: (id) => currentStyles()?.cssForId?.(id) ?? null });
     /** @type {HTMLElement[]} */
     const lead = [];
     if (info.prefix) {
@@ -258,26 +263,25 @@ export function mountEditor(doc, host, guide, ui) {
       s.textContent = part.text.trim();
       lead.push(s);
     }
-    row.el.replaceChildren(...lead, ta);
+    row.el.replaceChildren(...lead, ta.el);
     row.el.classList.add("g-editing");
     setTabStop(row);
     editing = { row, ta, group: `type:${++groupCounter}` };
     lastRow = row;
     clearSelection();
-    ta.addEventListener("input", () => onInput(editing && editing.ta === ta ? editing : null));
-    ta.addEventListener("keydown", (e) => onWordsKey(e, row, ta));
-    ta.addEventListener("paste", (e) => onWordsPaste(e, row, ta));
-    ta.addEventListener("focusout", () => {
+    ta.el.addEventListener("input", () => onInput(editing && editing.ta === ta ? editing : null));
+    ta.el.addEventListener("keydown", (e) => onWordsKey(e, row, ta));
+    ta.el.addEventListener("paste", (e) => onWordsPaste(e, row, ta));
+    ta.el.addEventListener("focusout", () => {
       if (editing && editing.ta === ta) stopEdit();
     });
     ta.focus();
     const at = caret === "start" ? 0 : caret === "end" ? ta.value.length : Math.max(0, Math.min(caret, ta.value.length));
     ta.setSelectionRange(at, at);
-    grow(ta);
     placeCursor(row);
   }
 
-  /** @param {HTMLTextAreaElement} ta */
+  /** A plain text box (a cell of a table) grows with its words; the box for a paragraph's words does by itself. @param {HTMLTextAreaElement} ta */
   function grow(ta) {
     ta.style.height = "auto";
     ta.style.height = `${ta.scrollHeight}px`;
@@ -286,14 +290,8 @@ export function mountEditor(doc, host, guide, ui) {
   /** The words in the box are the words in the document: a change goes through the queue so none is applied out of order. @param {Editing | null} e */
   function onInput(e) {
     if (!e) return;
-    // A paragraph is one line of words: line ends that were pasted in become spaces.
-    if (/[\r\n]/.test(e.ta.value)) {
-      const at = e.ta.selectionStart;
-      e.ta.value = e.ta.value.replace(/\r\n|[\r\n]/g, " ");
-      e.ta.setSelectionRange(at, at);
-    }
-    grow(e.ta);
-    run(() => commit(e));
+    const group = e.group;
+    run(() => commit(e, group));
     tellTools();
   }
 
@@ -306,21 +304,21 @@ export function mountEditor(doc, host, guide, ui) {
     return queue;
   }
 
-  /** Put the words that are in the box into the document, as part of the run of typing it is in. @param {Editing} e */
-  async function commit(e) {
+  /** Put the words that are in the box into the document, as part of the run of typing it is in (or of the group given). @param {Editing} e @param {string} [group] */
+  async function commit(e, group = e.group) {
     if (gone || !shown.includes(e.row)) return;
     const entry = entryOf(e.row);
-    const xml = setWords(entry.xml ?? "", entry.style ?? "Normal", e.ta.value, io);
+    const xml = setSpans(entry.xml ?? "", entry.style ?? "Normal", e.ta.spans(), io);
     if (xml === entry.xml) return;
     const at = idx(e.row);
-    await guide.replaceParagraphs({ start: at, count: 1, guard: entry.text ?? "", xmls: [xml], select: at, group: e.group });
+    await guide.replaceParagraphs({ start: at, count: 1, guard: entry.text ?? "", xmls: [xml], select: at, group });
     entries = guide.exportState().paragraphs;
     entrySigs = entries.map(rowSignature);
     e.row.sig = rowSignature(entries[at]);
   }
 
   /**
-   * @param {KeyboardEvent} ev @param {Row} row @param {HTMLTextAreaElement} ta
+   * @param {KeyboardEvent} ev @param {Row} row @param {RichBox} ta
    */
   function onWordsKey(ev, row, ta) {
     const action = wordsKey({
@@ -377,6 +375,9 @@ export function mountEditor(doc, host, guide, ui) {
       case "redo":
         run(() => history(action.do === "redo", true));
         break;
+      case "text":
+        run(() => textFormat(action.setting ?? "bold"));
+        break;
     }
   }
 
@@ -406,10 +407,7 @@ export function mountEditor(doc, host, guide, ui) {
     const start = e.ta.selectionStart;
     const end = e.ta.selectionEnd;
     // What is selected is replaced by the Enter, as in any editor.
-    if (end > start) {
-      e.ta.value = e.ta.value.slice(0, start) + e.ta.value.slice(end);
-      e.ta.setSelectionRange(start, start);
-    }
+    if (end > start) e.ta.setRangeText("", start, end, "preserve");
     await commit(e);
     const now = entryOf(row);
     const cut = splitWords(now.xml ?? "", now.style ?? "Normal", start, io);
@@ -499,6 +497,170 @@ export function mountEditor(doc, host, guide, ui) {
     if (changed) ui.say(changed === 1 ? "Formatted. Ctrl+Z takes it back." : `${changed} paragraphs formatted. Ctrl+Z takes it back.`);
     else if (skipped) ui.say(skipped);
     focusRow(rowNear(idx(rows[rows.length - 1])));
+  }
+
+  // ---- the look of words inside a paragraph
+
+  /** The settings the paragraph's style gives its words (whether a toggle turns a look on or off depends on them). @param {string} styleName @returns {Record<string, any>} */
+  function baseFont(styleName) {
+    return guide.listStyles().find((/** @type {any} */ s) => s.name === styleName)?.effective?.font ?? {};
+  }
+
+  /**
+   * The change a command makes, from what the words are like now: a look that is on goes off (explicitly, when the style has it on), a look that is
+   * not on, or only on some of the words, goes on. A change that came from the dialog is used as it is.
+   * @param {string | Record<string, unknown>} what @param {Record<string, any>} summary @param {Record<string, any>} base
+   * @returns {Record<string, unknown>}
+   */
+  function changeFor(what, summary, base) {
+    if (typeof what !== "string") return what;
+    if (what === "clear") return { bold: null, italic: null, underline: null, strike: null, script: null, color: null, font: null, size: null, style: null };
+    if (what === "superscript" || what === "subscript") return { script: summary.script === what ? null : what };
+    const on = summary[what] === true || (summary[what] === undefined && base[what] === true);
+    if (on) return { [what]: base[what] === true ? false : null };
+    return { [what]: base[what] === true ? null : true };
+  }
+
+  /** A few words for what a change does, for the author. @param {Record<string, unknown>} change */
+  function sayChange(change) {
+    const names = { bold: "bold", italic: "italic", underline: "underlined", strike: "struck through", script: "raised or lowered", color: "colored", font: "in another font", size: "another size", style: "in a character style" };
+    const parts = Object.entries(change).map(([k, v]) => (v === null || v === false ? `no longer ${/** @type {Record<string, string>} */ (names)[k] ?? k}` : /** @type {Record<string, string>} */ (names)[k] ?? k));
+    return parts.length === 1 ? parts[0] : "given a new look";
+  }
+
+  /**
+   * Give words a look. While the words are being changed, the ones chosen (with none chosen, the next ones typed); from a menu, the words that
+   * were chosen a moment ago, else every word of the paragraph or paragraphs the author is on. One step of Undo.
+   * @param {string | Record<string, unknown>} what a setting to switch ("bold"...), "clear", or a change from the dialog
+   * @param {{ index: number, start: number, end: number } | null} [picked] words chosen before a dialog took the focus
+   */
+  async function textFormat(what, picked = null) {
+    const e = editing;
+    if (e && !picked) {
+      const style = entryOf(e.row).style ?? "Normal";
+      let change;
+      try {
+        change = cleanChange(changeFor(what, e.ta.state(), baseFont(style)));
+      } catch (err) {
+        ui.say(messageOf(err), true);
+        return;
+      }
+      // The change is one step of Undo of its own, and typing after it is another.
+      e.group = `text:${++groupCounter}`;
+      const changed = e.ta.apply(change);
+      e.group = `type:${++groupCounter}`;
+      if (!changed) ui.say(`The next words you type will be ${sayChange(change)}.`);
+      syncBar();
+      return;
+    }
+    const rows = picked ? [rowAt(picked.index)].filter((r) => r !== null) : targetRows();
+    if (!rows.length) return;
+    const recent = picked ?? (textSel && rows.length === 1 && idx(rows[0]) === textSel.index && textSel.end > textSel.start && Date.now() - textSel.at < 20000 ? textSel : null);
+    await settle();
+    stopEdit();
+    stopCellEdit();
+    const group = `text:${++groupCounter}`;
+    let changed = 0;
+    let skipped = "";
+    /** @type {Record<string, unknown> | null} */
+    let change = null;
+    for (const row of /** @type {Row[]} */ (rows)) {
+      const entry = entryOf(row);
+      const info = readParagraph(entry.xml ?? "", entry.style ?? "Normal", io);
+      if (!info.editable) {
+        skipped = info.reason ?? "";
+        continue;
+      }
+      const from = recent ? recent.start : 0;
+      const to = recent ? recent.end : info.text.length;
+      try {
+        // What to do is decided once, from the first paragraph, and the same is done to the rest.
+        change ??= cleanChange(changeFor(what, summarize(info.spans, from, to, io), baseFont(entry.style ?? "Normal")));
+        const xml = setSpans(entry.xml ?? "", entry.style ?? "Normal", applyChange(info.spans, from, to, /** @type {any} */ (change), io), io);
+        if (xml === entry.xml) continue;
+        const at = idx(row);
+        await guide.replaceParagraphs({ start: at, count: 1, guard: entry.text ?? "", xmls: [xml], select: at, group });
+        entries = guide.exportState().paragraphs;
+        changed++;
+      } catch (err) {
+        ui.say(messageOf(err), true);
+        return;
+      }
+    }
+    entrySigs = [];
+    render();
+    if (changed) ui.say(`${changed === 1 ? "The words are" : `${changed} paragraphs are`} ${sayChange(change ?? {})}. Ctrl+Z takes it back.`);
+    else if (skipped) ui.say(skipped);
+    const back = rowNear(idx(/** @type {Row[]} */ (rows)[rows.length - 1]));
+    if (recent && rows.length === 1 && back && back.el.dataset.editable === "true") {
+      // Back into the words, with the same ones chosen.
+      startEdit(back, recent.start);
+      editing?.ta.setSelectionRange(recent.start, recent.end);
+    } else focusRow(back);
+  }
+
+  /** The words a command from a menu or a dialog is for: the ones chosen (while changing the words, or a moment ago), else the paragraph the author is on. */
+  function chosenWords() {
+    const sel = editing ? { index: idx(editing.row), start: editing.ta.selectionStart, end: editing.ta.selectionEnd } : textSel && textSel.end > textSel.start && Date.now() - textSel.at < 20000 && lastRow && idx(lastRow) === textSel.index ? textSel : null;
+    const rows = sel ? [rowAt(sel.index)].filter((r) => r !== null) : targetRows();
+    return { sel, row: /** @type {Row | undefined} */ (rows[0]) };
+  }
+
+  /** Go back into the words, with the same ones chosen. @param {Row} row @param {{ start: number, end: number } | null} sel */
+  function backInto(row, sel) {
+    if (!sel) return focusRow(row);
+    startEdit(row, sel.start);
+    editing?.ta.setSelectionRange(sel.start, sel.end);
+  }
+
+  /** Format, Character style...: give the chosen words one of the character styles the author made, or none. */
+  async function charStyleDialog() {
+    const { sel, row } = chosenWords();
+    if (!row) return;
+    const mine = guide.listStyles().filter((/** @type {any} */ s) => s.type === "character" && s.custom);
+    if (!mine.length) return ui.say("You have no character styles yet. Choose Format, Styles..., then New character style, and come back.");
+    await settle();
+    const entry = entryOf(row);
+    const info = readParagraph(entry.xml ?? "", entry.style ?? "Normal", io);
+    if (!info.editable) return ui.say(info.reason ?? "These words are changed with the tools beside the guide.");
+    const now = summarize(info.spans, sel ? sel.start : 0, sel ? sel.end : info.text.length, io);
+    const chosen = await ui.choose({
+      title: "Character style",
+      intro: "A character style gives the chosen words (with none chosen, the whole paragraph) a named look, which you can change in Styles... for every word that has it.",
+      confirm: "Apply",
+      options: [{ id: "-", label: "No character style", note: "The paragraph's style decides." }, ...mine.map((/** @type {any} */ s) => ({ id: s.id, label: s.name }))],
+      current: typeof now.style === "string" ? now.style : "-",
+    });
+    if (chosen === null) return backInto(row, sel);
+    await textFormat({ style: chosen === "-" ? null : chosen }, sel ?? { index: idx(row), start: 0, end: info.text.length });
+  }
+
+  /** Format, Text...: the dialog for the look of the words that are chosen (or of the whole paragraph). */
+  async function textDialog() {
+    const { sel, row } = chosenWords();
+    if (!row) return;
+    await settle();
+    const entry = entryOf(row);
+    const info = readParagraph(entry.xml ?? "", entry.style ?? "Normal", io);
+    if (!info.editable) return ui.say(info.reason ?? "These words are changed with the tools beside the guide.");
+    const base = baseFont(entry.style ?? "Normal");
+    const from = sel ? sel.start : 0;
+    const to = sel ? sel.end : info.text.length;
+    const now = summarize(info.spans, from, to, io);
+    /** @type {Record<string, any>} */
+    const current = { font: typeof now.font === "string" ? now.font : base.name, size: typeof now.size === "number" ? now.size : base.size, color: typeof now.color === "string" ? now.color : base.color, script: now.script === "mixed" ? undefined : now.script };
+    for (const k of ["bold", "italic", "underline", "strike"]) current[k] = now[k] === true || (now[k] === undefined && base[k] === true);
+    const asked = await ui.askText(current, (change) => cleanChange(change));
+    if (!asked) return backInto(row, sel);
+    if (!Object.keys(asked).length) {
+      ui.say("Nothing was changed.");
+      return backInto(row, sel);
+    }
+    // The dialog gives the looks that were switched as on or off; what "off" means depends on the style.
+    /** @type {Record<string, unknown>} */
+    const change = { ...asked };
+    for (const k of ["bold", "italic", "underline", "strike"]) if (k in change) change[k] = change[k] === true ? (base[k] === true ? null : true) : base[k] === true ? false : null;
+    await textFormat(change, sel ?? { index: idx(row), start: 0, end: info.text.length });
   }
 
   /** The Styles panel, on the style of the paragraph the author is on. */
@@ -686,6 +848,19 @@ export function mountEditor(doc, host, guide, ui) {
         return formatRows({ alignment: null, spaceBefore: null, spaceAfter: null, lineSpacing: null, leftIndent: null, firstLineIndent: null });
       case "paragraph":
         return paragraphDialog();
+      case "bold":
+      case "italic":
+      case "underline":
+      case "strike":
+      case "superscript":
+      case "subscript":
+        return textFormat(name);
+      case "clearText":
+        return textFormat("clear");
+      case "text":
+        return textDialog();
+      case "charStyle":
+        return charStyleDialog();
       case "styles":
         return stylesPanel();
       case "newStyle":
@@ -845,7 +1020,7 @@ export function mountEditor(doc, host, guide, ui) {
   /**
    * Several lines pasted into a paragraph's words: the first goes in at the caret, the others become paragraphs after it, the end of the
    * last one is the text that was after the caret. In a heading, which is one line, they are joined with spaces.
-   * @param {ClipboardEvent} ev @param {Row} row @param {HTMLTextAreaElement} ta
+   * @param {ClipboardEvent} ev @param {Row} row @param {RichBox} ta
    */
   function onWordsPaste(ev, row, ta) {
     const raw = ev.clipboardData?.getData("text/plain") ?? "";
@@ -857,7 +1032,6 @@ export function mountEditor(doc, host, guide, ui) {
     const style = entryOf(row).style ?? "Normal";
     if (isHeading(style)) {
       ta.setRangeText(lines.join(" "), ta.selectionStart, ta.selectionEnd, "end");
-      onInput(e);
       return;
     }
     run(async () => {
@@ -865,12 +1039,15 @@ export function mountEditor(doc, host, guide, ui) {
       const now = entryOf(row);
       const spec = nextParagraphSpec(now.xml ?? "", now.style ?? "Normal", io);
       if (!spec) return;
-      const before = ta.value.slice(0, ta.selectionStart);
-      const after = ta.value.slice(ta.selectionEnd);
+      const spans = ta.spans();
+      const from = ta.selectionStart;
+      const to = ta.selectionEnd;
+      // The pasted words take the look of the character before the caret; the words after the selection keep their own.
+      const look = rprAt(spans, from);
       const xmls = [
-        setWords(now.xml ?? "", now.style ?? "Normal", before + lines[0], io),
-        ...lines.slice(1, -1).map((l) => paragraphWith(spec, l, io)),
-        paragraphWith(spec, lines[lines.length - 1] + after, io),
+        setSpans(now.xml ?? "", now.style ?? "Normal", [...slice(spans, 0, from), { text: lines[0], rpr: look }], io),
+        ...lines.slice(1, -1).map((l) => paragraphWithSpans(spec, [{ text: l, rpr: look }], io)),
+        paragraphWithSpans(spec, [{ text: lines[lines.length - 1], rpr: look }, ...slice(spans, to)], io),
       ];
       const at = idx(row);
       stopEdit();
@@ -1125,6 +1302,11 @@ export function mountEditor(doc, host, guide, ui) {
     ui.say("Row deleted. Ctrl+Z brings it back.");
   }
 
+  /** Whether the keys belong to a box being typed in (a plain text box or the box for a paragraph's words). @param {EventTarget | null} target */
+  function isTextBox(target) {
+    return target instanceof HTMLTextAreaElement || (target instanceof HTMLElement && target.isContentEditable);
+  }
+
   /** @param {EventTarget | null} target @returns {Row | null} */
   function rowOf(target) {
     const el = target instanceof Element ? target.closest("[data-index]") : null;
@@ -1133,7 +1315,7 @@ export function mountEditor(doc, host, guide, ui) {
 
   // The keys of a row that has the keyboard, and a click on one.
   page.addEventListener("keydown", (ev) => {
-    if (ev.target instanceof HTMLTextAreaElement) return;
+    if (isTextBox(ev.target)) return;
     if (ev.target instanceof HTMLElement && ev.target.matches("td[data-row], th[data-row]")) {
       onCellKey(ev, ev.target);
       return;
@@ -1165,7 +1347,7 @@ export function mountEditor(doc, host, guide, ui) {
     else run(() => command(action));
   });
   page.addEventListener("click", (ev) => {
-    if (ev.target instanceof HTMLTextAreaElement) return;
+    if (isTextBox(ev.target)) return;
     const cell = ev.target instanceof Element ? ev.target.closest("td[data-row], th[data-row]") : null;
     if (cell instanceof HTMLElement) {
       const inTable = rowOf(cell);
@@ -1187,7 +1369,7 @@ export function mountEditor(doc, host, guide, ui) {
   });
   // Ctrl+V on a row: paragraphs cut or copied in the guide come back as they were, other text becomes a paragraph for each line.
   page.addEventListener("paste", (ev) => {
-    if (ev.target instanceof HTMLTextAreaElement) return;
+    if (isTextBox(ev.target)) return;
     ev.preventDefault();
     const text = ev.clipboardData?.getData("text/plain") ?? "";
     run(() => paste(text));
@@ -1204,7 +1386,7 @@ export function mountEditor(doc, host, guide, ui) {
       }
       return;
     }
-    if (ev.target instanceof HTMLTextAreaElement) return;
+    if (isTextBox(ev.target)) return;
     const row = rowOf(ev.target);
     if (row && ev.target === row.el) {
       // The keyboard going to a row that is not one of the chosen rows ends the choice (going along with the choice, as Shift+Down does, keeps it).
@@ -1215,6 +1397,84 @@ export function mountEditor(doc, host, guide, ui) {
     }
   });
 
+  // ---- the toolbar: the looks of words and the alignments, as buttons (the Format menu has them too)
+  /** @type {([string, string, string, string?] | "-")[]} name, words, icon, the setting a toggle shows */
+  const TOOLS = [
+    ["bold", "Bold", "bold", "bold"],
+    ["italic", "Italic", "italic", "italic"],
+    ["underline", "Underline", "underline", "underline"],
+    ["strike", "Strikethrough", "strikethrough", "strike"],
+    ["superscript", "Superscript", "superscript", "script:superscript"],
+    ["subscript", "Subscript", "subscript", "script:subscript"],
+    "-",
+    ["alignLeft", "Align left", "text-align-start"],
+    ["alignCenter", "Center", "text-align-center"],
+    ["alignRight", "Align right", "text-align-end"],
+    "-",
+    ["text", "Text...", "type"],
+    ["charStyle", "Character style...", "baseline"],
+    ["clearText", "Clear text formatting", "remove-formatting"],
+  ];
+  /** @type {{ button: HTMLButtonElement, setting?: string, base?: string }[]} */
+  const tools = [];
+  for (const t of TOOLS) {
+    if (t === "-") {
+      const sep = doc.createElement("span");
+      sep.className = "format-sep";
+      sep.setAttribute("role", "separator");
+      bar.append(sep);
+      continue;
+    }
+    const [name, words, icon, setting] = t;
+    const button = doc.createElement("button");
+    button.type = "button";
+    button.className = "format-tool";
+    button.setAttribute("aria-label", words);
+    button.title = words;
+    button.append(uiIcon(doc, /** @type {any} */ (icon)));
+    if (setting) button.setAttribute("aria-pressed", "false");
+    button.tabIndex = tools.length === 0 ? 0 : -1;
+    // The mouse does not take the keyboard from the words: the chosen words stay chosen.
+    button.addEventListener("mousedown", (ev) => ev.preventDefault());
+    button.addEventListener("click", () => void run(() => command(name)));
+    bar.append(button);
+    tools.push({ button, setting });
+  }
+  // One Tab stop for the bar, and the arrow keys along it.
+  bar.addEventListener("keydown", (ev) => {
+    const at = tools.findIndex((t) => t.button === doc.activeElement);
+    if (at < 0) return;
+    const to = ev.key === "ArrowRight" ? at + 1 : ev.key === "ArrowLeft" ? at - 1 : ev.key === "Home" ? 0 : ev.key === "End" ? tools.length - 1 : -1;
+    if (to < 0) return;
+    ev.preventDefault();
+    const next = tools[(to + tools.length) % tools.length];
+    for (const t of tools) t.button.tabIndex = t === next ? 0 : -1;
+    next.button.focus();
+  });
+  /** The buttons that switch a look show whether the chosen words have it. */
+  function syncBar() {
+    if (gone) return;
+    const e = editing;
+    /** @type {Record<string, any> | null} */
+    let now = null;
+    /** @type {Record<string, any>} */
+    let base = {};
+    if (e) {
+      now = e.ta.state();
+      base = baseFont(entryOf(e.row).style ?? "Normal");
+    }
+    for (const t of tools) {
+      if (!t.setting) continue;
+      let on = false;
+      if (now) {
+        if (t.setting.startsWith("script:")) on = now.script === t.setting.slice(7);
+        else on = now[t.setting] === true || (now[t.setting] === undefined && base[t.setting] === true);
+      }
+      t.button.setAttribute("aria-pressed", String(on));
+    }
+  }
+  doc.addEventListener("selectionchange", syncBar);
+
   render();
   return {
     render,
@@ -1222,6 +1482,7 @@ export function mountEditor(doc, host, guide, ui) {
     destroy() {
       gone = true;
       if (selectionTimer !== null) window.clearTimeout(selectionTimer);
+      doc.removeEventListener("selectionchange", syncBar);
       editing = null;
     },
     /** A command of the Edit menu, for the rows the author is on or has chosen. @param {string} name */

@@ -3,6 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {DOMParser,XMLSerializer} from '@xmldom/xmldom';
 import {describeGuide,renderGuide,drawNodes} from '../program/ui/preview.js';
+import {previewStyles} from '../src/guide-styles-edit.mjs';
 import {makeContext,para,run,pictureRun} from '../src/guide-ooxml.mjs';
 import {formTitleBlock,formText,writingLines,writingBox,fieldRow,checkList,formTable,ratingGrid,sourceLine,printLine,cardSet,citationControl} from '../src/guide-forms-ooxml.mjs';
 import {STYLE_IDS} from '../src/guide-styles.mjs';
@@ -188,4 +189,40 @@ test('a paragraph\'s own formatting is drawn over its style: alignment, the spac
   assert.equal(describeGuide([p],parseXml)[0].format,undefined,'a paragraph that follows its style says nothing');
   const some=drawNodes(doc,new Fake('div'),[{...describeGuide([p],parseXml)[0]}]);
   void some;
+});
+
+test('words with their own look are drawn with it: weight, slant, color, raised, and never as markup',()=>{
+  const W='http://schemas.openxmlformats.org/wordprocessingml/2006/main';
+  const r=(t,pr='')=>`<w:r>${pr?`<w:rPr>${pr}</w:rPr>`:''}<w:t xml:space="preserve">${t}</w:t></w:r>`;
+  const xml=`<w:p xmlns:w="${W}">${r('Say ')}${r('this','<w:b/><w:i/><w:color w:val="C00000"/>')}${r('2','<w:vertAlign w:val="superscript"/>')}</w:p>`;
+  const nodes=describeGuide([{xml,text:'Say this2',style:'Normal'}],parseXml);
+  const spans=tags(nodes,'span');
+  assert.deepEqual(spans.map(s=>s.text),['Say ','this','2']);
+  assert.equal(spans[0].css,undefined,'plain words carry no look of their own');
+  assert.equal(spans[1].css.fontWeight,'700');
+  assert.equal(spans[1].css.fontStyle,'italic');
+  assert.equal(spans[1].css.color,'#C00000');
+  assert.equal(spans[2].css.verticalAlign,'super');
+  // drawn with the page's own document, the look goes on as properties of the element
+  const host=new Fake('div');
+  drawNodes(fakeDoc(),host,nodes);
+  const drawn=[];const walk=n=>{if(n.tag==='span')drawn.push(n);n.children.forEach(walk);};walk(host);
+  assert.equal(drawn.find(n=>n.textContent==='this').style.fontWeight,'700');
+  assert.equal(drawn.find(n=>n.textContent==='2').style.verticalAlign,'super');
+});
+
+test('words in a character style of the author\'s own are drawn with its look, under what was given to the words themselves',()=>{
+  const W='http://schemas.openxmlformats.org/wordprocessingml/2006/main';
+  const spec={font:{bold:true,color:'#C00000'}};
+  const edits={overrides:{},custom:[{id:'Warning',name:'Warning words',type:'character',basedOn:'DefaultParagraphFont',spec}]};
+  const list=[{id:'DefaultParagraphFont',name:'Default Paragraph Font',type:'character',custom:false,own:{},effective:{}},{id:'Warning',name:'Warning words',type:'character',custom:true,basedOn:'DefaultParagraphFont',own:spec,effective:spec}];
+  const styles=previewStyles(edits,list);
+  assert.equal(styles.cssForId('Warning').fontWeight,'700');
+  assert.equal(styles.cssForId('Missing'),null);
+  const xml=`<w:p xmlns:w="${W}"><w:r><w:rPr><w:rStyle w:val="Warning"/></w:rPr><w:t>hot</w:t></w:r><w:r><w:rPr><w:rStyle w:val="Warning"/><w:color w:val="112233"/></w:rPr><w:t>warm</w:t></w:r><w:r><w:rPr><w:rStyle w:val="Gone"/></w:rPr><w:t>cold</w:t></w:r></w:p>`;
+  const spans=tags(describeGuide([{xml,text:'hotwarmcold',style:'Normal'}],parseXml,{styles}),'span');
+  assert.equal(spans[0].css.fontWeight,'700');assert.equal(spans[0].css.color,'#C00000');
+  assert.equal(spans[1].css.color,'#112233','what was given to the words wins over the style');
+  assert.equal(spans[1].css.fontWeight,'700');
+  assert.equal(spans[2].css,undefined,'a style that is no longer there draws as plain words');
 });

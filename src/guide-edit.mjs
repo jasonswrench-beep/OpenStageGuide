@@ -12,6 +12,7 @@
 // words. A paragraph that holds any of it is not changed by the editor in this version, and is changed with the tools instead; it is never
 // rewritten by the editor, so nothing in it can be lost. Paragraphs the program writes itself (the time line, form lines and boxes, the
 // contents) are locked for the same reason.
+import {normalize,parseRpr,rprText,replaceText,sameSpans,slice,textOf} from './guide-runs.mjs';
 const W='http://schemas.openxmlformats.org/wordprocessingml/2006/main';
 const WP='http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing';
 export const MAX_WORDS=100000;
@@ -65,10 +66,12 @@ function pieceOf(child){
  * @param {string} xml the paragraph's Word-format XML
  * @param {string} style the paragraph's style name
  * @param {{parse:(xml:string)=>Document}} io
- * @returns {{editable:boolean, reason?:string, lead:{kind:string,text?:string}[], text:string, prefix:string}}
+ * @returns {{editable:boolean, reason?:string, lead:{kind:string,text?:string}[], text:string, prefix:string, spans:{text:string,rpr:string}[], prefixRpr:string, all:{text:string,rpr:string}[]}}
+ *   `spans` are the words as stretches with one look each (see guide-runs.mjs), `all` the same with the prefix, `prefixRpr` the look of the prefix
  */
-export function readParagraph(xml,style,{parse}){
-  const no=reason=>({editable:false,reason,lead:[],text:'',prefix:''});
+export function readParagraph(xml,style,io){
+  const {parse}=io;
+  const no=reason=>({editable:false,reason,lead:[],text:'',prefix:'',spans:[],prefixRpr:'',all:[]});
   if(isLocked(style))return no('The program writes this part. Update guide keeps it right.');
   if(!xml||!xml.trim())return no('This part is made by the program.');
   let root;
@@ -76,6 +79,7 @@ export function readParagraph(xml,style,{parse}){
   if(!root||root.namespaceURI!==W||root.localName!=='p')return no('This part is a table. Its cells are changed with the tools beside the guide.');
   const lead=[];
   const words=[];
+  const runs=[];
   let sawText=false;
   for(const child of kids(root)){
     if(child.namespaceURI===W&&child.localName==='pPr')continue;
@@ -86,14 +90,17 @@ export function readParagraph(xml,style,{parse}){
     }else if(piece.kind==='text'){
       sawText=true;
       words.push(piece.text);
+      runs.push({text:piece.text,rpr:io.serialize?rprText(piece.rPr,io):''});
     }else return no('This part holds more than words (a picture, a check box, a citation, a bookmark or a field), so it is changed with the tools beside the guide.');
   }
   let text=words.join('');
   let prefix='';
+  const all=normalize(runs);
+  let spans=all,prefixRpr='';
   const rx=PREFIX[style];
   const m=rx&&rx.exec(text);
-  if(m){prefix=m[0];text=text.slice(prefix.length);}
-  return {editable:true,lead,text,prefix};
+  if(m){prefix=m[0];text=text.slice(prefix.length);prefixRpr=all[0]?.rpr??'';spans=slice(all,prefix.length);}
+  return {editable:true,lead,text,prefix,spans,prefixRpr,all};
 }
 
 const serialize=(root,io)=>io.serialize(root);
@@ -109,7 +116,7 @@ function open(xml,style,io){
 
 function newRun(doc,text,rPr){
   const run=doc.createElementNS(W,'w:r');
-  if(rPr)run.appendChild(rPr.cloneNode(true));
+  if(rPr)run.appendChild(rPr);
   const t=doc.createElementNS(W,'w:t');
   t.setAttributeNS('http://www.w3.org/XML/1998/namespace','xml:space','preserve');
   t.appendChild(doc.createTextNode(text));
@@ -118,24 +125,42 @@ function newRun(doc,text,rPr){
 }
 
 /**
- * The paragraph with other words. The lead, the paragraph's properties and the look of its first run stay; nothing else is touched. When
- * the words are the same, the very same XML comes back.
+ * The paragraph with these words, each stretch with its own look (see guide-runs.mjs). The lead and the paragraph's properties stay; the
+ * prefix of a heading keeps its look; nothing else is touched. When nothing changed, the very same XML comes back.
+ * @param {string} xml @param {string} style @param {{text:string,rpr:string}[]} spans @param {{parse:(xml:string)=>Document, serialize:(el:Element)=>string}} io
+ */
+export function setSpans(xml,style,spans,io){
+  const {info,root,textRuns}=open(xml,style,io);
+  const clean=normalize(spans.map(s=>({text:cleanWords(s.text),rpr:s.rpr||''})));
+  if(textOf(clean).length>MAX_WORDS)throw new Error(`A paragraph can hold up to ${MAX_WORDS.toLocaleString('en-US')} characters.`);
+  const full=info.prefix?normalize([{text:info.prefix,rpr:info.prefixRpr},...clean]):clean;
+  if(sameSpans(full,info.all))return xml;
+  const doc=root.ownerDocument;
+  const runs=full.map(s=>newRun(doc,s.text,s.rpr?doc.importNode(parseRpr(s.rpr,io),true):null));
+  const at=textRuns.length?textRuns[0]:null;
+  if(at){
+    for(const r of runs)root.insertBefore(r,at);
+    for(const r of textRuns)root.removeChild(r);
+  }else for(const r of runs)root.appendChild(r);
+  return serialize(root,io);
+}
+
+/**
+ * The paragraph with other words. What is the same at the start and at the end keeps its look; new words take the look of the character before
+ * them. When the words are the same, the very same XML comes back.
  * @param {string} xml @param {string} style @param {string} words @param {{parse:(xml:string)=>Document, serialize:(el:Element)=>string}} io
  */
 export function setWords(xml,style,words,io){
   const clean=cleanWords(words);
-  const {info,root,textRuns}=open(xml,style,io);
+  const {info}=open(xml,style,io);
   if(clean===info.text)return xml;
-  const doc=root.ownerDocument;
-  const rPr=textRuns.map(r=>named(r,'rPr')).find(Boolean)||null;
-  const at=textRuns.length?textRuns[0]:null;
-  const full=info.prefix+clean;
-  const run=full?newRun(doc,full,rPr):null;
-  if(at){
-    if(run)root.insertBefore(run,at);
-    for(const r of textRuns)root.removeChild(r);
-  }else if(run)root.appendChild(run);
-  return serialize(root,io);
+  const old=info.text;
+  const most=Math.min(old.length,clean.length);
+  let head=0;
+  while(head<most&&old[head]===clean[head])head++;
+  let tail=0;
+  while(tail<most-head&&old[old.length-1-tail]===clean[clean.length-1-tail])tail++;
+  return setSpans(xml,style,replaceText(info.spans,head,old.length-tail,clean.slice(head,clean.length-tail)),io);
 }
 
 /** The words of an editable paragraph, or null. */
@@ -156,13 +181,18 @@ export function nextParagraphSpec(xml,style,io){
   return {styleId:pStyle?attr(pStyle,'val'):null,numPr:numPr?io.serialize(numPr):null};
 }
 
-/** A paragraph that holds only words, in the style (and list) a spec names. */
-export function paragraphWith(spec,words,{parse,serialize:ser}){
-  const text=cleanWords(words);
+/** A paragraph that holds only these words (each stretch with its own look), in the style (and list) a spec names. */
+export function paragraphWithSpans(spec,spans,{parse,serialize:ser}){
+  const clean=normalize(spans.map(s=>({text:cleanWords(s.text),rpr:s.rpr||''})));
   const pPr=spec.styleId||spec.numPr?`<w:pPr>${spec.styleId?`<w:pStyle w:val="${escText(spec.styleId)}"/>`:''}${spec.numPr||''}</w:pPr>`:'';
-  const run=text?`<w:r><w:t xml:space="preserve">${escText(text)}</w:t></w:r>`:'';
-  const root=parse(`<w:p xmlns:w="${W}">${pPr}${run}</w:p>`).documentElement;
+  const runs=clean.map(s=>`<w:r>${s.rpr}<w:t xml:space="preserve">${escText(s.text)}</w:t></w:r>`).join('');
+  const root=parse(`<w:p xmlns:w="${W}">${pPr}${runs}</w:p>`).documentElement;
   return ser(root);
+}
+
+/** A paragraph that holds only words, in the style (and list) a spec names. */
+export function paragraphWith(spec,words,io){
+  return paragraphWithSpans(spec,[{text:words,rpr:''}],io);
 }
 
 /**
@@ -176,7 +206,7 @@ export function splitWords(xml,style,offset,io){
   const spec=nextParagraphSpec(xml,style,io);
   if(!spec)return null;
   const at=Math.max(0,Math.min(info.text.length,offset));
-  return {first:setWords(xml,style,info.text.slice(0,at),io),second:paragraphWith(spec,info.text.slice(at),io)};
+  return {first:setSpans(xml,style,slice(info.spans,0,at),io),second:paragraphWithSpans(spec,slice(info.spans,at),io)};
 }
 
 /**
@@ -188,7 +218,7 @@ export function joinWords(previous,current,io){
   const a=readParagraph(previous.xml,previous.style,io),b=readParagraph(current.xml,current.style,io);
   if(!a.editable||!b.editable||isHeading(previous.style)||b.lead.length)return null;
   if(isHeading(current.style))return null;
-  return {xml:setWords(previous.xml,previous.style,a.text+b.text,io),offset:a.text.length};
+  return {xml:setSpans(previous.xml,previous.style,[...a.spans,...b.spans],io),offset:a.text.length};
 }
 
 // ---- the kind of a paragraph

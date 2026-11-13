@@ -6,6 +6,7 @@
  */
 
 import { formatOf } from "../../src/guide-format.mjs";
+import { fmtOfEl, runCss } from "../../src/guide-runs.mjs";
 
 const W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
 const W14 = "http://schemas.microsoft.com/office/word/2010/wordml";
@@ -16,7 +17,7 @@ const R = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
 
 /**
  * @typedef {{ tag: string, cls?: string, text?: string, attrs?: Record<string, string>, height?: number, index?: number, span?: number, format?: ReturnType<typeof formatOf>, css?: Record<string, string>, children?: Node_[] }} Node_
- * @typedef {{ cssFor: (name: string) => Record<string, string> | null, baseOf: (name: string) => string | null }} StyleView
+ * @typedef {{ cssFor: (name: string) => Record<string, string> | null, cssForId?: (id: string) => Record<string, string> | null, baseOf: (name: string) => string | null }} StyleView
  * @typedef {{ xml?: string, text?: string, style?: string, builtIn?: string }} Entry
  */
 
@@ -26,13 +27,13 @@ const kids = (el, name) => Array.from(el.childNodes).filter((n) => n.nodeType ==
 const first = (el, ns, name) => Array.from(el.getElementsByTagNameNS(ns, name))[0];
 
 /**
- * The inline parts of a paragraph, in order: {t:'text',text,label}, {t:'tab'}, {t:'br'}, {t:'check'}, {t:'cite',text}, {t:'picture',rid,alt,width}
+ * The inline parts of a paragraph, in order: {t:'text',text,label,css}, {t:'tab'}, {t:'br'}, {t:'check'}, {t:'cite',text}, {t:'picture',rid,alt,width}
  * (the author's own picture; the cue's icon, named "Icon n", is not drawn).
- * @param {Element} el
- * @returns {{ t: string, text?: string, label?: boolean, rid?: string, alt?: string, width?: number }[]}
+ * @param {Element} el @param {StyleView | undefined} [styles]
+ * @returns {{ t: string, text?: string, label?: boolean, css?: Record<string, string>, rid?: string, alt?: string, width?: number }[]}
  */
-function inlineParts(el) {
-  /** @type {{ t: string, text?: string, label?: boolean, rid?: string, alt?: string, width?: number }[]} */
+function inlineParts(el, styles) {
+  /** @type {{ t: string, text?: string, label?: boolean, css?: Record<string, string>, rid?: string, alt?: string, width?: number }[]} */
   const out = [];
   const walk = (/** @type {Element} */ node) => {
     for (const c of Array.from(node.childNodes)) {
@@ -42,10 +43,12 @@ function inlineParts(el) {
       const name = e.localName;
       if (name === "r") {
         const rstyle = first(e, W, "rStyle")?.getAttributeNS(W, "val");
+        // The look of the words: their character style (if the author made one), then what was given to these words themselves.
+        const look = { ...(rstyle && rstyle !== "OSGCueLabel" ? styles?.cssForId?.(rstyle) ?? {} : {}), ...runCss(fmtOfEl(kids(e, "rPr")[0] ?? null)) };
         for (const rc of Array.from(e.childNodes)) {
           if (rc.nodeType !== 1) continue;
           const r = /** @type {Element} */ (rc);
-          if (r.localName === "t") out.push({ t: "text", text: r.textContent ?? "", label: rstyle === "OSGCueLabel" });
+          if (r.localName === "t") out.push({ t: "text", text: r.textContent ?? "", label: rstyle === "OSGCueLabel", ...(Object.keys(look).length && rstyle !== "OSGCueLabel" ? { css: look } : {}) });
           else if (r.localName === "tab") out.push({ t: "tab" });
           else if (r.localName === "br") out.push({ t: "br" });
           else if (r.localName === "drawing") {
@@ -77,7 +80,7 @@ function textOfContent(el) {
 
 /**
  * `media(id)` gives the author's picture an id names ({ mime, base64 }), or null.
- * @param {{ t: string, text?: string, label?: boolean, rid?: string, alt?: string, width?: number }[]} parts
+ * @param {{ t: string, text?: string, label?: boolean, css?: Record<string, string>, rid?: string, alt?: string, width?: number }[]} parts
  * @param {((id: string) => { mime: string, base64: string } | null) | undefined} [media]
  * @returns {Node_[]}
  */
@@ -85,7 +88,7 @@ function inlineNodes(parts, media) {
   /** @type {Node_[]} */
   const out = [];
   for (const p of parts) {
-    if (p.t === "text" && p.text) out.push({ tag: "span", cls: p.label ? "g-label" : undefined, text: p.text });
+    if (p.t === "text" && p.text) out.push({ tag: "span", cls: p.label ? "g-label" : undefined, text: p.text, ...(p.css ? { css: p.css } : {}) });
     else if (p.t === "cite") out.push({ tag: "span", cls: "g-cite", text: p.text });
     else if (p.t === "check") out.push({ tag: "span", cls: "g-check", text: "☐" });
     else if (p.t === "br") out.push({ tag: "br" });
@@ -175,7 +178,7 @@ function paragraphNode(p, style, media, styles) {
 
 /** @param {Element} p @param {string} style @param {((id: string) => { mime: string, base64: string } | null) | undefined} [media] @param {StyleView} [styles] @returns {Node_ | null} */
 function plainParagraphNode(p, style, media, styles) {
-  const parts = inlineParts(p);
+  const parts = inlineParts(p, styles);
   const words = parts.filter((x) => x.t === "text").map((x) => x.text).join("").trim();
   if (style === "OSG Form Line" || style === "OSG Answer Line") return { tag: "div", cls: "g-rule" };
   if (style === "OSG Form Box") return { tag: "div", cls: "g-box", height: exactHeight(p) || 60 };
@@ -260,7 +263,7 @@ export function describeGuide(entries, parseXml, options = {}) {
   return out;
 }
 
-const CSS_ALLOWED = new Set(["fontFamily", "fontSize", "color", "fontWeight", "fontStyle", "textDecoration", "textAlign", "marginTop", "marginBottom", "marginLeft", "textIndent", "lineHeight", "backgroundColor", "borderTop", "borderLeft", "borderBottom", "borderRight"]);
+const CSS_ALLOWED = new Set(["fontFamily", "fontSize", "color", "fontWeight", "fontStyle", "textDecoration", "textAlign", "marginTop", "marginBottom", "marginLeft", "textIndent", "lineHeight", "backgroundColor", "borderTop", "borderLeft", "borderBottom", "borderRight", "verticalAlign"]);
 
 /** What a style that was changed or made looks like on the page: only the properties the styles make (made by src/guide-styles-edit.mjs from checked settings). @param {HTMLElement} el @param {Record<string, string>} css */
 export function drawCss(el, css) {

@@ -30,6 +30,24 @@ export function reconcile(before, after) {
   return { prefix, oldEnd: before.length - suffix, newEnd: after.length - suffix };
 }
 
+/** The keys of Word's looks for words: Ctrl+B bold, Ctrl+I italic, Ctrl+U underline. @type {Record<string, "bold" | "italic" | "underline">} */
+const TEXT_KEYS = { b: "bold", i: "italic", u: "underline" };
+
+/**
+ * The look a key gives words, as Word does: Ctrl+B, Ctrl+I, Ctrl+U, Ctrl+= for lowered and Ctrl+Shift+= for raised words, Ctrl+Space for no look.
+ * @param {{ key: string, shift?: boolean, ctrl?: boolean, alt?: boolean, meta?: boolean }} k
+ * @returns {"bold" | "italic" | "underline" | "superscript" | "subscript" | "clear" | null}
+ */
+export function textKey(k) {
+  if (!(k.ctrl || k.meta) || k.alt) return null;
+  const letter = k.key.length === 1 ? k.key.toLowerCase() : "";
+  if (!k.shift && TEXT_KEYS[letter]) return TEXT_KEYS[letter];
+  if (k.key === "=" && !k.shift) return "subscript";
+  if (k.key === "+" || (k.key === "=" && k.shift)) return "superscript";
+  if (k.key === " " && !k.shift) return "clear";
+  return null;
+}
+
 /** The keys of Word's alignments: Ctrl+L left, Ctrl+E centered, Ctrl+R right, Ctrl+J justified. @type {Record<string, "left" | "center" | "right" | "justify">} */
 const ALIGN_KEYS = { l: "left", e: "center", r: "right", j: "justify" };
 
@@ -41,10 +59,12 @@ const ALIGN_KEYS = { l: "left", e: "center", r: "right", j: "justify" };
 /**
  * What a key does in the words of a paragraph being edited. `caret` is where the caret goes in the paragraph the key leads to.
  * @param {WordsKeyInfo} k
- * @returns {{ do: "split" | "join" | "previous" | "next" | "stop" | "undo" | "redo" | "align", caret?: "start" | "end", value?: "left" | "center" | "right" | "justify" } | null}
+ * @returns {{ do: "split" | "join" | "previous" | "next" | "stop" | "undo" | "redo" | "align" | "text", caret?: "start" | "end", value?: "left" | "center" | "right" | "justify", setting?: "bold" | "italic" | "underline" | "superscript" | "subscript" | "clear" } | null}
  */
 export function wordsKey(k) {
   if (k.composing) return null;
+  const text = textKey(k);
+  if (text) return { do: "text", setting: text };
   const plain = !k.shift && !k.ctrl && !k.alt && !k.meta;
   const command = (k.ctrl || k.meta) && !k.alt;
   const letter = k.key.length === 1 ? k.key.toLowerCase() : "";
@@ -76,9 +96,11 @@ export function wordsKey(k) {
 /**
  * What a key does when a row of the guide has the keyboard and its words are not being edited.
  * @param {KeyInfo} k
- * @returns {"down" | "up" | "first" | "last" | "edit" | "undo" | "redo" | "extendDown" | "extendUp" | "moveDown" | "moveUp" | "delete" | "copy" | "cut" | "add" | "selectAll" | "clear" | "alignLeft" | "alignCenter" | "alignRight" | "alignJustify" | null}
+ * @returns {"down" | "up" | "first" | "last" | "edit" | "undo" | "redo" | "extendDown" | "extendUp" | "moveDown" | "moveUp" | "delete" | "copy" | "cut" | "add" | "selectAll" | "clear" | "alignLeft" | "alignCenter" | "alignRight" | "alignJustify" | "bold" | "italic" | "underline" | "superscript" | "subscript" | "clearText" | null}
  */
 export function rowKey(k) {
+  const text = textKey(k);
+  if (text) return text === "clear" ? "clearText" : text;
   const command = (k.ctrl || k.meta) && !k.alt;
   const letter = k.key.length === 1 ? k.key.toLowerCase() : "";
   if (command && !k.shift && ALIGN_KEYS[letter]) return /** @type {"alignLeft" | "alignCenter" | "alignRight" | "alignJustify"} */ (`align${ALIGN_KEYS[letter][0].toUpperCase()}${ALIGN_KEYS[letter].slice(1)}`);

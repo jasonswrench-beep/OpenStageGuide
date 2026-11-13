@@ -108,3 +108,17 @@ test('the program\'s own look specs apply as they are: every style the look name
   const lookState=a.lookState();
   assert.equal(lookState.applied.length,1,'the look is also what the Appearance tool recorded');
 });
+
+test('a character style of the author\'s own is in the Word file, counts the paragraphs whose words use it, and stays while any does',async()=>{
+  const a=demo();
+  await a.setStyleEdits({overrides:{},custom:[{id:'Warning',name:'Warning words',type:'character',basedOn:'DefaultParagraphFont',spec:{font:{bold:true,color:'#C00000'}}}]});
+  assert.match(stylesIn(await a.sourcePackage()),/<w:style w:type="character" w:customStyle="1" w:styleId="Warning">/);
+  assert.doesNotMatch(stylesIn(await a.sourcePackage()).match(/<w:style w:type="character"[^>]*w:styleId="Warning"[\s\S]*?<\/w:style>/)[0],/<w:next|<w:pPr>/,'a character style has no next style and no paragraph settings');
+  assert.equal(style(a,'Warning').type,'character');
+  assert.equal(style(a,'Warning').custom,true);
+  const rich=`<w:p xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:r><w:t xml:space="preserve">Careful: </w:t></w:r><w:r><w:rPr><w:rStyle w:val="Warning"/></w:rPr><w:t>hot</w:t></w:r></w:p>`;
+  await a.insert(()=>rich,{where:'start',spare:false});
+  assert.deepEqual(a.styleUse(),{Warning:1,...(a.styleUse().Normal?{Normal:a.styleUse().Normal}:{})},'the paragraph counts once, for the style its words use');
+  await assert.rejects(a.setStyleEdits({overrides:{},custom:[]}),/Warning words is used by 1 paragraph, so it stays/);
+  assert.equal(a.styleEdits().custom.length,1,'nothing was taken away');
+});
