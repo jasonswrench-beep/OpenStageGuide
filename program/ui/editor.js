@@ -247,6 +247,8 @@ export function mountEditor(doc, host, guide, ui) {
       return;
     }
     stopEdit();
+    // Words chosen in another paragraph are not these.
+    if (textSel && textSel.index !== idx(row)) textSel = null;
     const ta = createRichBox(doc, { spans: info.spans, label: wordsLabel(entry.style ?? "Normal"), describedby: "edit-hint", io, styleCss: (id) => currentStyles()?.cssForId?.(id) ?? null });
     /** @type {HTMLElement[]} */
     const lead = [];
@@ -556,6 +558,7 @@ export function mountEditor(doc, host, guide, ui) {
     const rows = picked ? [rowAt(picked.index)].filter((r) => r !== null) : targetRows();
     if (!rows.length) return;
     const recent = picked ?? (textSel && rows.length === 1 && idx(rows[0]) === textSel.index && textSel.end > textSel.start && Date.now() - textSel.at < 20000 ? textSel : null);
+    textSel = null;
     await settle();
     stopEdit();
     stopCellEdit();
@@ -601,7 +604,8 @@ export function mountEditor(doc, host, guide, ui) {
 
   /** The words a command from a menu or a dialog is for: the ones chosen (while changing the words, or a moment ago), else the paragraph the author is on. */
   function chosenWords() {
-    const sel = editing ? { index: idx(editing.row), start: editing.ta.selectionStart, end: editing.ta.selectionEnd } : textSel && textSel.end > textSel.start && Date.now() - textSel.at < 20000 && lastRow && idx(lastRow) === textSel.index ? textSel : null;
+    const recent = textSel && textSel.end > textSel.start && Date.now() - textSel.at < 20000 && rowAt(textSel.index) ? textSel : null;
+    const sel = editing ? { index: idx(editing.row), start: editing.ta.selectionStart, end: editing.ta.selectionEnd } : recent;
     const rows = sel ? [rowAt(sel.index)].filter((r) => r !== null) : targetRows();
     return { sel, row: /** @type {Row | undefined} */ (rows[0]) };
   }
@@ -674,7 +678,8 @@ export function mountEditor(doc, host, guide, ui) {
     entrySigs = [];
     stylesKey = "";
     render();
-    focusRow(row && shown.includes(row) ? row : rowNear(guide.cursor()));
+    // The keyboard goes back to the row it was on, unless the author has already gone on into the guide.
+    if (!doc.activeElement?.closest("#work-guide")) focusRow(row && shown.includes(row) ? row : rowNear(guide.cursor()));
   }
 
   /** A style made from the paragraph the author is on: its alignment and spacing move into the style, and the paragraph takes the style. */
@@ -1322,6 +1327,8 @@ export function mountEditor(doc, host, guide, ui) {
     }
     const row = rowOf(ev.target);
     if (!row || ev.target !== row.el) return;
+    // A key on a row (moving about, choosing) ends what was chosen in the words before.
+    textSel = null;
     const action = rowKey({ key: ev.key, shift: ev.shiftKey, ctrl: ev.ctrlKey, alt: ev.altKey, meta: ev.metaKey });
     if (!action) return;
     ev.preventDefault();

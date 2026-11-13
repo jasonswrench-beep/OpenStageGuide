@@ -148,6 +148,7 @@ export function checkParts({root,stylesRoot,title,language}){
   walk(first(doc,'body'),true);
   if(streaks)add('warn','EMPTY-PARAGRAPHS',`${streaks} place${streaks===1?'':'s'} with two or more empty paragraphs in a row.`,streakAt);
 
+  const defaultSize=(stylesEl&&Number(val(first(first(first(first(stylesEl,'docDefaults'),'rPrDefault'),'rPr'),'sz'))))||20;
   let lowest=Infinity,checked=0,low=false;
   const test=(label,fg,bg)=>{
     const f=hex6(fg)||'000000',b=hex6(bg)||'FFFFFF',r=contrast(f,b);
@@ -165,6 +166,63 @@ export function checkParts({root,stylesRoot,title,language}){
     }
   }
   if(checked&&!low)add('pass','CONTRAST',`${checked} styles with set colors meet 4.5:1 (lowest ${lowest.toFixed(1)}:1).`);
+
+  // ---- how the words look: size, alignment, the contrast of colored words, and what stands in for a heading or leans on color alone
+  const styleSize=id=>resolve(styles,id,x=>Number(val(first(first(x.node,'rPr'),'sz')))||0)||defaultSize;
+  const styleBold=id=>resolve(styles,id,x=>{const b=first(first(x.node,'rPr'),'b');return b?(isOn(b)?'on':'off'):'';})==='on';
+  const styleJust=id=>resolve(styles,id,x=>val(first(first(x.node,'pPr'),'jc')));
+  const small=[],justified=[],faux=[],colorAlone=[],underlined=[],lowWords=[];
+  let examined=0,coloredRuns=0,lowestWords=Infinity;
+  paras.forEach((p,i)=>{
+    const words=textOf(p).trim();
+    if(!words)return;
+    examined++;
+    const sid=paragraphStyleId(p),ppr=first(p,'pPr');
+    const fill=hex6(val(first(ppr,'shd'),'fill'))||resolve(styles,sid,x=>hex6(x.fill))||'FFFFFF';
+    const jc=val(first(ppr,'jc'))||styleJust(sid);
+    if(jc==='both'||jc==='distribute')justified.push(i);
+    const runs=all(p,'r').filter(r=>textOf(r).trim()&&!parentOf(r,'del'));
+    let tiny=false,allBold=runs.length>0,allBig=runs.length>0,alone=false,plainWords=false,under=false;
+    for(const r of runs){
+      const rpr=first(r,'rPr'),rs=val(first(rpr,'rStyle'));
+      const directSize=Number(val(first(rpr,'sz')))||0;
+      const size=directSize||(rs&&resolve(styles,rs,x=>Number(val(first(first(x.node,'rPr'),'sz')))||0))||styleSize(sid);
+      const directBold=first(rpr,'b')&&isOn(first(rpr,'b'));
+      const bold=first(rpr,'b')?isOn(first(rpr,'b')):styleBold(sid);
+      const color=hex6(val(first(rpr,'color')))||(rs&&resolve(styles,rs,x=>hex6(x.color)))||'';
+      if(size<20)tiny=true;
+      if(!directBold)allBold=false;
+      if(!(directSize>=28&&directSize>=defaultSize+4))allBig=false;
+      if(color){
+        coloredRuns++;
+        const ratio=contrast(color,fill),need=size>=36||(size>=28&&bold)?3:4.5;
+        lowestWords=Math.min(lowestWords,ratio);
+        if(ratio<need)lowWords.push({i,ratio,need,color,text:textOf(r).trim().slice(0,30)});
+        const grey=Math.max(...[0,2,4].map(k=>parseInt(color.slice(k,k+2),16)))-Math.min(...[0,2,4].map(k=>parseInt(color.slice(k,k+2),16)))<24;
+        const cue=directBold||(first(rpr,'i')&&isOn(first(rpr,'i')))||(first(rpr,'u')&&val(first(rpr,'u'))!=='none')||(first(rpr,'strike')&&isOn(first(rpr,'strike')))||directSize||rs;
+        if(!grey&&!cue)alone=true;
+      }else plainWords=true;
+      if(first(rpr,'u')&&val(first(rpr,'u'))!=='none'&&!parentOf(r,'hyperlink'))under=true;
+    }
+    if(tiny)small.push(i);
+    if(alone&&plainWords)colorAlone.push(i);
+    if(under)underlined.push(i);
+    // A paragraph that is all bold or all big, short and with no full stop, in an ordinary style, is a heading in everything but its style.
+    const known=styles.get(sid),ordinary=!known||known.name==='Normal'||/^OSG (Cue Body|Facilitator Notes)$/.test(known.name)||(known.type==='paragraph'&&!/^OSG /.test(known.name)&&!headingLevel(styles,sid));
+    if(ordinary&&!headingLevel(styles,sid)&&!first(ppr,'numPr')&&!parentOf(p,'tc')&&(allBold||allBig)&&words.length<=80&&!/[.!?:;,]$/.test(words))faux.push(i);
+  });
+  const some=(list,one,many,rule,level='warn')=>{if(list.length)add(level,rule,list.length===1?one:many.replace('{n}',String(list.length)),list[0]);};
+  some(small,'One paragraph has words under 10 points, which are hard to read on a screen or a printout. Use 11 points or larger.','{n} paragraphs have words under 10 points, which are hard to read on a screen or a printout. Use 11 points or larger.','TEXT-SIZE');
+  if(examined&&!small.length)add('pass','TEXT-SIZE','No words are under 10 points.');
+  some(justified,'One paragraph is justified: the gaps between words vary, which is hard to read, especially with dyslexia. Left aligned reads best.','{n} paragraphs are justified: the gaps between words vary, which is hard to read, especially with dyslexia. Left aligned reads best.','JUSTIFIED');
+  if(examined&&!justified.length)add('pass','JUSTIFIED','No paragraph is justified.');
+  some(faux,'One paragraph looks like a heading (short and bold or large) but has no heading style, so screen reader users cannot find it by heading.','{n} paragraphs look like headings (short and bold or large) but have no heading style, so screen reader users cannot find them by heading.','FAUX-HEADING');
+  some(colorAlone,'In one paragraph, color is the only thing that sets some words apart. People who cannot tell the colors apart miss it. Add bold or italic too.','In {n} paragraphs, color is the only thing that sets some words apart. People who cannot tell the colors apart miss it. Add bold or italic too.','COLOR-ONLY');
+  some(underlined,'One paragraph has underlined words that are not a link. On a screen, underlined words look like links. Bold or italic is clearer.','{n} paragraphs have underlined words that are not links. On a screen, underlined words look like links. Bold or italic is clearer.','UNDERLINE');
+  if(lowWords.length){
+    const w=lowWords.reduce((a2,b2)=>b2.ratio<a2.ratio?b2:a2);
+    add('fail','CONTRAST',`${lowWords.length===1?'Colored words':`${lowWords.length} stretches of colored words`} are hard to read: "${w.text}" in ${w.color} on ${(hex6(val(first(first(paras[w.i],'pPr'),'shd'),'fill'))||resolve(styles,paragraphStyleId(paras[w.i]),x=>hex6(x.fill))||'FFFFFF')} is ${w.ratio.toFixed(1)}:1; it needs ${w.need}:1.`,lowWords[0].i);
+  }else if(coloredRuns)add('pass','CONTRAST',`${coloredRuns} stretch${coloredRuns===1?'':'es'} of colored words meet the contrast they need (lowest ${lowestWords.toFixed(1)}:1).`);
 
   const counts={fail:0,warn:0,pass:0,info:0};
   for(const f of findings)counts[f.level]++;

@@ -728,6 +728,7 @@ try{
   ok(!!warn&&warn.type==='character'&&warn.basedOn==='DefaultParagraphFont'&&warn.spec.font?.bold===true&&warn.spec.font.color==='#8A1C1C'&&!warn.spec.paragraph&&!warn.spec.shading,'it is kept as a character style that holds only its font settings');
   await page.locator('dialog[open] button.primary').click();
   await page.waitForFunction(()=>!document.querySelector('dialog[open]'));
+  await page.waitForFunction(()=>!!document.activeElement?.closest('#work-guide'),null,{timeout:5000});
   await row(/^SayXY/).focus();
   await page.keyboard.press('Enter');
   await page.keyboard.press('Home');
@@ -757,6 +758,7 @@ try{
   ok(/used by 1 paragraph, so it stays/.test(await page.locator('#sp-problem').innerText()),'a character style in use cannot be deleted, and the panel says why');
   await page.locator('dialog[open] button.primary').click();
   await page.waitForFunction(()=>!document.querySelector('dialog[open]'));
+  await page.waitForFunction(()=>!!document.activeElement?.closest('#work-guide'),null,{timeout:5000});
   ok(await row(/^SayXY/).locator('span').first().evaluate(e=>getComputedStyle(e).color==='rgb(16, 32, 55)'),'the words follow the style when it changes');
   // take it off, and the style can go
   await row(/^SayXY/).focus();
@@ -776,6 +778,7 @@ try{
   ok(!projectStyles().custom.some(c=>c.name==='Warning words'),'and then it can be deleted');
   await page.locator('dialog[open] button.primary').click();
   await page.waitForFunction(()=>!document.querySelector('dialog[open]'));
+  await page.waitForFunction(()=>!!document.activeElement?.closest('#work-guide'),null,{timeout:5000});
 
   // ---- the formatting bar: the same looks as buttons, which show whether the chosen words have them
   const bar=page.getByRole('toolbar',{name:'Text formatting'});
@@ -808,6 +811,33 @@ try{
   await bar.getByRole('button',{name:'Bold'}).focus();
   await page.keyboard.press('ArrowRight');
   ok(await page.evaluate(()=>document.activeElement?.getAttribute('aria-label'))==='Italic','the arrow keys move along the bar');
+  await row(/^SayXY/).focus();
+
+  // ---- the Review says what the looks given to words do to the guide
+  await row(/^SayXY/).focus();
+  await page.keyboard.press('Control+Enter');
+  await page.keyboard.type('Heads up');
+  await page.keyboard.press('Control+a');
+  await page.keyboard.press('Control+b');
+  await formatMenu(/^Text\.\.\./);
+  await page.locator('#dlg-f-color').waitFor({timeout:5000});
+  await page.fill('#dlg-f-color','#CCCCCC');
+  await page.getByRole('button',{name:'Apply'}).click();
+  await page.waitForFunction(()=>/given a new look|colored/.test(document.querySelector('#status')?.textContent||''),null,{timeout:15000});
+  await saved();
+  await page.locator('#bar-buttons').getByRole('button',{name:'Review guide'}).click();
+  await fr.locator('#guide-review-fix li').first().waitFor({timeout:20000});
+  const fixText=await fr.locator('#guide-review-fix').innerText();
+  const lookText=await fr.locator('#guide-review-look').innerText();
+  ok(/Colored words are hard to read: "Heads up" in CCCCCC on FFFFFF is 1\.6:1; it needs 4\.5:1/.test(fixText),'the Review fails colored words that are hard to read, and says which: '+fixText.slice(0,160));
+  ok(/looks like a heading/.test(lookText),'and says a short bold paragraph looks like a heading but has no heading style');
+  await fr.locator('#guide-review-fix .guide-link').first().click();
+  await page.waitForTimeout(300);
+  await fr.locator('#guide-review-back').click();
+  await row(/^Heads up/).focus();
+  await page.keyboard.press('Delete');
+  await saved();
+  ok(!onDisk().some(q=>q.text==='Heads up'),'(the paragraph is taken out again)');
   await row(/^SayXY/).focus();
 
   // ---- Word files: the guide as a document, its styles as a template, and the styles of a Word file taken in

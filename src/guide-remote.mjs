@@ -28,7 +28,7 @@ function browserDownload(base64,fileName,type='application/vnd.openxmlformats-of
 
 // The frame's end. post(message) sends to the program's page; listen(fn) calls fn(data) for every message that came from it (the caller has
 // already checked who sent it). onStatus(state) hears how the saving stands.
-export function createRemoteAdapter({post,listen,onStatus=()=>{},download=browserDownload,build=makeContext}){
+export function createRemoteAdapter({post,listen,onStatus=()=>{},download=browserDownload,build=makeContext,parse=xml=>new DOMParser().parseFromString(xml,'application/xml')}){
   let counter=0,selection=null,last={state:'new',message:''};
   const pending=new Map();
   listen(data=>{
@@ -58,6 +58,12 @@ export function createRemoteAdapter({post,listen,onStatus=()=>{},download=browse
     if(typeof body!=='string')throw new Error('The block could not be made.');
     return call('insert',body,opts,Array.isArray(ctx.pictures)?ctx.pictures:[]);
   };
+  // What the Review reads is XML documents, which cannot cross between two pages: they come as text and are read again here.
+  adapter.reviewParts=async()=>{
+    const v=await call('reviewParts');
+    if(!v||typeof v.rootXml!=='string'||typeof v.stylesXml!=='string')throw new Error('The guide could not be read for the review.');
+    return {root:parse(v.rootXml),stylesRoot:parse(v.stylesXml),title:v.title,language:v.language};
+  };
   adapter.ready=call('ready');
   adapter.ready.catch(()=>{});
   // How the saving stands when the document opened: the program told the frame nothing before it was listening.
@@ -74,7 +80,7 @@ export function createRemoteAdapter({post,listen,onStatus=()=>{},download=browse
 // The program's end. guide is the guide's document (with its saving); post(message) sends to the frame; listen(fn) calls fn(data) for every
 // message that came from the frame (the caller has already checked it is the frame). Returns {stop, status(state)}: tell the frame how the
 // saving stands with status, and stop listening with stop.
-export function serveAdapter(guide,{post,listen,methods=REMOTE_METHODS}){
+export function serveAdapter(guide,{post,listen,methods=REMOTE_METHODS,serialize=doc=>new XMLSerializer().serializeToString(doc)}){
   const allowed=new Set(methods);
   const stop=listen(async data=>{
     if(!data||typeof data!=='object'||data.osg!=='call'||!Number.isSafeInteger(data.id)||typeof data.method!=='string')return;
@@ -85,7 +91,11 @@ export function serveAdapter(guide,{post,listen,methods=REMOTE_METHODS}){
       let value;
       if(data.method==='ready')value=await guide.ready;
       else if(data.method==='status')value=guide.status();
-      else if(data.method==='insert'){
+      else if(data.method==='reviewParts'){
+        const v=await guide.reviewParts();
+        if(!v||!v.root||!v.stylesRoot)throw new Error('The guide could not be read for the review.');
+        value={rootXml:serialize(v.root),stylesXml:serialize(v.stylesRoot),title:v.title,language:v.language};
+      }else if(data.method==='insert'){
         if(typeof args[0]!=='string')throw new Error('The block could not be made.');
         const opts=args[1]&&typeof args[1]==='object'&&!Array.isArray(args[1])?args[1]:{};
         value=await guide.insert(()=>args[0],{...opts,pictures:Array.isArray(args[2])&&args[2].length?args[2]:null});

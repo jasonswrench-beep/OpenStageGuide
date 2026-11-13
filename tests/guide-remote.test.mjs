@@ -169,3 +169,31 @@ test('a stopped link no longer answers',async()=>{
   await new Promise(r=>setTimeout(r,20));
   assert.deepEqual(answers,[]);
 });
+
+test('the Review reads the guide through the frame: the documents it reads cross as text, and come out readable and the same',async()=>{
+  const w=wire();
+  const guide=createProjectAdapter(demo(),{read:async()=>null,write:async()=>{},delayMs:0,soon:fn=>fn(),cancel:()=>{}});
+  serveAdapter(guide,{...w.host,serialize:d=>new XMLSerializer().serializeToString(d)});
+  const remote=createRemoteAdapter({...w.frame,parse:x=>new DOMParser().parseFromString(x,'application/xml')});
+  await remote.ready;
+  await remote.insert(()=>moduleHeading(1,'Naming it')+para('Normal',run('Some plain words.')),{where:'start'});
+  const local=await guide.reviewParts();
+  const far=await remote.reviewParts();
+  assert.equal(far.title,local.title);
+  assert.equal(far.language,local.language);
+  const text=d=>new XMLSerializer().serializeToString(d);
+  assert.equal(text(far.root),text(local.root),'the document is the same');
+  assert.equal(text(far.stylesRoot),text(local.stylesRoot),'and so are its styles');
+  const {checkParts}=await import('../src/guide-check.mjs');
+  assert.deepEqual(checkParts(far).findings,checkParts(local).findings,'the Review says the same of both');
+});
+
+test('a Review that cannot be read is refused in words, not passed on as nothing',async()=>{
+  const w=wire();
+  const guide=createProjectAdapter(demo(),{read:async()=>null,write:async()=>{},delayMs:0,soon:fn=>fn(),cancel:()=>{}});
+  guide.reviewParts=async()=>({root:null,stylesRoot:null});
+  serveAdapter(guide,{...w.host,serialize:d=>String(d)});
+  const remote=createRemoteAdapter({...w.frame,parse:x=>new DOMParser().parseFromString(x,'application/xml')});
+  await remote.ready;
+  await assert.rejects(remote.reviewParts(),/could not be read for the review/);
+});
