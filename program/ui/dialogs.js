@@ -138,7 +138,7 @@ export function chooseOne(doc, opts) {
  * (it may be a promise), or throws a message to show in the dialog and keep it open. Resolves to the result, or null when the dialog was closed.
  * @template T
  * @param {Document} doc
- * @param {{ title: string, intro?: string, confirm: string, fields: { id: string, label: string, type: "text" | "number" | "lines" | "select" | "check" | "file", value?: string | boolean, hint?: string, rows?: number, accept?: string, options?: { value: string, label: string }[] }[], finish: (values: Record<string, string | boolean | File | null>) => T | Promise<T> }} opts
+ * @param {{ title: string, intro?: string, confirm: string, fields: { id: string, label: string, type: "text" | "number" | "lines" | "select" | "check" | "file", value?: string | boolean, hint?: string, rows?: number, accept?: string, options?: { value: string, label: string }[], list?: { value: string, label: string }[] }[], finish: (values: Record<string, string | boolean | File | null>) => T | Promise<T> }} opts
  */
 export function askFields(doc, opts) {
   /** @type {Map<string, HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>} */
@@ -161,8 +161,10 @@ export function askFields(doc, opts) {
       input = el(doc, "input", { type: "checkbox", id });
       /** @type {HTMLInputElement} */ (input).checked = f.value === true;
     } else {
-      input = el(doc, "input", { type: "text", id, autocomplete: "off", ...(f.type === "number" ? { inputmode: "numeric", maxlength: "3" } : { maxlength: "200" }), value: String(f.value ?? "") });
+      input = el(doc, "input", { type: "text", id, autocomplete: "off", ...(f.type === "number" ? { inputmode: "numeric", maxlength: "3" } : { maxlength: "200" }), ...(f.list ? { list: `${id}-list` } : {}), value: String(f.value ?? "") });
     }
+    // Choices to start from (any text can still be typed).
+    if (f.list) rows.push(el(doc, "datalist", { id: `${id}-list` }, ...f.list.map((o) => el(doc, "option", { value: o.value, label: o.label }))));
     inputs.set(f.id, input);
     if (f.hint) input.setAttribute("aria-describedby", `${id}-hint`);
     const hint = f.hint ? [el(doc, "p", { id: `${id}-hint`, class: "hint", text: f.hint })] : [];

@@ -6,6 +6,7 @@
  * only, never markup.
  */
 import { DOCX_LIMITS, docxFromPackage, readDocxStyles } from "../../src/guide-docx.mjs";
+import { FONT_URL, STYLES as FONT_STYLES, packFont } from "../../src/guide-fonts.mjs";
 import { listStyles, niceName, specCss } from "../../src/guide-styles-edit.mjs";
 import { AS_NEW, candidates, importSummary, planImport } from "../../src/guide-styles-import.mjs";
 import { askFields, openDialog } from "./dialogs.js";
@@ -40,6 +41,25 @@ export function downloadFile(doc, bytes, fileName, type) {
   window.setTimeout(() => URL.revokeObjectURL(url), 30000);
 }
 
+/** The files of the program's own fonts, from the program's server. @param {string[]} families */
+async function loadPackFonts(families) {
+  /** @type {Record<string, Record<string, Uint8Array>>} */
+  const out = {};
+  for (const family of families) {
+    const font = packFont(family);
+    if (!font) continue;
+    out[family] = {};
+    for (const style of FONT_STYLES) {
+      const file = font.files[style];
+      if (!file) continue;
+      const res = await fetch(`${FONT_URL}${file}`);
+      if (!res.ok) throw new Error(`The font ${family} could not be read, so it was not put in the file.`);
+      out[family][style] = new Uint8Array(await res.arrayBuffer());
+    }
+  }
+  return out;
+}
+
 /**
  * Make the guide a Word document (or, with `template`, a Word template that holds only its styles) and give it to the author.
  * @param {Document} doc @param {any} guide the guide's document @param {{ name: string, template: boolean, say: (message: string, bad?: boolean) => void }} opts
@@ -49,13 +69,18 @@ export async function saveWordFile(doc, guide, { name, template, say }) {
     const state = guide.exportState();
     const pkg = await guide.sourcePackage();
     const title = String(state.title || name);
-    const bytes = await docxFromPackage(pkg, zipLibrary(), io, template ? { template: true, title } : { entries: state.paragraphs, title });
+    /** @type {{ family: string }[]} */
+    let carried = [];
+    const options = { ...(template ? { template: true } : { entries: state.paragraphs }), title, fonts: loadPackFonts, onEmbedded: (/** @type {{ family: string }[]} */ list) => (carried = list) };
+    const bytes = await docxFromPackage(pkg, zipLibrary(), io, options);
     const file = `${safeFileName(name)}${template ? " styles.dotx" : ".docx"}`;
     downloadFile(doc, bytes, file, template ? DOTX : DOCX);
+    const names = carried.map((f) => f.family);
+    const fonts = names.length ? ` ${names.length === 1 ? `The font ${names[0]} is` : `The fonts ${names.slice(0, -1).join(", ")} and ${names[names.length - 1]} are`} inside the file, so it looks right on a computer that does not have ${names.length === 1 ? "it" : "them"}.` : "";
     say(
       template
-        ? `${file} has the guide's styles. In Word, start a document from it, or copy it to your templates folder. The styles are real Word styles, so they appear in Word's Styles gallery.`
-        : `${file} was made from the guide. Open it in Word, press Ctrl+A and then F9 to fill in the page numbers of the contents.`,
+        ? `${file} has the guide's styles. In Word, start a document from it, or copy it to your templates folder. The styles are real Word styles, so they appear in Word's Styles gallery.${fonts}`
+        : `${file} was made from the guide. Open it in Word, press Ctrl+A and then F9 to fill in the page numbers of the contents.${fonts}`,
     );
   } catch (e) {
     say(/** @type {Error} */ (e).message, true);

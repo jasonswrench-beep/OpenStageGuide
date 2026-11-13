@@ -840,6 +840,35 @@ try{
   ok(!onDisk().some(q=>q.text==='Heads up'),'(the paragraph is taken out again)');
   await row(/^SayXY/).focus();
 
+  // ---- the fonts that come with the program: offered in the font boxes, drawn by the page, and carried inside a Word file
+  const fontReplies=[];
+  page.on('response',r=>{if(/\/program\/fonts\//.test(r.url()))fontReplies.push([r.url().split('/').pop(),r.status()]);});
+  await row(/^SayXY/).focus();
+  await page.keyboard.press('Enter');
+  await page.keyboard.press('Home');
+  for(let i=0;i<3;i++)await page.keyboard.press('Shift+ArrowRight');
+  await formatMenu(/^Text\.\.\./);
+  await page.locator('#dlg-f-font').waitFor({timeout:5000});
+  const offered=await page.locator('#dlg-f-font-list option').evaluateAll(os=>os.map(o=>[o.getAttribute('value'),o.getAttribute('label')]));
+  ok(offered.slice(0,4).map(o=>o[0]).join('|')==='Atkinson Hyperlegible|Lexend|Source Sans 3|Source Serif 4'&&offered.slice(0,4).every(o=>/comes with the program/.test(o[1])),'the font box offers the fonts that come with the program first, saying so: '+JSON.stringify(offered.slice(0,2)));
+  ok(offered.some(o=>o[0]==='Calibri'),'and the usual Word fonts after them');
+  await page.fill('#dlg-f-font','Lexend');
+  await page.getByRole('button',{name:'Apply'}).click();
+  await page.waitForFunction(()=>/in another font/.test(document.querySelector('#status')?.textContent||''),null,{timeout:15000});
+  await saved();
+  ok(spansOf('SayXY')[0].text==='Say'&&spansOf('SayXY')[0].font==='Lexend','the chosen words are in Lexend, in the document');
+  const drawn=await page.evaluate(async()=>{await document.fonts.load('16px "Lexend"');await document.fonts.ready;return {check:document.fonts.check('16px "Lexend"'),loaded:[...document.fonts].filter(f=>f.family.replace(/"/g,'')==='Lexend'&&f.status==='loaded').length};});
+  ok(drawn.check&&drawn.loaded>=1,'the page has the font loaded, though it is not installed on the computer: '+JSON.stringify(drawn));
+  ok(fontReplies.some(([n,st])=>n==='Lexend-Regular.ttf'&&st===200),'it came from the program\'s own server: '+JSON.stringify(fontReplies.slice(0,3)));
+  await page.keyboard.press('Escape');
+  await formatMenu(/^Styles\.\.\./);
+  await page.locator('#sp-list').waitFor({timeout:5000});
+  const panelFonts=await page.locator('#sp-fonts option').evaluateAll(os=>os.map(o=>o.getAttribute('value')));
+  ok(panelFonts.slice(0,4).join('|')==='Atkinson Hyperlegible|Lexend|Source Sans 3|Source Serif 4','the Styles panel offers them too');
+  await page.locator('dialog[open] button.primary').click();
+  await page.waitForFunction(()=>!document.querySelector('dialog[open]'));
+  await page.waitForFunction(()=>!!document.activeElement?.closest('#work-guide'),null,{timeout:5000});
+
   // ---- Word files: the guide as a document, its styles as a template, and the styles of a Word file taken in
   const fileMenu=async label=>{await page.getByRole('menuitem',{name:/^File/}).click();await page.getByRole('menuitem',{name:label}).click();};
   const [wordDownload]=await Promise.all([page.waitForEvent('download',{timeout:20000}),fileMenu(/^Save as Word file/)]);
@@ -852,6 +881,9 @@ try{
   ok(/<w:sectPr>/.test(docXml),'and the page setup Word needs');
   ok(/<dc:title>Editor guide<\/dc:title>/.test(await wordZip.file('docProps/core.xml').async('string')),'the title of the guide is the title of the file');
   ok(/w:styleId="OSGNotes"/.test(await wordZip.file('word/styles.xml').async('string')),'the guide\'s styles are in it');
+  ok(/<w:font w:name="Lexend">[\s\S]*embedRegular[\s\S]*embedBold[\s\S]*<\/w:font>/.test(await wordZip.file('word/fontTable.xml').async('string'))&&Object.keys(wordZip.files).filter(n=>/^word\/fonts\/font\d+\.odttf$/.test(n)).length===2,'the font the guide uses is inside the Word file: Lexend, regular and bold');
+  await page.waitForFunction(()=>/The font Lexend is inside the file/.test(document.querySelector('#status')?.textContent||''),null,{timeout:10000});
+  ok(true,'and the program says so');
   const [templateDownload]=await Promise.all([page.waitForEvent('download',{timeout:20000}),fileMenu(/^Save styles as a Word template/)]);
   ok(templateDownload.suggestedFilename()==='Editor guide styles.dotx','Save styles as a Word template downloads a .dotx: '+templateDownload.suggestedFilename());
   const templateZip=await JSZip.loadAsync(fs.readFileSync(await templateDownload.path()));

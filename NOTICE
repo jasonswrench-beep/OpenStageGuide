@@ -29,6 +29,18 @@ of a presentation as slide pictures)
   Apache License 2.0, Copyright 2023 Mozilla Foundation and contributors. The full text is in public/vendor/pdfjs-LICENSE.txt.
   It runs in the browser on the author's own PC and sends nothing anywhere.
 
+Fonts that come with the program (program/fonts: drawn by the program's page, and carried inside a Word file made from a guide that uses them)
+  Every font is the makers' own file, unmodified, under the SIL Open Font License, Version 1.1, which allows it to be used, shipped and embedded in
+  documents. The license text of each is in program/fonts beside it. No font is sold on its own, and none is renamed.
+  Atkinson Hyperlegible: Copyright 2020 Braille Institute of America, Inc. https://github.com/googlefonts/atkinson-hyperlegible
+    (license: program/fonts/OFL-AtkinsonHyperlegible.txt)
+  Lexend: Copyright 2019 The Lexend Project Authors. https://github.com/googlefonts/lexend
+    (license: program/fonts/OFL-Lexend.txt)
+  Source Sans 3: Copyright 2010-2024 Adobe, with Reserved Font Name Source. https://github.com/adobe-fonts/source-sans
+    (license: program/fonts/LICENSE-SourceSans3.md)
+  Source Serif 4: Copyright 2014-2024 Adobe, with Reserved Font Name Source. https://github.com/adobe-fonts/source-serif
+    (license: program/fonts/LICENSE-SourceSerif4.md)
+
 acorn 8.19.0 (used only by scripts/build-snapshot.mjs to check the source before the server serves it; not sent to the browser)
   https://github.com/acornjs/acorn
   MIT License, Copyright (C) 2012-2022 by various contributors.

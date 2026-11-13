@@ -4,6 +4,7 @@
  * The dialog checks what was typed with the same code that will apply it (`validate`), so a problem is explained in the dialog, which stays
  * open, and nothing is changed until the settings are good.
  */
+import { fontChoices } from "../../src/guide-fonts.mjs";
 import { askFields } from "./dialogs.js";
 
 /**
@@ -85,7 +86,7 @@ export function askTextFormat(doc, current, validate) {
     intro: "How the chosen words look (with none chosen, every word of the paragraph). A box left as it is changes nothing. Underlined words look like links on a screen, so bold or italic is clearer for emphasis.",
     confirm: "Apply",
     fields: [
-      { id: "font", label: "Font", type: "text", value: was(current.font), hint: "Any font name. A Word file only names its font, so the computer that opens it needs the font." },
+      { id: "font", label: "Font", type: "text", value: was(current.font), list: fontChoices(), hint: "Any font name. The fonts that come with the program are carried inside the Word file; any other is only named, so the computer that opens the file needs it." },
       { id: "size", label: "Size (points, 6 to 96)", type: "text", value: was(current.size) },
       { id: "color", label: "Color (six digits after a #)", type: "text", value: was(current.color), hint: "Dark words on a light page read best. Review guide checks the contrast." },
       { id: "bold", label: "Bold", type: "check", value: current.bold === true },

@@ -3,15 +3,18 @@
 //
 // The guide is held as a flat Word package (the form Word's own getOoxml gives): the document, its relationships, the styles, the lists and
 // the pictures, each as a part. A Word file is the same parts in a zip with a content types list and the package's own relationships.
+import {STYLES as FONT_STYLES,obfuscateFont,newGuid,packFontsUsed} from './guide-fonts.mjs';
 const W='http://schemas.openxmlformats.org/wordprocessingml/2006/main';
 const REL='http://schemas.openxmlformats.org/officeDocument/2006/relationships';
-const CT={main:'application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml',template:'application/vnd.openxmlformats-officedocument.wordprocessingml.template.main+xml',settings:'application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml'};
+const CT={main:'application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml',template:'application/vnd.openxmlformats-officedocument.wordprocessingml.template.main+xml',settings:'application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml',fontTable:'application/vnd.openxmlformats-officedocument.wordprocessingml.fontTable+xml',font:'application/vnd.openxmlformats-officedocument.obfuscatedFont'};
 const DECLARATION='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n';
 export const DOCX_LIMITS=Object.freeze({fileBytes:25*1024*1024,partBytes:6*1024*1024,parts:3000});
+/** What a file can carry of fonts: one font file, and all of them together. */
+export const EMBED_LIMITS=Object.freeze({fontBytes:3*1024*1024,totalBytes:12*1024*1024});
 const SECTION='<w:sectPr><w:pgSz w:w="12240" w:h="15840"/><w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="720" w:footer="720" w:gutter="0"/></w:sectPr>';
-const SETTINGS=`<w:settings xmlns:w="${W}"><w:zoom w:percent="100"/><w:defaultTabStop w:val="720"/><w:compat><w:compatSetting w:name="compatibilityMode" w:uri="http://schemas.microsoft.com/office/word" w:val="15"/></w:compat></w:settings>`;
+const settingsXml=embed=>`<w:settings xmlns:w="${W}"><w:zoom w:percent="100"/>${embed?'<w:embedTrueTypeFonts/>':''}<w:defaultTabStop w:val="720"/><w:compat><w:compatSetting w:name="compatibilityMode" w:uri="http://schemas.microsoft.com/office/word" w:val="15"/></w:compat></w:settings>`;
 const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-const EXTENSIONS={png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',gif:'image/gif'};
+const EXTENSIONS={png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',gif:'image/gif',odttf:CT.font};
 
 /**
  * The body of the guide for a Word file: its paragraphs in order, with the contents lines (which the program keeps as plain lines, with
@@ -76,9 +79,10 @@ const partsOf=(pkgXml,io)=>{
  * A Word file from the flat package: a document (.docx), or, with `template`, a Word template (.dotx) that holds the styles and one empty
  * paragraph. Returns the bytes of the zip. `entries` (the guide's paragraphs) give the body, with the contents lines made into a contents field;
  * without them the body is the package's own.
- * @param {string} pkgXml @param {any} JSZipClass @param {{parse:(x:string)=>Document, serialize:(e:Element)=>string}} io @param {{template?:boolean, entries?:{xml?:string,text?:string,style?:string}[], title?:string}} [options]
+ * @param {string} pkgXml @param {any} JSZipClass @param {{parse:(x:string)=>Document, serialize:(e:Element)=>string}} io @param {{template?:boolean, entries?:{xml?:string,text?:string,style?:string}[], title?:string, fonts?:(families:string[])=>Promise<Record<string,Partial<Record<'regular'|'bold'|'italic'|'boldItalic',Uint8Array>>>>, onEmbedded?:(list:{family:string,styles:string[],bytes:number}[])=>void}} [options]
+ *   `fonts` gives the files of the program's own fonts (src/guide-fonts.mjs) by family; the ones the guide uses are carried inside the file
  */
-export async function docxFromPackage(pkgXml,JSZipClass,io,{template=false,entries,title}={}){
+export async function docxFromPackage(pkgXml,JSZipClass,io,{template=false,entries,title,fonts,onEmbedded}={}){
   const parts=partsOf(pkgXml,io);
   const docPart=parts.find(p=>p.name==='/word/document.xml')?.xml??'';
   const bodyOf=template?'':withSection(entries?bodyWithContents(entries):/<w:body>([\s\S]*)<\/w:body>/.exec(docPart)?.[1]??'');
@@ -88,6 +92,27 @@ export async function docxFromPackage(pkgXml,JSZipClass,io,{template=false,entri
   const overrides=[];
   const extensions=new Set();
   let hasSettings=false;
+  // The program's own fonts that the guide uses, and their files: carried inside the file, so it looks right where the fonts are not installed.
+  const used=typeof fonts==='function'?packFontsUsed(parts.find(p=>p.name==='/word/styles.xml')?.xml,bodyOf):[];
+  const loaded=used.length?await fonts(used.map(f=>f.family)):{};
+  /** @type {{font:any, files:Record<string,{rid:string,guid:string,target:string}>}[]} */
+  const embedded=[];
+  let total=0,count=0;
+  for(const f of used){
+    const have=loaded?.[f.family];
+    if(!have)continue;
+    /** @type {Record<string,{rid:string,guid:string,target:string}>} */
+    const files={};
+    for(const style of FONT_STYLES){
+      const bytes=have[style];
+      if(!(bytes instanceof Uint8Array)||!bytes.length)continue;
+      if(bytes.length>EMBED_LIMITS.fontBytes||(total+=bytes.length)>EMBED_LIMITS.totalBytes)throw new Error('The fonts are too large to carry inside a Word file.');
+      const guid=newGuid(),n=++count;
+      put(`word/fonts/font${n}.odttf`,obfuscateFont(bytes,guid));
+      files[style]={rid:`rId${n}`,guid,target:`fonts/font${n}.odttf`};
+    }
+    if(Object.keys(files).length)embedded.push({font:f,files});
+  }
   for(const part of parts){
     const name=part.name.replace(/^\//,'');
     if(!/^[A-Za-z0-9_./-]+$/.test(name)||name.includes('..'))throw new Error('A part of the package has a name a Word file cannot hold.');
@@ -101,6 +126,7 @@ export async function docxFromPackage(pkgXml,JSZipClass,io,{template=false,entri
       let xml=part.xml;
       if(part.name==='/word/styles.xml'&&!template)xml=withContentsStyles(xml,bodyOf);
       if(part.name==='/word/_rels/document.xml.rels'&&!/settings\.xml/.test(xml))xml=xml.replace('</Relationships>',`<Relationship Id="rIdSettings" Type="${REL}/settings" Target="settings.xml"/></Relationships>`);
+      if(part.name==='/word/_rels/document.xml.rels'&&embedded.length)xml=xml.replace('</Relationships>',`<Relationship Id="rIdFontTable" Type="${REL}/fontTable" Target="fontTable.xml"/></Relationships>`);
       put(name,DECLARATION+xml);
       if(/\.rels$/.test(name)){/* the default for rels covers it */}else overrides.push([part.name,part.type]);
       if(name==='word/settings.xml')hasSettings=true;
@@ -111,7 +137,16 @@ export async function docxFromPackage(pkgXml,JSZipClass,io,{template=false,entri
       if(EXTENSIONS[ext])extensions.add(ext);
     }
   }
-  if(!hasSettings){put('word/settings.xml',DECLARATION+SETTINGS);overrides.push(['/word/settings.xml',CT.settings]);}
+  if(!hasSettings){put('word/settings.xml',DECLARATION+settingsXml(embedded.length>0));overrides.push(['/word/settings.xml',CT.settings]);}
+  if(embedded.length){
+    const tag={regular:'embedRegular',bold:'embedBold',italic:'embedItalic',boldItalic:'embedBoldItalic'};
+    const attr=v=>esc(v).replace(/"/g,'&quot;');
+    put('word/fontTable.xml',`${DECLARATION}<w:fonts xmlns:w="${W}" xmlns:r="${REL}">${embedded.map(e=>`<w:font w:name="${attr(e.font.family)}"><w:charset w:val="00"/><w:family w:val="${e.font.kind==='serif'?'roman':'swiss'}"/><w:pitch w:val="variable"/>${FONT_STYLES.filter(k=>e.files[k]).map(k=>`<w:${tag[k]} r:id="${e.files[k].rid}" w:fontKey="${e.files[k].guid}"/>`).join('')}</w:font>`).join('')}</w:fonts>`);
+    put('word/_rels/fontTable.xml.rels',`${DECLARATION}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${embedded.flatMap(e=>FONT_STYLES.filter(k=>e.files[k]).map(k=>`<Relationship Id="${e.files[k].rid}" Type="${REL}/font" Target="${e.files[k].target}"/>`)).join('')}</Relationships>`);
+    overrides.push(['/word/fontTable.xml',CT.fontTable]);
+    extensions.add('odttf');
+    onEmbedded?.(embedded.map(e=>({family:e.font.family,styles:FONT_STYLES.filter(k=>e.files[k]),bytes:FONT_STYLES.reduce((n,k)=>n+(loaded[e.font.family][k]?.length||0),0)})));
+  }
   // The title is a property of the file: a screen reader says it, and Word and PDF files made from this one carry it.
   const heading=String(title??'').replace(/[\u0000-\u001f]/g,' ').trim().slice(0,200);
   if(heading){

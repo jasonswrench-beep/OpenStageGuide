@@ -22,9 +22,11 @@ import {fileURLToPath} from 'node:url';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 // What a guide's file is called. The ending is a decision for the author (see docs/STANDALONE-APP-PLAN-2026-11-13.md); change it here only.
 export const PROJECT_EXTENSION='.guide-project.json';
-const TYPES={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.json':'application/json'};
+const TYPES={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.json':'application/json','.ttf':'font/ttf','.txt':'text/plain; charset=utf-8','.md':'text/plain; charset=utf-8'};
 const PROGRAM_CSP="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; frame-src 'self'; base-uri 'none'; form-action 'none'";
 const PLAIN=/^[A-Za-z0-9_-]+\.(html|css|js|svg|png|json)$/;
+// The fonts that come with the program, and their licenses (program/fonts): plain names only, like the rest.
+const FONT_FILE=/^[A-Za-z0-9_-]+\.(ttf|txt|md)$/;
 const RESERVED=/^(con|prn|aux|nul|com[0-9]|lpt[0-9])$/i;
 
 // A guide's name made into a file name: what Windows does not allow is taken out, and a name that is nothing but that is refused.
@@ -143,7 +145,7 @@ export async function startProjectServer({file,folder,port=3850,snapshot,maxByte
     if(pathname==='/program/tools'){tools(req,res);return;}
     const rest=pathname.slice('/program/'.length)||'index.html';
     const parts=rest.split('/');
-    const plain=(parts.length===1||(parts.length===2&&parts[0]==='ui'))&&parts.every((p,i)=>i===parts.length-1?PLAIN.test(p):p==='ui');
+    const plain=((parts.length===1||(parts.length===2&&parts[0]==='ui'))&&parts.every((p,i)=>i===parts.length-1?PLAIN.test(p):p==='ui'))||(parts.length===2&&parts[0]==='fonts'&&FONT_FILE.test(parts[1]));
     if(!plain){send(res,404,'Not found');return;}
     let data;
     try{data=await fs.readFile(path.join(root,'program',...parts));}catch{send(res,404,'Not found');return;}

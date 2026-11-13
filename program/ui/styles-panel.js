@@ -6,12 +6,13 @@
  * nothing else. Text and attributes only, never markup.
  */
 import { contrastNeeded, contrastRatio, diffSpec, idForName, mergeSpec, specCss } from "../../src/guide-styles-edit.mjs";
+import { fontChoices } from "../../src/guide-fonts.mjs";
 import { askName, openDialog } from "./dialogs.js";
 import { el } from "./menubar.js";
 import { drawCss } from "./preview.js";
 
-/** Fonts offered to start from. Any name can be typed: a Word file only names its font, and the computer it is opened on has to have it. */
-const FONTS = ["Aptos", "Aptos Display", "Calibri", "Cambria", "Arial", "Verdana", "Tahoma", "Segoe UI", "Georgia", "Times New Roman", "Trebuchet MS", "Atkinson Hyperlegible", "Lexend", "Source Sans 3", "Source Serif 4", "OpenDyslexic"];
+/** Fonts offered to start from: the ones that come with the program (carried inside a Word file that uses them), then the usual ones. Any name can be typed: for any other, a Word file only names the font, and the computer it is opened on has to have it. */
+const FONTS = fontChoices();
 
 /** @param {any} v */
 const show = (v) => (v === undefined || v === null ? "" : String(v));
@@ -271,7 +272,7 @@ export function openStylesPanel(doc, guide, say, startId) {
     finish: () => true,
     first: () => doc.getElementById("sp-list"),
     body: () => {
-      const datalist = el(doc, "datalist", { id: "sp-fonts" }, ...FONTS.map((f) => el(doc, "option", { value: f })));
+      const datalist = el(doc, "datalist", { id: "sp-fonts" }, ...FONTS.map((f) => el(doc, "option", { value: f.value, label: f.label })));
       const left = el(
         doc,
         "div",
