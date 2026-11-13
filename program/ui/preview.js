@@ -15,7 +15,8 @@ const A = "http://schemas.openxmlformats.org/drawingml/2006/main";
 const R = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
 
 /**
- * @typedef {{ tag: string, cls?: string, text?: string, attrs?: Record<string, string>, height?: number, index?: number, span?: number, format?: ReturnType<typeof formatOf>, children?: Node_[] }} Node_
+ * @typedef {{ tag: string, cls?: string, text?: string, attrs?: Record<string, string>, height?: number, index?: number, span?: number, format?: ReturnType<typeof formatOf>, css?: Record<string, string>, children?: Node_[] }} Node_
+ * @typedef {{ cssFor: (name: string) => Record<string, string> | null, baseOf: (name: string) => string | null }} StyleView
  * @typedef {{ xml?: string, text?: string, style?: string, builtIn?: string }} Entry
  */
 
@@ -159,26 +160,29 @@ function blankNode(style) {
 
 /**
  * The tree for one paragraph (a w:p element and its style's name).
- * @param {Element} p @param {string} style @param {((id: string) => { mime: string, base64: string } | null) | undefined} [media] @returns {Node_ | null}
+ * @param {Element} p @param {string} style @param {((id: string) => { mime: string, base64: string } | null) | undefined} [media] @param {StyleView} [styles] @returns {Node_ | null}
  */
-function paragraphNode(p, style, media) {
-  const node = plainParagraphNode(p, style, media);
+function paragraphNode(p, style, media, styles) {
+  const node = plainParagraphNode(p, style, media, styles);
   if (!node) return node;
+  const css = styles?.cssFor(style);
+  if (css) node.css = css;
   // What the author set on this paragraph by hand (alignment, space, line spacing, indents) is drawn over what its style looks like.
   const format = formatOf(p);
   if (Object.values(format).some((v) => v !== null)) node.format = format;
   return node;
 }
 
-/** @param {Element} p @param {string} style @param {((id: string) => { mime: string, base64: string } | null) | undefined} [media] @returns {Node_ | null} */
-function plainParagraphNode(p, style, media) {
+/** @param {Element} p @param {string} style @param {((id: string) => { mime: string, base64: string } | null) | undefined} [media] @param {StyleView} [styles] @returns {Node_ | null} */
+function plainParagraphNode(p, style, media, styles) {
   const parts = inlineParts(p);
   const words = parts.filter((x) => x.t === "text").map((x) => x.text).join("").trim();
   if (style === "OSG Form Line" || style === "OSG Answer Line") return { tag: "div", cls: "g-rule" };
   if (style === "OSG Form Box") return { tag: "div", cls: "g-box", height: exactHeight(p) || 60 };
   if (style === "OSG Form Field") return { tag: "div", cls: "g-field", children: fieldNodes(parts) };
   if (!words && !parts.some((x) => x.t === "check" || x.t === "cite" || x.t === "picture")) return null;
-  const known = BY_STYLE[style];
+  // A style of the author's starts from the look of the built-in style it is based on.
+  const known = BY_STYLE[style] ?? BY_STYLE[styles?.baseOf(style) ?? ""];
   if (known) return { tag: known.tag, cls: known.cls, children: inlineNodes(parts, media) };
   if (/^toc \d$/i.test(style)) return { tag: "p", cls: "g-toc", children: inlineNodes(parts, media) };
   return { tag: "p", cls: /^OSG /.test(style) ? "g-para" : "g-para", children: inlineNodes(parts, media) };
@@ -220,7 +224,8 @@ function tableNode(tbl, media) {
  * With `blank`, a paragraph with nothing in it is drawn as an empty row (the editor needs somewhere to type); without it, it is left out.
  * @param {Entry[]} entries
  * @param {(xml: string) => Document} parseXml
- * @param {{ blank?: boolean, media?: (id: string) => { mime: string, base64: string } | null }} [options]
+ * With `styles`, the styles the author changed or made are drawn over their usual look (see previewStyles in src/guide-styles-edit.mjs).
+ * @param {{ blank?: boolean, media?: (id: string) => { mime: string, base64: string } | null, styles?: StyleView }} [options]
  * @returns {Node_[]}
  */
 export function describeGuide(entries, parseXml, options = {}) {
@@ -247,12 +252,19 @@ export function describeGuide(entries, parseXml, options = {}) {
       out.push({ ...tableNode(root, options.media), index, span });
     }
     else if (root.localName === "p") {
-      const node = paragraphNode(root, entry.style ?? "Normal", options.media);
+      const node = paragraphNode(root, entry.style ?? "Normal", options.media, options.styles);
       if (node) out.push({ ...node, index });
       else if (options.blank && isBlank(root)) out.push({ ...blankNode(entry.style ?? "Normal"), index });
     }
   }
   return out;
+}
+
+const CSS_ALLOWED = new Set(["fontFamily", "fontSize", "color", "fontWeight", "fontStyle", "textDecoration", "textAlign", "marginTop", "marginBottom", "marginLeft", "textIndent", "lineHeight", "backgroundColor", "borderTop", "borderLeft", "borderBottom", "borderRight"]);
+
+/** What a style that was changed or made looks like on the page: only the properties the styles make (made by src/guide-styles-edit.mjs from checked settings). @param {HTMLElement} el @param {Record<string, string>} css */
+export function drawCss(el, css) {
+  for (const [k, v] of Object.entries(css)) if (CSS_ALLOWED.has(k)) /** @type {any} */ (el.style)[k] = v;
 }
 
 /** A paragraph's own formatting as the page can show it (points are 4/3 of a pixel). @param {HTMLElement} el @param {NonNullable<Node_["format"]>} f */
@@ -276,6 +288,7 @@ export function drawNodes(doc, parent, nodes) {
     if (n.cls) el.className = n.cls;
     for (const [k, v] of Object.entries(n.attrs ?? {})) el.setAttribute(k, v);
     if (n.height) /** @type {HTMLElement} */ (el).style.height = `${Math.round(n.height * 1.33)}px`;
+    if (n.css) drawCss(/** @type {HTMLElement} */ (el), n.css);
     if (n.format) drawFormat(/** @type {HTMLElement} */ (el), n.format);
     if (n.text !== undefined) el.textContent = n.text;
     if (n.children) drawNodes(doc, el, n.children);

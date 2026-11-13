@@ -330,7 +330,7 @@ try{
   ok(onDisk().some(p=>p.style==='OSG Form Print'),'with its print line');
   await page.getByRole('button',{name:'Update guide'}).click();
   let numbered=false;
-  for(let i=0;i<12&&!numbered;i++){await saved();numbered=onDisk().some(p=>/^Checklist [A-Z0-9.]+: Preparation list$/.test(p.text));}
+  for(let i=0;i<25&&!numbered;i++){await saved();numbered=onDisk().some(p=>/^Checklist [A-Z0-9.]+: Preparation list$/.test(p.text));}
   ok(numbered,'Update guide numbers it');
   await shot('8-form.png');
 
@@ -503,6 +503,84 @@ try{
   ok(jc(SAY)==='center','and it is centered on disk');
   await page.keyboard.press('Escape');
   await shot('11-format.png');
+
+  // ---- styles: change one, make one, give it to a paragraph, make one from a paragraph
+  const projectStyles=()=>{const f=fs.readdirSync(GUIDES).find(n=>n.endsWith('.guide-project.json'));return parseProject(fs.readFileSync(path.join(GUIDES,f),'utf8')).guide.styles;};
+  const formatMenu=async label=>{await page.getByRole('menuitem',{name:/^Format/}).click();await page.getByRole('menuitem',{name:label}).click();};
+  const panelChoose=async name=>{await page.locator('#sp-list').selectOption({label:name});};
+  const notesRow=row(/Facilitator notes: Listen for blame\./);
+  await notesRow.focus();
+  await formatMenu(/^Styles\.\.\./);
+  await page.locator('#sp-list').waitFor({timeout:5000});
+  await page.waitForFunction(()=>document.querySelectorAll('#sp-list option').length>20,null,{timeout:5000});
+  ok(await page.locator('#sp-list optgroup[label="Styles of the guide"] option').count()>=15,'the Styles panel lists the guide\'s styles');
+  ok(await page.locator('#sp-name').innerText()==='OSG Facilitator Notes','and opens on the style of the paragraph the author was on');
+  ok((await page.locator('#sp-size').inputValue())!==''&&(await page.locator('#sp-font').inputValue())!=='','showing what the style comes to: its size and its font');
+  await shot('12a-panel.png');
+  await page.locator('#sp-size').fill('2');
+  await page.getByRole('button',{name:'Apply to this style'}).click();
+  ok(/font size must be a number from 6 to 96/.test(await page.locator('#sp-problem').innerText()),'a size that is too small is explained in the panel');
+  await page.locator('#sp-size').fill('15');
+  await page.locator('#sp-bold').check();
+  await page.locator('#sp-color').fill('#CCCCCC');
+  ok(/too low/.test(await page.locator('#sp-contrast').innerText()),'a pale color is warned about as it is typed: the contrast is too low');
+  await page.locator('#sp-color').fill('#102037');
+  ok(/good/.test(await page.locator('#sp-contrast').innerText()),'and a dark one is good');
+  await page.getByRole('button',{name:'Apply to this style'}).click();
+  await saved();
+  ok(projectStyles().overrides.OSGNotes?.font?.size===15&&projectStyles().overrides.OSGNotes.font.bold===true,'Apply stores only what was changed, in the project file');
+  ok(await page.locator('#sp-list option:checked').innerText()==='OSG Facilitator Notes (changed)','and the list says the style is changed');
+  ok(await notesRow.evaluate(e=>getComputedStyle(e).fontWeight==='700'&&getComputedStyle(e).fontSize==='20px'),'every paragraph in the style follows, at once, behind the panel');
+  await page.getByRole('button',{name:'New style...'}).click();
+  await page.fill('#dlg-name','Callout');
+  await page.press('#dlg-name','Enter');
+  await page.waitForFunction(()=>document.querySelector('#sp-name')?.textContent==='Callout');
+  ok(await page.locator('#sp-list optgroup[label="Your styles"] option').count()===1,'a style of your own is made, in its own group, and chosen');
+  ok(/Your own style, based on OSG Facilitator Notes/.test(await page.locator('#sp-based').innerText()),'it says what it is based on');
+  await page.locator('#sp-shading').fill('#FFF4CE');
+  await page.locator('#sp-italic').check();
+  await page.getByRole('button',{name:'Apply to this style'}).click();
+  await saved();
+  ok(projectStyles().custom.length===1&&projectStyles().custom[0].spec.shading==='#FFF4CE','the new style holds only what was changed in it');
+  await page.locator('dialog[open] button.primary').click();
+  await page.waitForFunction(()=>!document.querySelector('dialog[open]'));
+  await row(/^Say where this program fits/).focus();
+  await page.getByRole('menuitem',{name:/^Edit/}).click();
+  await page.getByRole('menuitem',{name:/Kind of paragraph/}).click();
+  await page.locator('dialog[open] input[type=radio]').first().waitFor();
+  ok(await page.locator('dialog[open] input[type=radio]').count()===6,'Kind of paragraph offers the five kinds and the style of your own');
+  await page.locator('dialog[open] label:has-text("Callout") input').check();
+  await page.getByRole('button',{name:'Change'}).click();
+  await saved();
+  ok(onDisk().find(p=>p.text===SAY).style==='Callout','the paragraph is in the new style, on disk');
+  ok(await sayRow.evaluate(e=>getComputedStyle(e).backgroundColor==='rgb(255, 244, 206)'),'and shows its shading');
+  await formatMenu(/^Styles\.\.\./);
+  await page.locator('#sp-list').waitFor();
+  await panelChoose('Callout');
+  await page.getByRole('button',{name:'Delete style'}).click();
+  ok(/used by 1 paragraph, so it stays/.test(await page.locator('#sp-problem').innerText()),'a style in use cannot be deleted, and the panel says why');
+  await panelChoose('OSG Facilitator Notes (changed)');
+  await page.getByRole('button',{name:'Put back as the program makes it'}).click();
+  await saved();
+  ok(projectStyles().overrides.OSGNotes===undefined,'Put back removes the change, and the style is as the program makes it');
+  await page.locator('dialog[open] button.primary').click();
+  await page.waitForFunction(()=>!document.querySelector('dialog[open]'));
+  await row(/^Say what this guide is for/).focus();
+  await page.keyboard.press('Control+e');
+  await saved();
+  await formatMenu(/^New style from this paragraph/);
+  await page.fill('#dlg-name','Centered note');
+  await page.press('#dlg-name','Enter');
+  await saved();
+  const made=projectStyles().custom.find(c=>c.name==='Centered note');
+  ok(!!made&&made.spec.paragraph?.alignment==='center','a style made from a paragraph holds its alignment');
+  const moved=onDisk().find(p=>p.text==='Say what this guide is for and who should use it.');
+  ok(moved.style==='Centered note'&&!/<w:jc /.test(moved.xml),'the paragraph is in the style and no longer carries the alignment itself');
+  ok(await row(/^Say what this guide is for/).evaluate(e=>e.style.textAlign==='center'),'and is still drawn centered, now by the style');
+  await page.keyboard.press('Control+z');
+  await saved();
+  ok(projectStyles().custom.find(c=>c.name==='Centered note')===undefined&&onDisk().find(p=>p.text==='Say what this guide is for and who should use it.').style==='Normal','one Ctrl+Z takes back the style and the paragraph\'s change together');
+  await shot('12-styles.png');
 
   // ---- what cannot be changed is read, not rewritten
   await row(/Time: 10 minutes/).focus();

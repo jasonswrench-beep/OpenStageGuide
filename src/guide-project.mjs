@@ -24,6 +24,7 @@ export const LIMITS=Object.freeze({
   pictureBase64:16*1024*1024
 });
 
+import {cleanStyleEdits} from './guide-styles-edit.mjs';
 export class ProjectError extends Error{
   constructor(message,code='invalid'){super(message);this.name='ProjectError';this.code=code;}
 }
@@ -53,6 +54,12 @@ const list=(v,what)=>{
   if(v===undefined||v===null)return [];
   if(!Array.isArray(v)||v.length>LIMITS.looseItems)throw new ProjectError(`The project's ${what} are not in the right form, so it was not opened.`);
   return plain(v);
+};
+
+// The changes to the guide's styles and the styles of the author's own (guide-styles-edit.mjs checks them).
+const cleanStyles=s=>{
+  try{return cleanStyleEdits(s);}
+  catch(e){throw new ProjectError(`The project's styles are not in the right form (${String(e.message).replace(/\.$/,'')}), so it was not opened.`);}
 };
 
 // The author's pictures: id -> {mime, base64}. The id is the one the paragraphs' XML names (r:embed="..."). Only the kinds of picture a Word
@@ -100,7 +107,8 @@ export function cleanGuide(g){
     forms:orNull(g.forms,LIMITS.words,'form settings'),
     applied:list(g.applied,'look settings'),
     headerFooter:list(g.headerFooter,'header and footer settings'),
-    media:cleanMedia(g.media)
+    media:cleanMedia(g.media),
+    styles:cleanStyles(g.styles)
   };
 }
 

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {PROJECT_FORMAT,PROJECT_VERSION,LIMITS,ProjectError,cleanGuide,serializeProject,parseProject} from '../src/guide-project.mjs';
 
 const para=(text,style='Normal',xml='')=>({xml,text,style});
-const guide=(over={})=>({title:'Reframing conflict',paragraphs:[para('Reframing conflict','OSG Guide Title','<w:p xmlns:w="w"><w:r><w:t>Reframing conflict</w:t></w:r></w:p>'),para('Module 1: Naming it','OSG Module')],cursor:1,ownCues:['Pause here'],look:'{"name":"calm"}',slideMemory:'{"slides":3}',versionMemory:null,forms:null,applied:[[{name:'OSG Module',size:16}]],headerFooter:[{header:'A'}],media:{},...over});
+const guide=(over={})=>({title:'Reframing conflict',paragraphs:[para('Reframing conflict','OSG Guide Title','<w:p xmlns:w="w"><w:r><w:t>Reframing conflict</w:t></w:r></w:p>'),para('Module 1: Naming it','OSG Module')],cursor:1,ownCues:['Pause here'],look:'{"name":"calm"}',slideMemory:'{"slides":3}',versionMemory:null,forms:null,applied:[[{name:'OSG Module',size:16}]],headerFooter:[{header:'A'}],media:{},styles:{overrides:{},custom:[]},...over});
 const refused=(fn,pattern)=>assert.throws(fn,e=>e instanceof ProjectError&&pattern.test(e.message),String(pattern));
 
 test('a guide written to a project file reads back exactly',()=>{
@@ -60,7 +60,7 @@ test('limits are enforced: too many paragraphs, a paragraph that is too long, to
 
 test('missing optional parts take their empty value, unknown parts are dropped, the cursor is kept inside the guide',()=>{
   const g=cleanGuide({paragraphs:[para('a'),para('b')],cursor:99,extra:'ignored',paragraphs_note:1});
-  assert.deepEqual(g,{title:'',paragraphs:[para('a'),para('b')],cursor:1,ownCues:[],look:null,slideMemory:null,versionMemory:null,forms:null,applied:[],headerFooter:[],media:{}});
+  assert.deepEqual(g,{title:'',paragraphs:[para('a'),para('b')],cursor:1,ownCues:[],look:null,slideMemory:null,versionMemory:null,forms:null,applied:[],headerFooter:[],media:{},styles:{overrides:{},custom:[]}});
   assert.equal(cleanGuide({paragraphs:[para('a')],cursor:-5}).cursor,-1);
   assert.equal(cleanGuide({paragraphs:[para('a')],cursor:'2'}).cursor,-1);
   assert.equal('extra' in g,false);
@@ -99,4 +99,13 @@ test('a project carries the author\'s pictures: PNG, JPEG and GIF as base64 unde
   assert.equal(cleanGuide(guide({media:{rIdPicA:{mime:'image/png',base64:png,extra:'dropped'}}})).media.rIdPicA.extra,undefined,'unknown fields are dropped');
   const proto=JSON.parse('{"__proto__":{"mime":"image/png","base64":"AAAA"},"rIdPicA":{"mime":"image/png","base64":"AAAA"}}');
   assert.throws(()=>cleanGuide(guide({media:proto})),/not in the right form/,'a key that could reach the prototype is not an id');
+});
+
+test('a project carries the changes to styles and the author\'s own styles, and refuses styles that are not in the right form, naming what is wrong',()=>{
+  const styles={overrides:{OSGCueBody:{font:{size:13,name:'Georgia'},paragraph:{alignment:'center'}}},custom:[{id:'Callout',name:'Callout',type:'paragraph',basedOn:'OSGCueBody',spec:{shading:'#FFF4CE'}}]};
+  assert.deepEqual(parseProject(serializeProject(guide({styles}))).guide.styles,styles);
+  assert.deepEqual(cleanGuide({...guide(),styles:undefined}).styles,{overrides:{},custom:[]},'a project from before styles has none');
+  assert.throws(()=>cleanGuide(guide({styles:{overrides:{OSGCueBody:{font:{size:2}}}}})),/styles are not in the right form \(The font size must be a number from 6 to 96\), so it was not opened/);
+  assert.throws(()=>cleanGuide(guide({styles:'x'})),/styles are not in the right form/);
+  assert.throws(()=>cleanGuide(guide({styles:{custom:[{id:'X',name:'<',type:'paragraph',basedOn:'Normal'}]}})),/styles are not in the right form/);
 });

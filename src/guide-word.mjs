@@ -13,6 +13,7 @@ import {makeContext,buildPackage,timeText,esc,SPARE_PARAGRAPH} from './guide-oox
 import {REF_TAG_PREFIX} from './guide-forms.mjs';
 import {NS,STYLE_IDS,STYLE_NAMES,stylesPart,numberingPart} from './guide-styles.mjs';
 import {iconUrl,ICON_FILES} from './guide-cues.mjs';
+import {cleanStyleEdits,applyStyleEdits,listStyles} from './guide-styles-edit.mjs';
 import {readStyles,textOf} from './guide-check.mjs';
 import {explainWordError} from './word-errors.mjs';
 import {pickFilesWithDialog,pickWithBrowserInputs} from './file-pick.mjs';
@@ -576,7 +577,12 @@ const iconRid=icon=>`rIdIcon_${icon.replace(/[^a-z0-9]/gi,'_')}`;
 // without it (the tests) a one-pixel stand-in is used.
 export function createDemoAdapter({DOMParserClass=globalThis.DOMParser,SerializerClass=globalThis.XMLSerializer,quirks={},icons=null}={}){
   const parseXml=text=>new DOMParserClass().parseFromString(text,'application/xml');
-  const styles=readStyles(parseXml(stylesPart()));
+  // The styles part: the program's own definitions with the author's edits (guide-styles-edit.mjs) laid over them, and the names those give.
+  let styleEdits={overrides:{},custom:[]};
+  const styleIo={parse:parseXml,serialize:el=>new SerializerClass().serializeToString(el)};
+  const currentStyles=()=>applyStyleEdits(stylesPart(),styleEdits,styleIo);
+  let styles=readStyles(parseXml(stylesPart()));
+  const refreshStyles=()=>{styles=readStyles(parseXml(currentStyles()));};
   let media=Object.create(null),paras=[],cursor=-1,docTitle='',autoShow=false,selectionHandler=null,ownCues=[],activeTheme,lookText=null,slideMemory=null,versionMemory=null,formsText=null,demoRefusals=null,picker=null;
   const applied=[],headerFooter=[];
   const history=[],future=[],opened=[],downloaded=[];
@@ -585,7 +591,7 @@ export function createDemoAdapter({DOMParserClass=globalThis.DOMParser,Serialize
   // step for as long as it goes on in the same group; any other change starts a new step. A new step ends what Redo could bring back.
   const HISTORY_LIMIT=300,GROUP_MS=2000;
   let lastGroup=null,lastAt=0;
-  const copyState=()=>({paras:paras.map(p=>({...p})),cursor,docTitle});
+  const copyState=()=>({paras:paras.map(p=>({...p})),cursor,docTitle,styleEdits:JSON.parse(JSON.stringify(styleEdits))});
   const remember=group=>{
     const now=Date.now();
     future.length=0;
@@ -687,10 +693,61 @@ export function createDemoAdapter({DOMParserClass=globalThis.DOMParser,Serialize
       if(picker)return picker(opts);
       return pickWithBrowserInputs(opts.kind,{accept:opts.accept,multiple:opts.multiple,readDeck:async f=>readPptx(await f.arrayBuffer(),f.name,globalThis.JSZip,{details:true})});
     },
+    // A look is a set of settings for styles, by name. Here it is laid over the styles as edits (one step of Undo), so the guide, the Review and
+    // the Word file made from it all see it, and the Styles panel shows it.
     async applyLook(specs){
       const refused=(demoRefusals?.(specs))||[];
       applied.push(specs);
-      return {applied:specs.map(s=>s.name),skipped:[],refused};
+      const byName=new Map(listStyles(currentStyles(),styleIo).map(x=>[x.name.toLowerCase(),x.id]));
+      const ALIGN={Centered:'center',Left:'left',Right:'right',Justified:'justify'};
+      const overrides={...styleEdits.overrides};
+      const done=[],skipped=[];
+      for(const spec of specs){
+        const id=byName.get(String(spec.name).toLowerCase());
+        if(!id){skipped.push(spec.name);continue;}
+        const mine={};
+        const f=spec.font||{};
+        const font={};
+        for(const k of ['name','size','color','bold','italic'])if(f[k]!==undefined)font[k]=f[k];
+        if(Object.keys(font).length)mine.font=font;
+        const p=spec.paragraph||{};
+        const para={};
+        for(const k of ['spaceBefore','spaceAfter','leftIndent','firstLineIndent','keepWithNext','keepTogether'])if(p[k]!==undefined)para[k]=p[k];
+        if(p.lineSpacing!==undefined)para.lineSpacing=Math.round(p.lineSpacing/12*100)/100;
+        if(p.alignment&&ALIGN[p.alignment])para.alignment=ALIGN[p.alignment];
+        if(Object.keys(para).length)mine.paragraph=para;
+        if(spec.shading)mine.shading=spec.shading;
+        const borders=(spec.borders||[]).map(b=>({location:String(b.location).toLowerCase(),color:b.color,width:(({Pt025:0.25,Pt050:0.5,Pt075:0.75,Pt100:1,Pt150:1.5,Pt225:2.25,Pt300:3,Pt450:4.5,Pt600:6})[b.width])??(Number(b.width)||1)}));
+        if(borders.length)mine.borders=borders;
+        if(Object.keys(mine).length){overrides[id]={...(overrides[id]||{}),...mine};}
+        done.push(spec.name);
+      }
+      const next=cleanStyleEdits({...styleEdits,overrides});
+      applyStyleEdits(stylesPart(),next,styleIo);
+      remember();
+      styleEdits=next;
+      refreshStyles();
+      return {applied:done,skipped,refused};
+    },
+    // The styles, as the Styles panel shows them, and what the author has changed. A style of the author's own is only taken away when no
+    // paragraph uses it (the paragraphs would be left with a style that is not there).
+    listStyles(){return listStyles(currentStyles(),styleIo,new Set(styleEdits.custom.map(c=>c.id)));},
+    styleEdits(){return JSON.parse(JSON.stringify(styleEdits));},
+    styleUse(){
+      const use={};
+      for(const p of paras)for(const m of String(p.xml||'').matchAll(/<w:pStyle w:val="([^"]+)"/g))use[m[1]]=(use[m[1]]||0)+1;
+      return use;
+    },
+    async setStyleEdits(edits,{group}={}){
+      const next=cleanStyleEdits(edits);
+      applyStyleEdits(stylesPart(),next,styleIo);
+      const keep=new Set(next.custom.map(c=>c.id));
+      const use=this.styleUse();
+      for(const c of styleEdits.custom)if(!keep.has(c.id)&&use[c.id])throw new Error(`The style ${c.name} is used by ${use[c.id]} paragraph${use[c.id]===1?'':'s'}, so it stays until they have another kind.`);
+      remember(group);
+      styleEdits=next;
+      refreshStyles();
+      return true;
     },
     async setHeaderFooter(hf){headerFooter.push(hf);return {done:['header','footer'].filter(k=>hf[k]!==undefined),failed:[]};},
     async cursorIndex(){return cursor<0?paras.length-1:cursor;},
@@ -774,7 +831,7 @@ export function createDemoAdapter({DOMParserClass=globalThis.DOMParser,Serialize
       }
     },
     async reviewParts(){
-      return {root:parseXml(`<w:document ${NS}><w:body>${paras.map(p=>p.xml).join('')}</w:body></w:document>`),stylesRoot:parseXml(stylesPart()),title:docTitle,language:'en-US'};
+      return {root:parseXml(`<w:document ${NS}><w:body>${paras.map(p=>p.xml).join('')}</w:body></w:document>`),stylesRoot:parseXml(currentStyles()),title:docTitle,language:'en-US'};
     },
     // A flat Office package like the one Word returns for the whole body: the content, the styles, the lists the content
     // uses and a small picture for every icon it refers to.
@@ -795,7 +852,7 @@ export function createDemoAdapter({DOMParserClass=globalThis.DOMParser,Serialize
         return {id,name:`image${i+1}.png`,type:'image/png',data:(icon&&real[icon])||png};
       });
       const rels=`<Relationship Id="rIdStyles" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>${lists?'<Relationship Id="rIdNumbering" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/numbering" Target="numbering.xml"/>':''}${files.map(f=>`<Relationship Id="${f.id}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/${f.name}"/>`).join('')}`;
-      return `<pkg:package xmlns:pkg="${PKG}">${part('/word/document.xml','application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml',`<w:document ${NS}><w:body>${body}</w:body></w:document>`)}${part('/word/_rels/document.xml.rels','application/vnd.openxmlformats-package.relationships+xml',`<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${rels}</Relationships>`)}${part('/word/styles.xml','application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml',stylesPart())}${lists?part('/word/numbering.xml','application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml',numberingPart(lists)):''}${files.map(f=>`<pkg:part pkg:name="/word/media/${f.name}" pkg:contentType="${f.type}" pkg:compression="store"><pkg:binaryData>${f.data}</pkg:binaryData></pkg:part>`).join('')}</pkg:package>`;
+      return `<pkg:package xmlns:pkg="${PKG}">${part('/word/document.xml','application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml',`<w:document ${NS}><w:body>${body}</w:body></w:document>`)}${part('/word/_rels/document.xml.rels','application/vnd.openxmlformats-package.relationships+xml',`<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${rels}</Relationships>`)}${part('/word/styles.xml','application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml',currentStyles())}${lists?part('/word/numbering.xml','application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml',numberingPart(lists)):''}${files.map(f=>`<pkg:part pkg:name="/word/media/${f.name}" pkg:contentType="${f.type}" pkg:compression="store"><pkg:binaryData>${f.data}</pkg:binaryData></pkg:part>`).join('')}</pkg:package>`;
     },
     // The preview has no second window: it keeps what it was asked to open, for the tests to look at.
     async openDocument(base64,fileName){
@@ -839,7 +896,7 @@ export function createDemoAdapter({DOMParserClass=globalThis.DOMParser,Serialize
     mediaOf(id){return media[id]||null;},
     exportState(){
       const copy=v=>JSON.parse(JSON.stringify(v));
-      return {title:docTitle,paragraphs:paras.map(({xml,text,style,builtIn})=>({xml,text,style,...(builtIn?{builtIn}:{})})),cursor,ownCues:[...ownCues],look:lookText,slideMemory,versionMemory,forms:formsText,applied:copy(applied),headerFooter:copy(headerFooter),media:usedMedia()};
+      return {title:docTitle,paragraphs:paras.map(({xml,text,style,builtIn})=>({xml,text,style,...(builtIn?{builtIn}:{})})),cursor,ownCues:[...ownCues],look:lookText,slideMemory,versionMemory,forms:formsText,applied:copy(applied),headerFooter:copy(headerFooter),media:usedMedia(),styles:copy(styleEdits)};
     },
     importState(guide){
       const marksList=guide.paragraphs.map((p,i)=>{
@@ -851,7 +908,7 @@ export function createDemoAdapter({DOMParserClass=globalThis.DOMParser,Serialize
         return d.documentElement.localName==='p'?marksOf(d.documentElement):undefined;
       });
       paras=guide.paragraphs.map((p,i)=>({...p,...(marksList[i]?{marks:marksList[i]}:{})}));cursor=guide.cursor;docTitle=guide.title;ownCues=[...guide.ownCues];
-      lookText=guide.look;slideMemory=guide.slideMemory;versionMemory=guide.versionMemory;formsText=guide.forms??null;media=Object.create(null);Object.assign(media,guide.media||{});
+      lookText=guide.look;slideMemory=guide.slideMemory;versionMemory=guide.versionMemory;formsText=guide.forms??null;media=Object.create(null);Object.assign(media,guide.media||{});styleEdits=cleanStyleEdits(guide.styles);refreshStyles();
       applied.length=0;applied.push(...guide.applied);headerFooter.length=0;headerFooter.push(...guide.headerFooter);history.length=0;future.length=0;lastGroup=null;
     },
     autoShow(){return autoShow;},
@@ -864,13 +921,13 @@ export function createDemoAdapter({DOMParserClass=globalThis.DOMParser,Serialize
     typeOver(index,text){remember();paras[index].text=text;paras[index].xml=retext(paras[index].xml,text);},
     undo(){
       const was=history.pop();
-      if(was){future.push(copyState());paras=was.paras;cursor=was.cursor;docTitle=was.docTitle;}
+      if(was){future.push(copyState());paras=was.paras;cursor=was.cursor;docTitle=was.docTitle;if(was.styleEdits){styleEdits=was.styleEdits;refreshStyles();}}
       lastGroup=null;
       return !!was;
     },
     redo(){
       const next=future.pop();
-      if(next){history.push(copyState());paras=next.paras;cursor=next.cursor;docTitle=next.docTitle;}
+      if(next){history.push(copyState());paras=next.paras;cursor=next.cursor;docTitle=next.docTitle;if(next.styleEdits){styleEdits=next.styleEdits;refreshStyles();}}
       lastGroup=null;
       return !!next;
     },

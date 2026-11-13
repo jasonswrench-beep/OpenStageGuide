@@ -156,9 +156,9 @@ test('the Format menu: the four alignments with Word\'s keys, the Paragraph dial
   const {menus}=buildMenus({hasGuide:()=>guide,openTool(){},updateGuide(){},newGuide(){},openGuide(){},closeGuide(){},search(){},keys(){},about(){},edit:{command:n=>told.push(n),state:()=>state}});
   const fmt=menus.find(m=>m.id==='format');
   const items=fmt.items.filter(i=>i!=='-');
-  assert.deepEqual(items.map(i=>[i.label,i.keys]),[['Align left','Ctrl+L'],['Center','Ctrl+E'],['Align right','Ctrl+R'],['Justify','Ctrl+J'],['Paragraph...',undefined],['Clear paragraph formatting',undefined]]);
+  assert.deepEqual(items.map(i=>[i.label,i.keys]),[['Align left','Ctrl+L'],['Center','Ctrl+E'],['Align right','Ctrl+R'],['Justify','Ctrl+J'],['Paragraph...',undefined],['Clear paragraph formatting',undefined],['Styles...',undefined],['New style from this paragraph...',undefined]]);
   for(const i of items){assert.ok(i.icon&&UI_ICONS[i.icon],`${i.label} has an icon`);assert.ok(i.title.length>10);assert.equal(i.enabled(),true);i.run();}
-  assert.deepEqual(told,['alignLeft','alignCenter','alignRight','alignJustify','paragraph','clearFormat']);
+  assert.deepEqual(told,['alignLeft','alignCenter','alignRight','alignJustify','paragraph','clearFormat','styles','newStyle']);
   state={...state,hasRows:false};
   assert.ok(items.every(i=>i.enabled()===false),'nothing to format');
   state={...state,hasRows:true};guide=false;

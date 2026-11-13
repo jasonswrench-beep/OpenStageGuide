@@ -100,6 +100,9 @@ const FORMAT_ITEMS = /** @type {({ name: string, label: string, icon: UiIconName
   "-",
   { name: "paragraph", label: "Paragraph...", icon: "pilcrow", title: "Alignment, the space around a paragraph, line spacing and indents" },
   { name: "clearFormat", label: "Clear paragraph formatting", icon: "eraser", title: "Let the paragraphs' styles decide how they look again" },
+  "-",
+  { name: "styles", label: "Styles...", icon: "palette", title: "Change how a kind of paragraph looks, for every paragraph in it, or make a style of your own" },
+  { name: "newStyle", label: "New style from this paragraph...", icon: "square-plus", title: "Keep this paragraph's alignment and spacing as a style, and put the paragraph in it" },
 ]);
 
 /**

@@ -11,7 +11,9 @@
  */
 import { KINDS, isHeading, joinWords, kindChange, nextParagraphSpec, paragraphWith, readParagraph, setWords, splitWords, withStyle } from "../../src/guide-edit.mjs";
 import { canFormat, readParagraphFormat, withParagraphFormat } from "../../src/guide-format.mjs";
+import { idForName } from "../../src/guide-styles-edit.mjs";
 import { addRow, deleteRow, readTable, setCellWords } from "../../src/guide-table.mjs";
+import { previewStyles } from "../../src/guide-styles-edit.mjs";
 import { cellKey, cellWordsKey, reconcile, rowKey, rowSignature, sameList, wordsKey, wordsLabel } from "./editor-model.js";
 import { describeGuide, drawNodes } from "./preview.js";
 
@@ -31,7 +33,7 @@ const SELECTION_DELAY = 250;
  * @param {Document} doc
  * @param {HTMLElement} host where the guide is drawn
  * @param {any} guide the guide's document, with its saving
- * @param {{ say: (message: string, bad?: boolean) => void, askFormat: (current: any, validate: (fmt: any) => void) => Promise<any>, choose: (options: { title: string, intro?: string, confirm: string, options: { id: string, label: string, note?: string }[], current?: string }) => Promise<string | null> }} ui
+ * @param {{ say: (message: string, bad?: boolean) => void, openStyles: (startId?: string) => Promise<void>, askName: (options: any) => Promise<string | null>, askFormat: (current: any, validate: (fmt: any) => void) => Promise<any>, choose: (options: { title: string, intro?: string, confirm: string, options: { id: string, label: string, note?: string }[], current?: string }) => Promise<string | null> }} ui
  */
 export function mountEditor(doc, host, guide, ui) {
   const page = doc.createElement("article");
@@ -116,14 +118,32 @@ export function mountEditor(doc, host, guide, ui) {
     row.el.setAttribute("aria-description", info.editable ? "Press Enter to change the words." : info.reason ?? "This part is changed with the tools beside the guide.");
   }
 
+  /** How the guide's styles look now (the changes the author made, drawn over the usual look), remade only when those change. */
+  let stylesKey = "";
+  /** @type {import("./preview.js").StyleView | undefined} */
+  let styleView;
+  function currentStyles() {
+    const edits = guide.styleEdits();
+    const key = JSON.stringify(edits);
+    if (key !== stylesKey) {
+      stylesKey = key;
+      styleView = previewStyles(edits, guide.listStyles());
+      // Every row is drawn again with the styles as they are now.
+      for (const r of shown) r.sig = "";
+    }
+    return styleView;
+  }
+
   /** Read the document and bring the rows up to date: only what changed is drawn again. */
   function render() {
     if (gone) return;
     entries = guide.exportState().paragraphs;
+    const stylesWere = stylesKey;
+    const styles = currentStyles();
     const sigs = entries.map(rowSignature);
-    if (sameList(sigs, entrySigs)) return;
+    if (sameList(sigs, entrySigs) && stylesKey === stylesWere) return;
     entrySigs = sigs;
-    const nodes = describeGuide(entries, parseXml, { blank: true, media: (id) => guide.mediaOf(id) });
+    const nodes = describeGuide(entries, parseXml, { blank: true, media: (id) => guide.mediaOf(id), styles });
     const rowSigs = nodes.map((n) => rowSignature(entries[n.index ?? 0]));
     const { prefix, oldEnd, newEnd } = reconcile(shown.map((r) => r.sig), rowSigs);
     // A row that is being replaced cannot go on being edited: the document changed under it (Undo, or the tools).
@@ -172,7 +192,7 @@ export function mountEditor(doc, host, guide, ui) {
   /** Draw a row's own words again, after they were being changed. @param {Row} row */
   function redrawRow(row) {
     const entry = entryOf(row);
-    const [node] = describeGuide([entry], parseXml, { blank: true, media: (id) => guide.mediaOf(id) });
+    const [node] = describeGuide([entry], parseXml, { blank: true, media: (id) => guide.mediaOf(id), styles: currentStyles() });
     row.el.classList.remove("g-editing");
     if (!node) {
       row.el.replaceChildren();
@@ -481,6 +501,66 @@ export function mountEditor(doc, host, guide, ui) {
     focusRow(rowNear(idx(rows[rows.length - 1])));
   }
 
+  /** The Styles panel, on the style of the paragraph the author is on. */
+  async function stylesPanel() {
+    const row = targetRows()[0] ?? null;
+    await settle();
+    stopEdit();
+    const name = row ? entryOf(row).style : undefined;
+    const startId = name ? guide.listStyles().find((/** @type {any} */ s) => s.name === name)?.id : undefined;
+    await ui.openStyles(startId);
+    entrySigs = [];
+    stylesKey = "";
+    render();
+    focusRow(row && shown.includes(row) ? row : rowNear(guide.cursor()));
+  }
+
+  /** A style made from the paragraph the author is on: its alignment and spacing move into the style, and the paragraph takes the style. */
+  async function newStyleFromParagraph() {
+    const rows = targetRows();
+    if (!rows.length) return;
+    const row = rows[0];
+    await settle();
+    stopEdit();
+    const entry = entryOf(row);
+    const can = kindChange(entry.xml ?? "", entry.style ?? "Normal", io);
+    if (!can.ok || spanOf(row) !== 1) return ui.say(can.reason ?? "A style cannot be made from this.");
+    const name = await ui.askName({ title: "New style from this paragraph", label: "Name of the style", confirm: "Create", hint: "The paragraph's alignment, spacing and indents move into the new style, and the paragraph takes the style." });
+    if (!name) {
+      focusRow(row);
+      return;
+    }
+    const clean = name.replace(/\s+/g, " ").trim();
+    const list = guide.listStyles();
+    if (list.some((/** @type {any} */ s) => s.name.toLowerCase() === clean.toLowerCase())) return ui.say(`There is already a style called ${clean}.`, true);
+    const base = list.find((/** @type {any} */ s) => s.name === entry.style);
+    if (!base) return ui.say("The style this paragraph is in could not be found.", true);
+    const fmt = readParagraphFormat(entry.xml ?? "", io);
+    /** @type {Record<string, unknown>} */
+    const paragraph = {};
+    for (const [k, v] of Object.entries(fmt)) if (v !== null) paragraph[k] = v;
+    const edits = guide.styleEdits();
+    const id = idForName(clean, [...list.map((/** @type {any} */ s) => s.id), ...edits.custom.map((/** @type {any} */ c) => c.id)]);
+    edits.custom.push({ id, name: clean, type: "paragraph", basedOn: base.id, spec: Object.keys(paragraph).length ? { paragraph } : {} });
+    const group = `newstyle:${++groupCounter}`;
+    try {
+      await guide.setStyleEdits(edits, { group });
+      const at = idx(row);
+      const now = entryOf(row);
+      const moved = withStyle(now.xml ?? "", now.style ?? "Normal", id, io);
+      const cleared = withParagraphFormat(moved, clean, { alignment: null, spaceBefore: null, spaceAfter: null, lineSpacing: null, leftIndent: null, firstLineIndent: null }, io);
+      await guide.replaceParagraphs({ start: at, count: 1, guard: now.text ?? "", xmls: [cleared], select: at, group });
+    } catch (e) {
+      ui.say(messageOf(e), true);
+      return;
+    }
+    entries = guide.exportState().paragraphs;
+    entrySigs = [];
+    render();
+    focusRow(rowNear(idx(row)));
+    ui.say(`${clean} is a style of your own, and this paragraph is in it. Ctrl+Z takes it back.`);
+  }
+
   async function paragraphDialog() {
     const rows = targetRows();
     if (!rows.length) return;
@@ -606,6 +686,10 @@ export function mountEditor(doc, host, guide, ui) {
         return formatRows({ alignment: null, spaceBefore: null, spaceAfter: null, lineSpacing: null, leftIndent: null, firstLineIndent: null });
       case "paragraph":
         return paragraphDialog();
+      case "styles":
+        return stylesPanel();
+      case "newStyle":
+        return newStyleFromParagraph();
       case "addRow":
         return grid ? addTableRow(grid.row, grid.r, grid.c, false) : ui.say("Move into a table first: Enter on a table starts its cells.");
       case "deleteRow":
@@ -684,14 +768,20 @@ export function mountEditor(doc, host, guide, ui) {
     const can = kindChange(entry.xml ?? "", entry.style ?? "Normal", io);
     if (!can.ok) return ui.say(can.reason ?? "This kind cannot be changed.");
     stopEdit();
+    // The kinds the program offers, then the author's own styles.
+    const mine = guide.styleEdits().custom.filter((/** @type {any} */ c) => c.type === "paragraph");
+    const kinds = [
+      ...KINDS.map((k) => ({ id: k.id, label: k.label, note: k.note, style: k.style, styleId: /** @type {string | null} */ (k.styleId) })),
+      ...mine.map((/** @type {any} */ c) => ({ id: `style:${c.id}`, label: c.name, note: "A style of your own.", style: c.name, styleId: /** @type {string | null} */ (c.id) })),
+    ];
     const chosen = await ui.choose({
       title: "Kind of paragraph",
       intro: "What this paragraph is. The tools and the participant workbook treat each kind in its own way.",
       confirm: "Change",
-      options: KINDS.map((k) => ({ id: k.id, label: k.label, note: k.note })),
-      current: KINDS.find((k) => k.style === entry.style)?.id,
+      options: kinds.map((k) => ({ id: k.id, label: k.label, note: k.note })),
+      current: kinds.find((k) => k.style === entry.style)?.id,
     });
-    const kind = KINDS.find((k) => k.id === chosen);
+    const kind = kinds.find((k) => k.id === chosen);
     if (!kind || kind.style === entry.style) {
       focusRow(row);
       return;

@@ -323,3 +323,19 @@ dialog h2 { margin: 0 0 10px; }
 .page table.g-table td, .page table.g-table th { height: 30px; }
 .page img.g-picture { display: block; max-width: 100%; height: auto; margin: 6px 0; }
 .page .g-picture-missing { color: var(--muted); font-style: italic; }
+
+/* ---- The Styles panel (program/ui/styles-panel.js) */
+dialog:has(.styles-panel) { width: min(980px, 96vw); max-width: 96vw; }
+.styles-panel { display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 20px; }
+.sp-left select { width: 100%; }
+.sp-right h3 { margin: 0 0 2px; font-size: 1.15rem; }
+.sp-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px 12px; margin: 8px 0; }
+.sp-checks { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 8px 0; align-items: center; }
+.sp-pair { display: flex; gap: 8px; align-items: center; }
+.sp-pair input[type="text"] { flex: 1 1 auto; min-width: 0; }
+.sp-pair input[type="color"] { flex: none; width: 44px; height: 34px; padding: 2px; }
+.sp-sample { margin: 12px 0 6px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--card); }
+.sp-contrast { margin: 0 0 10px; color: var(--muted); font-size: 0.9rem; }
+.sp-contrast.bad { color: var(--bad); font-weight: 600; }
+.sp-buttons { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+@media (max-width: 760px) { .styles-panel { grid-template-columns: minmax(0, 1fr); } .sp-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
