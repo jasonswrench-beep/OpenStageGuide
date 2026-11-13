@@ -47,6 +47,7 @@ export const KEY_GROUPS = [
       { keys: "Delete", does: "Delete the paragraph you are on, or the ones chosen (Ctrl+Z brings them back)" },
       { keys: "Ctrl+Enter", does: "A new paragraph below, ready to type in" },
       { keys: "Ctrl+C, Ctrl+X, Ctrl+V", does: "Copy, cut and paste paragraphs; several lines pasted into the words become a paragraph each" },
+      { keys: "Ctrl+L, Ctrl+E, Ctrl+R, Ctrl+J", does: "Align the paragraph, or the ones chosen, left, centered, right or justified (also while changing its words)" },
       { keys: "Page Up, Page Down", does: "Scroll the guide" },
     ],
   },

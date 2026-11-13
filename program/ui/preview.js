@@ -5,6 +5,8 @@
  * tree with the page's own document, using text and attributes only (never markup from the guide).
  */
 
+import { formatOf } from "../../src/guide-format.mjs";
+
 const W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
 const W14 = "http://schemas.microsoft.com/office/word/2010/wordml";
 const REF = "osg-ref:";
@@ -13,7 +15,7 @@ const A = "http://schemas.openxmlformats.org/drawingml/2006/main";
 const R = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
 
 /**
- * @typedef {{ tag: string, cls?: string, text?: string, attrs?: Record<string, string>, height?: number, index?: number, span?: number, children?: Node_[] }} Node_
+ * @typedef {{ tag: string, cls?: string, text?: string, attrs?: Record<string, string>, height?: number, index?: number, span?: number, format?: ReturnType<typeof formatOf>, children?: Node_[] }} Node_
  * @typedef {{ xml?: string, text?: string, style?: string, builtIn?: string }} Entry
  */
 
@@ -160,6 +162,16 @@ function blankNode(style) {
  * @param {Element} p @param {string} style @param {((id: string) => { mime: string, base64: string } | null) | undefined} [media] @returns {Node_ | null}
  */
 function paragraphNode(p, style, media) {
+  const node = plainParagraphNode(p, style, media);
+  if (!node) return node;
+  // What the author set on this paragraph by hand (alignment, space, line spacing, indents) is drawn over what its style looks like.
+  const format = formatOf(p);
+  if (Object.values(format).some((v) => v !== null)) node.format = format;
+  return node;
+}
+
+/** @param {Element} p @param {string} style @param {((id: string) => { mime: string, base64: string } | null) | undefined} [media] @returns {Node_ | null} */
+function plainParagraphNode(p, style, media) {
   const parts = inlineParts(p);
   const words = parts.filter((x) => x.t === "text").map((x) => x.text).join("").trim();
   if (style === "OSG Form Line" || style === "OSG Answer Line") return { tag: "div", cls: "g-rule" };
@@ -243,6 +255,17 @@ export function describeGuide(entries, parseXml, options = {}) {
   return out;
 }
 
+/** A paragraph's own formatting as the page can show it (points are 4/3 of a pixel). @param {HTMLElement} el @param {NonNullable<Node_["format"]>} f */
+export function drawFormat(el, f) {
+  const px = (/** @type {number} */ pt) => `${Math.round(pt * 133.33) / 100}px`;
+  if (f.alignment) el.style.textAlign = f.alignment;
+  if (f.spaceBefore !== null) el.style.marginTop = px(f.spaceBefore);
+  if (f.spaceAfter !== null) el.style.marginBottom = px(f.spaceAfter);
+  if (f.lineSpacing !== null) el.style.lineHeight = String(Math.round(f.lineSpacing * 120) / 100);
+  if (f.leftIndent !== null) el.style.marginLeft = px(f.leftIndent);
+  if (f.firstLineIndent !== null) el.style.textIndent = px(f.firstLineIndent);
+}
+
 /**
  * Draw a tree into `parent`, with the page's own document: text and attributes only.
  * @param {Document} doc @param {Element} parent @param {Node_[]} nodes
@@ -253,6 +276,7 @@ export function drawNodes(doc, parent, nodes) {
     if (n.cls) el.className = n.cls;
     for (const [k, v] of Object.entries(n.attrs ?? {})) el.setAttribute(k, v);
     if (n.height) /** @type {HTMLElement} */ (el).style.height = `${Math.round(n.height * 1.33)}px`;
+    if (n.format) drawFormat(/** @type {HTMLElement} */ (el), n.format);
     if (n.text !== undefined) el.textContent = n.text;
     if (n.children) drawNodes(doc, el, n.children);
     parent.append(el);

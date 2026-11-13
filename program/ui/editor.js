@@ -10,6 +10,7 @@
  * The design is in docs/EDITING-SURFACE-DESIGN-2026-11-13.md. The page writes text and attributes only, never markup.
  */
 import { KINDS, isHeading, joinWords, kindChange, nextParagraphSpec, paragraphWith, readParagraph, setWords, splitWords, withStyle } from "../../src/guide-edit.mjs";
+import { canFormat, readParagraphFormat, withParagraphFormat } from "../../src/guide-format.mjs";
 import { addRow, deleteRow, readTable, setCellWords } from "../../src/guide-table.mjs";
 import { cellKey, cellWordsKey, reconcile, rowKey, rowSignature, sameList, wordsKey, wordsLabel } from "./editor-model.js";
 import { describeGuide, drawNodes } from "./preview.js";
@@ -30,7 +31,7 @@ const SELECTION_DELAY = 250;
  * @param {Document} doc
  * @param {HTMLElement} host where the guide is drawn
  * @param {any} guide the guide's document, with its saving
- * @param {{ say: (message: string, bad?: boolean) => void, choose: (options: { title: string, intro?: string, confirm: string, options: { id: string, label: string, note?: string }[], current?: string }) => Promise<string | null> }} ui
+ * @param {{ say: (message: string, bad?: boolean) => void, askFormat: (current: any, validate: (fmt: any) => void) => Promise<any>, choose: (options: { title: string, intro?: string, confirm: string, options: { id: string, label: string, note?: string }[], current?: string }) => Promise<string | null> }} ui
  */
 export function mountEditor(doc, host, guide, ui) {
   const page = doc.createElement("article");
@@ -341,6 +342,17 @@ export function mountEditor(doc, host, guide, ui) {
         });
         break;
       }
+      case "align": {
+        const at = idx(row);
+        const caret = ta.selectionStart;
+        run(async () => {
+          await commit(e);
+          await formatRows({ alignment: action.value ?? null });
+          const again = rowAt(at);
+          if (again) startEdit(again, caret);
+        });
+        break;
+      }
       case "undo":
       case "redo":
         run(() => history(action.do === "redo", true));
@@ -427,6 +439,63 @@ export function mountEditor(doc, host, guide, ui) {
     render();
     const again = rowAt(at);
     if (again) startEdit(again, 0);
+  }
+
+  /**
+   * Put these settings on the paragraphs the author is on or has chosen (a value left out stays, null lets the style decide again). One step of Undo.
+   * @param {Record<string, unknown>} fmt
+   */
+  async function formatRows(fmt) {
+    const rows = targetRows();
+    if (!rows.length) return;
+    await settle();
+    stopEdit();
+    stopCellEdit();
+    const group = `format:${++groupCounter}`;
+    let changed = 0;
+    let skipped = "";
+    for (const row of rows) {
+      const entry = entryOf(row);
+      const can = canFormat(spanOf(row) === 1 ? entry.xml ?? "" : "", entry.style ?? "Normal", io);
+      if (!can.ok) {
+        skipped = can.reason ?? "";
+        continue;
+      }
+      let xml;
+      try {
+        xml = withParagraphFormat(entry.xml ?? "", entry.style ?? "Normal", fmt, io);
+      } catch (e) {
+        ui.say(messageOf(e), true);
+        return;
+      }
+      if (xml === entry.xml) continue;
+      const at = idx(row);
+      await guide.replaceParagraphs({ start: at, count: 1, guard: entry.text ?? "", xmls: [xml], select: at, group });
+      entries = guide.exportState().paragraphs;
+      changed++;
+    }
+    entrySigs = [];
+    render();
+    if (changed) ui.say(changed === 1 ? "Formatted. Ctrl+Z takes it back." : `${changed} paragraphs formatted. Ctrl+Z takes it back.`);
+    else if (skipped) ui.say(skipped);
+    focusRow(rowNear(idx(rows[rows.length - 1])));
+  }
+
+  async function paragraphDialog() {
+    const rows = targetRows();
+    if (!rows.length) return;
+    await settle();
+    const first = entryOf(rows[0]);
+    const can = canFormat(spanOf(rows[0]) === 1 ? first.xml ?? "" : "", first.style ?? "Normal", io);
+    if (!can.ok) return ui.say(can.reason ?? "This cannot be formatted.");
+    stopEdit();
+    const current = readParagraphFormat(first.xml ?? "", io);
+    const fmt = await ui.askFormat(current, (f) => void withParagraphFormat(first.xml ?? "", first.style ?? "Normal", f, io));
+    if (!fmt) {
+      focusRow(rows[0]);
+      return;
+    }
+    await formatRows(fmt);
   }
 
   /** @param {boolean} redo @param {boolean} wasEditing */
@@ -528,6 +597,15 @@ export function mountEditor(doc, host, guide, ui) {
         return copy(true);
       case "paste":
         return paste(null);
+      case "alignLeft":
+      case "alignCenter":
+      case "alignRight":
+      case "alignJustify":
+        return formatRows({ alignment: /** @type {"left" | "center" | "right" | "justify"} */ (name.slice(5).toLowerCase()) });
+      case "clearFormat":
+        return formatRows({ alignment: null, spaceBefore: null, spaceAfter: null, lineSpacing: null, leftIndent: null, firstLineIndent: null });
+      case "paragraph":
+        return paragraphDialog();
       case "addRow":
         return grid ? addTableRow(grid.row, grid.r, grid.c, false) : ui.say("Move into a table first: Enter on a table starts its cells.");
       case "deleteRow":

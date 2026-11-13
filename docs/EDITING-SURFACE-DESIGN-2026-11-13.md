@@ -156,3 +156,13 @@ The Word export, the web page and PDF outputs, and the Tauri window and installe
 **Also in this round.** `Start OpenStage Guide.cmd`: double-click to start the server and open the program in the browser (it asks for Node.js if that is missing and installs the two packages the first time).
 
 **Not yet.** Changing a picture's description, size or caption after it is in (delete and insert again for now), pictures inside table cells, copying a picture between guides, and the Word export of the guide itself.
+
+## 14. Formatting, step 1: how a paragraph sits (2026-11-13)
+
+The author asked for a mini word processor: formatting by hand, and styles that carry over to Word. It is built in five steps; this is the first. Order and reasoning: alignment and spacing need no rich-text box, so they come first; the Styles panel and the Word template (steps 2 and 3) are definitions, not text, so they come next; formatting inside a sentence (step 4) is the one that needs the rich-text box, so it comes late and is tested hardest; the accessibility checks (step 5) need the formatting to exist.
+
+**Step 1 as built.** A **Format** menu (eleven menus now): Align left, Center, Align right and Justify with Word's own keys (Ctrl+L, Ctrl+E, Ctrl+R, Ctrl+J, on a row and while changing the words, where the caret stays put), **Paragraph...** (alignment, space before and after, line spacing, indent from the left and the first line, in points and multiples of a line), and **Clear paragraph formatting** (the style decides again). It acts on the paragraph the author is on or the ones chosen together, as one step of Undo. The paragraph's own settings are drawn over its style in the guide. The dialog says "Justified (the gaps between words vary, which is harder to read)" at the choice.
+
+**What it protects.** `src/guide-format.mjs` writes the paragraph's properties in the order Word's schema gives (a file with them in another order can be refused by Word); clearing every setting gives back exactly the XML there was; a paragraph whose spacing the program sets (a line to write on, a writing box of a set height, a row of fields, the time line, the contents) or a table is refused with the reason, and a paragraph with a line height of a set size keeps it. Values are bounded (space 0 to 144 points, line spacing 0.8 to 3, indents 0 to 216 points).
+
+**Found on the way.** A check that pressed Home in a text box expected the start of the words; in a paragraph that wraps, Home goes to the start of the line. Tests and checks: `guide-format` (8), preview, commands, keys; editor check 112, program check 41, suite 1658 of 1659.

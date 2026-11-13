@@ -1,7 +1,7 @@
 // The guide as it reads in the program (program/ui/preview.js): drawn from the project's paragraphs, with text and attributes only.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {DOMParser} from '@xmldom/xmldom';
+import {DOMParser,XMLSerializer} from '@xmldom/xmldom';
 import {describeGuide,renderGuide,drawNodes} from '../program/ui/preview.js';
 import {makeContext,para,run,pictureRun} from '../src/guide-ooxml.mjs';
 import {formTitleBlock,formText,writingLines,writingBox,fieldRow,checkList,formTable,ratingGrid,sourceLine,printLine,cardSet,citationControl} from '../src/guide-forms-ooxml.mjs';
@@ -171,4 +171,21 @@ test('the author\'s own picture is drawn from the guide\'s copy with its descrip
   const cue=describeGuide(icon.adapter.exportState().paragraphs,parseXml).find(n=>n.cls==='g-cue');
   assert.ok(cue.children.length>=2&&cue.children.every(c=>c.tag==='span'),'the cue\'s name, a space and its words: no picture of its icon');
   assert.equal(describeGuide([{xml:`<w:p xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"/>`,text:'',style:'Normal'}],parseXml,{blank:true})[0].cls,'g-para g-blank','an empty paragraph is still blank');
+});
+
+test('a paragraph\'s own formatting is drawn over its style: alignment, the space around it, line spacing and indents; none when it has none',async()=>{
+  const {withParagraphFormat}=await import('../src/guide-format.mjs');
+  const io={parse:parseXml,serialize:el=>new XMLSerializer().serializeToString(el)};
+  const a=await started('Formats');
+  await a.adapter.insert(ctx=>para('OSGCueBody',run('Centered words')),{where:'start',spare:false});
+  const p=a.adapter.exportState().paragraphs[0];
+  const xml=withParagraphFormat(p.xml,p.style,{alignment:'center',spaceBefore:6,spaceAfter:12,lineSpacing:1.5,leftIndent:36,firstLineIndent:-18},io);
+  const [node]=describeGuide([{...p,xml}],parseXml);
+  assert.deepEqual(node.format,{alignment:'center',spaceBefore:6,spaceAfter:12,lineSpacing:1.5,leftIndent:36,firstLineIndent:-18});
+  const doc=fakeDoc(),host=new Fake('div');
+  drawNodes(doc,host,[node]);
+  assert.deepEqual(host.children[0].style,{textAlign:'center',marginTop:'8px',marginBottom:'16px',lineHeight:'1.8',marginLeft:'48px',textIndent:'-24px'});
+  assert.equal(describeGuide([p],parseXml)[0].format,undefined,'a paragraph that follows its style says nothing');
+  const some=drawNodes(doc,new Fake('div'),[{...describeGuide([p],parseXml)[0]}]);
+  void some;
 });

@@ -15,9 +15,9 @@ function make(){
 }
 const items=menus=>menus.flatMap(m=>m.items.filter(i=>i!=='-'));
 
-test('the menus are File, Edit, Insert, one for each group of the ribbon, and Help, in that order',()=>{
+test('the menus are File, Edit, Insert, Format, one for each group of the ribbon, and Help, in that order',()=>{
   const {menus}=make();
-  assert.deepEqual(menus.map(m=>[m.id,m.label]),[['file','File'],['edit','Edit'],['insert','Insert'],['guide','Guide'],['write','Write'],['bring','Bring in'],['elearning','E-learning'],['check','Check'],['make','Make'],['help','Help']]);
+  assert.deepEqual(menus.map(m=>[m.id,m.label]),[['file','File'],['edit','Edit'],['insert','Insert'],['format','Format'],['guide','Guide'],['write','Write'],['bring','Bring in'],['elearning','E-learning'],['check','Check'],['make','Make'],['help','Help']]);
   assert.equal(GROUPS.length,7,'the ribbon has seven groups: six become menus and Protect is split between File and Help');
 });
 
@@ -148,4 +148,19 @@ test('the Insert menu: a form from a template, then the elements a form is made 
   assert.ok(insert.items.filter(i=>i!=='-').every(i=>i.enabled()===false),'no guide, nothing to insert into');
   const bare=buildMenus({hasGuide:()=>true,openTool(){},updateGuide(){},newGuide(){},openGuide(){},closeGuide(){},search(){},keys(){},about(){}}).menus.find(m=>m.id==='insert');
   for(const i of bare.items.filter(i=>i!=='-'))i.run();
+});
+
+test('the Format menu: the four alignments with Word\'s keys, the Paragraph dialog and clearing; dimmed with nothing to format; each does its own command',()=>{
+  const told=[];
+  let state={canUndo:false,canRedo:false,hasRows:true,inTable:false},guide=true;
+  const {menus}=buildMenus({hasGuide:()=>guide,openTool(){},updateGuide(){},newGuide(){},openGuide(){},closeGuide(){},search(){},keys(){},about(){},edit:{command:n=>told.push(n),state:()=>state}});
+  const fmt=menus.find(m=>m.id==='format');
+  const items=fmt.items.filter(i=>i!=='-');
+  assert.deepEqual(items.map(i=>[i.label,i.keys]),[['Align left','Ctrl+L'],['Center','Ctrl+E'],['Align right','Ctrl+R'],['Justify','Ctrl+J'],['Paragraph...',undefined],['Clear paragraph formatting',undefined]]);
+  for(const i of items){assert.ok(i.icon&&UI_ICONS[i.icon],`${i.label} has an icon`);assert.ok(i.title.length>10);assert.equal(i.enabled(),true);i.run();}
+  assert.deepEqual(told,['alignLeft','alignCenter','alignRight','alignJustify','paragraph','clearFormat']);
+  state={...state,hasRows:false};
+  assert.ok(items.every(i=>i.enabled()===false),'nothing to format');
+  state={...state,hasRows:true};guide=false;
+  assert.ok(items.every(i=>i.enabled()===false),'no guide');
 });

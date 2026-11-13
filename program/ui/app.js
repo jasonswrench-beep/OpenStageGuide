@@ -13,6 +13,7 @@ import { aboutDialog, askName, chooseGuide, chooseOne } from "./dialogs.js";
 import { get, post } from "./api.js";
 import { startFrame } from "./frame.js";
 import { mountEditor } from "./editor.js";
+import { askParagraphFormat } from "./format.js";
 import { INSERTS, newForm } from "./forms.js";
 import { drawWelcome } from "./welcome.js";
 
@@ -143,7 +144,7 @@ function openDocument() {
     () => {
       const host = doc.getElementById("work-guide");
       if (guideDoc !== made || !host) return;
-      editor = mountEditor(doc, host, made, { say, choose: (options) => chooseOne(doc, options) });
+      editor = mountEditor(doc, host, made, { say, choose: (options) => chooseOne(doc, options), askFormat: (current, validate) => askParagraphFormat(doc, current, validate) });
     },
     () => {},
   );

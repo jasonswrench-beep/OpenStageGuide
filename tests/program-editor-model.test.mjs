@@ -135,3 +135,16 @@ test('keys in the words of a cell: Enter goes down, Tab and Shift+Tab to the nex
   assert.equal(cellWordsKey(k('Enter',{composing:true})),null,'an input method\'s Enter is not "go down"');
   assert.equal(cellWordsKey(k('Backspace')),null,'Backspace in a cell is an ordinary Backspace: it never joins cells');
 });
+
+test('Word\'s alignment keys work on a row and in the words: Ctrl+L left, Ctrl+E centered, Ctrl+R right, Ctrl+J justified',()=>{
+  assert.deepEqual(['l','e','r','j'].map(key=>rowKey({key,ctrl:true})),['alignLeft','alignCenter','alignRight','alignJustify']);
+  assert.equal(rowKey({key:'E',ctrl:true,shift:true}),null,'with Shift it is not an alignment');
+  assert.equal(rowKey({key:'e'}),null);
+  const k=(key,more={})=>({key,start:2,end:2,length:6,...more});
+  assert.deepEqual(wordsKey(k('e',{ctrl:true})),{do:'align',value:'center'});
+  assert.deepEqual(wordsKey(k('L',{meta:true})),{do:'align',value:'left'});
+  assert.deepEqual(wordsKey(k('r',{ctrl:true})),{do:'align',value:'right'});
+  assert.deepEqual(wordsKey(k('j',{ctrl:true})),{do:'align',value:'justify'});
+  assert.equal(wordsKey(k('j',{ctrl:true,alt:true})),null);
+  assert.equal(wordsKey(k('e',{ctrl:true,composing:true})),null);
+});

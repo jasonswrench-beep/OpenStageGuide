@@ -91,6 +91,17 @@ const INSERT_ITEMS = /** @type {{ name: string, label: string, icon: UiIconName,
   { name: "source", label: "Source line...", icon: "quote", title: "A short credit or permission line under a form" },
 ]);
 
+/** The Format menu's items, each a command of the editor (see editor.js). */
+const FORMAT_ITEMS = /** @type {({ name: string, label: string, icon: UiIconName, keys?: string, title: string } | "-")[]} */ ([
+  { name: "alignLeft", label: "Align left", icon: "text-align-start", keys: "Ctrl+L", title: "Line the paragraphs up on the left, the easiest to read" },
+  { name: "alignCenter", label: "Center", icon: "text-align-center", keys: "Ctrl+E", title: "Put the paragraphs in the middle of the line" },
+  { name: "alignRight", label: "Align right", icon: "text-align-end", keys: "Ctrl+R", title: "Line the paragraphs up on the right" },
+  { name: "alignJustify", label: "Justify", icon: "text-align-justify", keys: "Ctrl+J", title: "Spread the lines to both edges (the gaps between words vary, which is harder to read)" },
+  "-",
+  { name: "paragraph", label: "Paragraph...", icon: "pilcrow", title: "Alignment, the space around a paragraph, line spacing and indents" },
+  { name: "clearFormat", label: "Clear paragraph formatting", icon: "eraser", title: "Let the paragraphs' styles decide how they look again" },
+]);
+
 /**
  * The menus, with the commands that do things through `ctx`. `ctx.edit` is the editor's side of the Edit menu: command(name) does one
  * (undo, redo, cut, copy, paste, add, kind, moveUp, moveDown, delete) and state() says what can be done now.
@@ -144,6 +155,12 @@ export function buildMenus(ctx) {
     ],
   };
   /** @type {MenuDef} */
+  const format = {
+    id: "format",
+    label: "Format",
+    items: FORMAT_ITEMS.map((i) => (i === "-" ? i : /** @type {MenuCommand} */ ({ label: i.label, icon: i.icon, keys: i.keys, title: i.title, run: edits(i.name), enabled: can("hasRows") }))),
+  };
+  /** @type {MenuDef} */
   const insert = {
     id: "insert",
     label: "Insert",
@@ -175,7 +192,7 @@ export function buildMenus(ctx) {
     { label: "Update guide", icon: "refresh-cw", title: "Renumber the headings and forms, and correct the times", run: ctx.updateGuide },
     { label: "Make workbook", icon: "book-open", title: "Make the participant workbook", run: () => ctx.openTool("participantWorkbook") },
   ];
-  return { menus: [file, edit, insert, ...middle, help], quick };
+  return { menus: [file, edit, insert, format, ...middle, help], quick };
 }
 
 export function menuEntries(/** @type {MenuDef[]} */ menus, /** @type {string} */ id) {

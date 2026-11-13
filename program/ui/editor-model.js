@@ -30,6 +30,9 @@ export function reconcile(before, after) {
   return { prefix, oldEnd: before.length - suffix, newEnd: after.length - suffix };
 }
 
+/** The keys of Word's alignments: Ctrl+L left, Ctrl+E centered, Ctrl+R right, Ctrl+J justified. @type {Record<string, "left" | "center" | "right" | "justify">} */
+const ALIGN_KEYS = { l: "left", e: "center", r: "right", j: "justify" };
+
 /**
  * @typedef {{ key: string, shift?: boolean, ctrl?: boolean, alt?: boolean, meta?: boolean }} KeyInfo
  * @typedef {KeyInfo & { start: number, end: number, length: number, composing?: boolean }} WordsKeyInfo
@@ -38,7 +41,7 @@ export function reconcile(before, after) {
 /**
  * What a key does in the words of a paragraph being edited. `caret` is where the caret goes in the paragraph the key leads to.
  * @param {WordsKeyInfo} k
- * @returns {{ do: "split" | "join" | "previous" | "next" | "stop" | "undo" | "redo", caret?: "start" | "end" } | null}
+ * @returns {{ do: "split" | "join" | "previous" | "next" | "stop" | "undo" | "redo" | "align", caret?: "start" | "end", value?: "left" | "center" | "right" | "justify" } | null}
  */
 export function wordsKey(k) {
   if (k.composing) return null;
@@ -47,6 +50,8 @@ export function wordsKey(k) {
   const letter = k.key.length === 1 ? k.key.toLowerCase() : "";
   if (command && letter === "z") return { do: k.shift ? "redo" : "undo" };
   if (command && letter === "y" && !k.shift) return { do: "redo" };
+  const align = command && !k.shift ? ALIGN_KEYS[letter] : undefined;
+  if (align) return { do: "align", value: align };
   if (!plain) return null;
   const atStart = k.start === 0 && k.end === 0;
   const atEnd = k.start === k.length && k.end === k.length;
@@ -71,11 +76,12 @@ export function wordsKey(k) {
 /**
  * What a key does when a row of the guide has the keyboard and its words are not being edited.
  * @param {KeyInfo} k
- * @returns {"down" | "up" | "first" | "last" | "edit" | "undo" | "redo" | "extendDown" | "extendUp" | "moveDown" | "moveUp" | "delete" | "copy" | "cut" | "add" | "selectAll" | "clear" | null}
+ * @returns {"down" | "up" | "first" | "last" | "edit" | "undo" | "redo" | "extendDown" | "extendUp" | "moveDown" | "moveUp" | "delete" | "copy" | "cut" | "add" | "selectAll" | "clear" | "alignLeft" | "alignCenter" | "alignRight" | "alignJustify" | null}
  */
 export function rowKey(k) {
   const command = (k.ctrl || k.meta) && !k.alt;
   const letter = k.key.length === 1 ? k.key.toLowerCase() : "";
+  if (command && !k.shift && ALIGN_KEYS[letter]) return /** @type {"alignLeft" | "alignCenter" | "alignRight" | "alignJustify"} */ (`align${ALIGN_KEYS[letter][0].toUpperCase()}${ALIGN_KEYS[letter].slice(1)}`);
   if (command && letter === "z") return k.shift ? "redo" : "undo";
   if (command && letter === "y" && !k.shift) return "redo";
   if (command && !k.shift && letter === "c") return "copy";
