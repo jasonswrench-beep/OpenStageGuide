@@ -219,14 +219,20 @@ export function applyStyleEdits(stylesXml,edits,io){
 
 // ---- reading
 
-/** The spec a style element holds itself, in the form a spec has (only what it says). */
-export function readSpec(style){
+const THEME_FACE=/^(major|minor)/i;
+/** The spec a style element holds itself, in the form a spec has (only what it says). `themeFonts` names the theme's two fonts, for a style that asks for "the body font". */
+export function readSpec(style,themeFonts={}){
   const spec={};
   const rPr=named(style,'rPr'),pPr=named(style,'pPr');
   if(rPr){
     const font={};
     const fonts=named(rPr,'rFonts');
     if(fonts&&attr(fonts,'ascii'))font.name=attr(fonts,'ascii');
+    else if(fonts){
+      const theme=attr(fonts,'asciiTheme')||attr(fonts,'hAnsiTheme');
+      const face=THEME_FACE.test(theme)?themeFonts[theme.slice(0,5).toLowerCase()]:undefined;
+      if(face)font.name=face;
+    }
     const sz=named(rPr,'sz');
     if(sz&&attr(sz,'val'))font.size=Number(attr(sz,'val'))/2;
     const color=named(rPr,'color');
@@ -276,8 +282,12 @@ export function readSpec(style){
  * Every style the styles part has that an author can use: id, name, kind, the style it is based on, whether it is the author's own (its id is
  * in `authorIds`; the program's own OSG styles are Word custom styles too, but they are not the author's), what it
  * says itself (`own`) and what it comes to once the styles it is based on and the document's defaults are counted (`effective`).
+ * `options.themeFonts` ({major, minor}) names the fonts of a Word file's theme; with `options.paragraphDefaults` the document's paragraph
+ * defaults (the space after and the line spacing Word gives every paragraph) count too, and borders are carried by `effective`, as a style
+ * from a Word file needs.
  */
-export function listStyles(stylesXml,io,authorIds=new Set()){
+export function listStyles(stylesXml,io,authorIds=new Set(),options={}){
+  const themeFonts=options.themeFonts||{};
   const root=io.parse(stylesXml).documentElement;
   const styles=kids(root).filter(s=>s.localName==='style');
   const byId=new Map(styles.map(s=>[attr(s,'styleId'),s]));
@@ -285,19 +295,27 @@ export function listStyles(stylesXml,io,authorIds=new Set()){
   const defRPr=defaults&&named(named(defaults,'rPrDefault')||{childNodes:[]},'rPr');
   const base={font:{}};
   // The document's defaults are what a style that says nothing of its own font comes to (readSpec reads the properties of whatever holds an rPr).
-  if(defRPr)base.font=readSpec({childNodes:[defRPr]}).font||{};
-  const merged=(spec,over)=>({font:{...(spec.font||{}),...(over.font||{})},paragraph:{...(spec.paragraph||{}),...(over.paragraph||{})},...((over.shading??spec.shading)?{shading:over.shading??spec.shading}:{})});
+  if(defRPr)base.font=readSpec({childNodes:[defRPr]},themeFonts).font||{};
+  base.paragraph={};
+  if(options.paragraphDefaults){
+    const defPPr=defaults&&named(named(defaults,'pPrDefault')||{childNodes:[]},'pPr');
+    if(defPPr)base.paragraph=readSpec({childNodes:[defPPr]}).paragraph||{};
+  }
+  const merged=(spec,over)=>({font:{...(spec.font||{}),...(over.font||{})},paragraph:{...(spec.paragraph||{}),...(over.paragraph||{})},...((over.shading??spec.shading)?{shading:over.shading??spec.shading}:{}),...(options.paragraphDefaults&&(over.borders??spec.borders)?{borders:over.borders??spec.borders}:{})});
   const effective=(id,depth=0)=>{
     const s=byId.get(id);
-    if(!s||depth>12)return {font:{...base.font},paragraph:{}};
+    if(!s||depth>12)return {font:{...base.font},paragraph:{...base.paragraph}};
     const parent=attr(named(s,'basedOn'),'val');
-    return merged(parent?effective(parent,depth+1):{font:{...base.font},paragraph:{}},readSpec(s));
+    return merged(parent?effective(parent,depth+1):{font:{...base.font},paragraph:{...base.paragraph}},readSpec(s,themeFonts));
   };
   return styles.filter(s=>['paragraph','character'].includes(attr(s,'type'))&&!named(s,'semiHidden')).map(s=>{
     const id=attr(s,'styleId');
-    return {id,name:attr(named(s,'name'),'val'),type:attr(s,'type'),basedOn:attr(named(s,'basedOn'),'val'),custom:authorIds.has(id),own:readSpec(s),effective:effective(id),defaultStyle:attr(s,'default')==='1'};
+    return {id,name:attr(named(s,'name'),'val'),type:attr(s,'type'),basedOn:attr(named(s,'basedOn'),'val'),custom:authorIds.has(id),own:readSpec(s,themeFonts),effective:effective(id),defaultStyle:attr(s,'default')==='1'};
   });
 }
+
+/** A style's name as a person reads it: Word's own names for its built-in styles are lower case ("heading 1", "toc 2"). */
+export const niceName=name=>String(name??'').replace(/^(heading|toc) (\d)$/i,(m,k,n)=>`${k.toLowerCase()==='toc'?'TOC':'Heading'} ${n}`);
 
 /** What a spec looks like on a page, as CSS properties for an element (points are 4/3 of a pixel). */
 export function specCss(spec){

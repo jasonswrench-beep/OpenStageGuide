@@ -9,6 +9,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
+import JSZip from 'jszip';
 import {parseProject} from '../src/guide-project.mjs';
 import {readTable} from '../src/guide-table.mjs';
 import {DOMParser,XMLSerializer} from '@xmldom/xmldom';
@@ -581,6 +582,63 @@ try{
   await saved();
   ok(projectStyles().custom.find(c=>c.name==='Centered note')===undefined&&onDisk().find(p=>p.text==='Say what this guide is for and who should use it.').style==='Normal','one Ctrl+Z takes back the style and the paragraph\'s change together');
   await shot('12-styles.png');
+
+  // ---- Word files: the guide as a document, its styles as a template, and the styles of a Word file taken in
+  const fileMenu=async label=>{await page.getByRole('menuitem',{name:/^File/}).click();await page.getByRole('menuitem',{name:label}).click();};
+  const [wordDownload]=await Promise.all([page.waitForEvent('download',{timeout:20000}),fileMenu(/^Save as Word file/)]);
+  ok(wordDownload.suggestedFilename()==='Editor guide.docx','Save as Word file downloads a .docx named for the guide: '+wordDownload.suggestedFilename());
+  const wordZip=await JSZip.loadAsync(fs.readFileSync(await wordDownload.path()));
+  const docXml=await wordZip.file('word/document.xml').async('string');
+  ok(['[Content_Types].xml','_rels/.rels','word/document.xml','word/_rels/document.xml.rels','word/styles.xml','word/settings.xml','docProps/core.xml'].every(n=>wordZip.file(n)),'the file has the parts a Word file needs');
+  ok(/Getting Started/.test(docXml)&&/Lesson 1\.1: First/.test(docXml)&&/Say what this guide is for/.test(docXml),'the words of the guide are in it');
+  ok(/TOC \\o "1-2"/.test(docXml),'and a real contents field');
+  ok(/<w:sectPr>/.test(docXml),'and the page setup Word needs');
+  ok(/<dc:title>Editor guide<\/dc:title>/.test(await wordZip.file('docProps/core.xml').async('string')),'the title of the guide is the title of the file');
+  ok(/w:styleId="OSGNotes"/.test(await wordZip.file('word/styles.xml').async('string')),'the guide\'s styles are in it');
+  const [templateDownload]=await Promise.all([page.waitForEvent('download',{timeout:20000}),fileMenu(/^Save styles as a Word template/)]);
+  ok(templateDownload.suggestedFilename()==='Editor guide styles.dotx','Save styles as a Word template downloads a .dotx: '+templateDownload.suggestedFilename());
+  const templateZip=await JSZip.loadAsync(fs.readFileSync(await templateDownload.path()));
+  ok(/wordprocessingml\.template\.main\+xml/.test(await templateZip.file('[Content_Types].xml').async('string')),'in the content type Word gives templates');
+  ok(!/Getting Started/.test(await templateZip.file('word/document.xml').async('string')),'with none of the guide\'s words');
+
+  // A Word template of the company's: a theme with two fonts, a heading, ordinary text, and a style of its own.
+  const W_NS='http://schemas.openxmlformats.org/wordprocessingml/2006/main';
+  const company=new JSZip();
+  company.file('word/styles.xml',`<w:styles xmlns:w="${W_NS}"><w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:asciiTheme="minorHAnsi" w:hAnsiTheme="minorHAnsi"/><w:sz w:val="24"/></w:rPr></w:rPrDefault><w:pPrDefault><w:pPr><w:spacing w:after="160" w:line="259" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults><w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/></w:style><w:style w:type="paragraph" w:styleId="Heading1"><w:name w:val="heading 1"/><w:basedOn w:val="Normal"/><w:pPr><w:keepNext/><w:spacing w:before="360" w:after="120"/></w:pPr><w:rPr><w:rFonts w:asciiTheme="majorHAnsi" w:hAnsiTheme="majorHAnsi"/><w:b/><w:color w:val="1F3A5F"/><w:sz w:val="40"/></w:rPr></w:style><w:style w:type="paragraph" w:customStyle="1" w:styleId="CompanyNote"><w:name w:val="Company Note"/><w:basedOn w:val="Normal"/><w:pPr><w:shd w:val="clear" w:color="auto" w:fill="FFF2CC"/></w:pPr><w:rPr><w:i/></w:rPr></w:style></w:styles>`);
+  company.file('word/theme/theme1.xml','<a:theme xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:themeElements><a:fontScheme name="x"><a:majorFont><a:latin typeface="Trebuchet MS"/></a:majorFont><a:minorFont><a:latin typeface="Verdana"/></a:minorFont></a:fontScheme></a:themeElements></a:theme>');
+  const companyPath=path.join(RUN,'company.dotx');
+  fs.writeFileSync(companyPath,await company.generateAsync({type:'nodebuffer'}));
+  const stylesBeforeImport=JSON.stringify(projectStyles());
+  await row(/^Getting Started/).focus();
+  await formatMenu(/^Styles from a Word file/);
+  await page.locator('#dlg-f-file').waitFor({timeout:5000});
+  await page.setInputFiles('#dlg-f-file',{name:'notes.docx',mimeType:'text/plain',buffer:Buffer.from('this is not a Word file')});
+  await page.getByRole('button',{name:'Read the styles'}).click();
+  await page.locator('dialog[open] .problem:not([hidden])').waitFor({timeout:5000});
+  ok(/not a Word file/.test(await page.locator('dialog[open] .problem').innerText()),'a file that is not a Word file is explained in the dialog, which stays open');
+  await page.setInputFiles('#dlg-f-file',companyPath);
+  await page.getByRole('button',{name:'Read the styles'}).click();
+  await page.locator('.si-table').waitFor({timeout:5000});
+  ok(await page.locator('input.si-pick').count()===3,'every paragraph style of the file is offered');
+  ok(await page.locator('input.si-pick:checked').count()===2,'the two that have the name of one of the guide\'s styles are chosen');
+  const described=await page.locator('.si-desc').allInnerTexts();
+  ok(described.some(t=>/Trebuchet MS/.test(t)),'what each looks like is said in words, with the font of the theme: '+JSON.stringify(described));
+  const noteBox=page.getByRole('checkbox',{name:/Company Note/});
+  ok(await noteBox.isChecked()===false&&await page.getByLabel('Company Note becomes').inputValue()==='@new','a style with no match is offered as a style of your own, and not chosen');
+  await noteBox.check();
+  await shot('13-styles-from-word.png');
+  await page.getByRole('button',{name:'Bring in',exact:true}).click();
+  await saved();
+  const taken=projectStyles();
+  ok(taken.overrides.Heading1?.font?.name==='Trebuchet MS'&&taken.overrides.Heading1.font.size===20&&taken.overrides.Heading1.font.color==='#1F3A5F','the guide\'s Heading 1 has the file\'s font (from the theme), size and color');
+  ok(taken.custom.some(c=>c.name==='Company Note'&&c.spec.shading==='#FFF2CC'),'the style of the file is a style of your own');
+  const said=await page.locator('#status').innerText();
+  ok(/2 styles changed/.test(said)&&/1 style added as your own \(Company Note\)/.test(said),'the program says what it did: '+said);
+  ok(await row(/^Getting Started/).evaluate(e=>Math.abs(parseFloat(getComputedStyle(e).fontSize)-26.67)<0.5&&/Trebuchet MS/.test(getComputedStyle(e).fontFamily)),'and the headings of the guide follow at once');
+  await row(/^Getting Started/).focus();
+  await page.keyboard.press('Control+z');
+  await saved();
+  ok(JSON.stringify(projectStyles())===stylesBeforeImport,'one Ctrl+Z takes back everything the import did, and nothing before it');
 
   // ---- what cannot be changed is read, not rewritten
   await row(/Time: 10 minutes/).focus();

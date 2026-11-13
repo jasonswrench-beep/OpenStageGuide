@@ -17,6 +17,7 @@ import { askParagraphFormat } from "./format.js";
 import { openStylesPanel } from "./styles-panel.js";
 import { INSERTS, newForm } from "./forms.js";
 import { drawWelcome } from "./welcome.js";
+import { importStylesFromWord, saveWordFile } from "./word-files.js";
 
 const doc = document;
 const main = /** @type {HTMLElement} */ (doc.getElementById("main"));
@@ -73,8 +74,27 @@ async function insertCommand(name) {
   }
 }
 
+/** The guide as a Word document, or its styles as a Word template. @param {boolean} template */
+async function saveWord(template) {
+  if (!guideDoc) return;
+  await saveWordFile(doc, guideDoc, { name: (state.current ?? "guide").replace(/\.guide-project\.json$/i, ""), template, say });
+}
+
+/** Take the styles of a Word file into the guide. */
+async function importStyles() {
+  if (!guideDoc) return;
+  try {
+    await importStylesFromWord(doc, guideDoc, say);
+  } catch (e) {
+    say(/** @type {Error} */ (e).message, true);
+  }
+}
+
 const frame = startFrame(doc, {
   insert: (name) => insertCommand(name),
+  saveWord: () => saveWord(false),
+  saveTemplate: () => saveWord(true),
+  importStyles: () => importStyles(),
   edit: {
     command: (name) => editor?.command(name),
     state: () => editor?.state() ?? { canUndo: false, canRedo: false, hasRows: false, inTable: false },

@@ -15,7 +15,7 @@ const SAVE_WORDS = /** @type {Record<string, string>} */ ({ new: "No changes yet
 /**
  * Build the frame into the page, once.
  * @param {Document} doc
- * @param {{ edit?: import("./commands.js").EditApi, insert?: (name: string) => unknown, guide: () => { name: string } | null, openTool: (id: string) => void, updateGuide: () => void, newGuide: () => void, openGuide: () => void, closeGuide: () => void, about: () => void }} shell
+ * @param {{ edit?: import("./commands.js").EditApi, insert?: (name: string) => unknown, saveWord?: () => unknown, saveTemplate?: () => unknown, importStyles?: () => unknown, guide: () => { name: string } | null, openTool: (id: string) => void, updateGuide: () => void, newGuide: () => void, openGuide: () => void, closeGuide: () => void, about: () => void }} shell
  */
 export function startFrame(doc, shell) {
   const contextHost = /** @type {HTMLElement} */ (doc.getElementById("bar-context"));

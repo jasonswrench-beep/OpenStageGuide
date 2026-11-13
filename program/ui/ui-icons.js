@@ -108,6 +108,7 @@ export const UI_ICONS = /** @type {const} */ ({
   "square": [{"tag":"rect","width":18,"height":18,"x":3,"y":3,"rx":2}],
   "square-pen": [{"tag":"path","d":"M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"},{"tag":"path","d":"M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z"}],
   "square-plus": [{"tag":"rect","width":18,"height":18,"x":3,"y":3,"rx":2},{"tag":"path","d":"M8 12h8"},{"tag":"path","d":"M12 8v8"}],
+  "swatch-book": [{"tag":"path","d":"M11 17a4 4 0 0 1-8 0V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2Z"},{"tag":"path","d":"M16.7 13H19a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H7"},{"tag":"path","d":"M 7 17h.01"},{"tag":"path","d":"m11 8 2.3-2.3a2.4 2.4 0 0 1 3.404.004L18.6 7.6a2.4 2.4 0 0 1 .026 3.434L9.9 19.8"}],
   "table": [{"tag":"path","d":"M12 3v18"},{"tag":"rect","width":18,"height":18,"x":3,"y":3,"rx":2},{"tag":"path","d":"M3 9h18"},{"tag":"path","d":"M3 15h18"}],
   "target": [{"tag":"circle","cx":12,"cy":12,"r":10},{"tag":"circle","cx":12,"cy":12,"r":6},{"tag":"circle","cx":12,"cy":12,"r":2}],
   "text-align-center": [{"tag":"path","d":"M21 5H3"},{"tag":"path","d":"M17 12H7"},{"tag":"path","d":"M19 19H5"}],

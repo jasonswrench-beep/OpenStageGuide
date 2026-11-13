@@ -153,14 +153,32 @@ test('the Insert menu: a form from a template, then the elements a form is made 
 test('the Format menu: the four alignments with Word\'s keys, the Paragraph dialog and clearing; dimmed with nothing to format; each does its own command',()=>{
   const told=[];
   let state={canUndo:false,canRedo:false,hasRows:true,inTable:false},guide=true;
-  const {menus}=buildMenus({hasGuide:()=>guide,openTool(){},updateGuide(){},newGuide(){},openGuide(){},closeGuide(){},search(){},keys(){},about(){},edit:{command:n=>told.push(n),state:()=>state}});
+  let imported=0;
+  const {menus}=buildMenus({hasGuide:()=>guide,openTool(){},updateGuide(){},newGuide(){},openGuide(){},closeGuide(){},search(){},keys(){},about(){},importStyles(){imported++;},edit:{command:n=>told.push(n),state:()=>state}});
   const fmt=menus.find(m=>m.id==='format');
-  const items=fmt.items.filter(i=>i!=='-');
-  assert.deepEqual(items.map(i=>[i.label,i.keys]),[['Align left','Ctrl+L'],['Center','Ctrl+E'],['Align right','Ctrl+R'],['Justify','Ctrl+J'],['Paragraph...',undefined],['Clear paragraph formatting',undefined],['Styles...',undefined],['New style from this paragraph...',undefined]]);
-  for(const i of items){assert.ok(i.icon&&UI_ICONS[i.icon],`${i.label} has an icon`);assert.ok(i.title.length>10);assert.equal(i.enabled(),true);i.run();}
+  const all=fmt.items.filter(i=>i!=='-');
+  assert.deepEqual(all.map(i=>[i.label,i.keys]),[['Align left','Ctrl+L'],['Center','Ctrl+E'],['Align right','Ctrl+R'],['Justify','Ctrl+J'],['Paragraph...',undefined],['Clear paragraph formatting',undefined],['Styles...',undefined],['New style from this paragraph...',undefined],['Styles from a Word file...',undefined]]);
+  for(const i of all){assert.ok(i.icon&&UI_ICONS[i.icon],`${i.label} has an icon`);assert.ok(i.title.length>10);assert.equal(i.enabled(),true);i.run();}
   assert.deepEqual(told,['alignLeft','alignCenter','alignRight','alignJustify','paragraph','clearFormat','styles','newStyle']);
+  assert.equal(imported,1,'taking styles from a Word file belongs to the program, not the editor');
+  // Taking styles from a Word file needs a guide, not a paragraph; the rest need a paragraph to format.
+  const items=all.filter(i=>i.label!=='Styles from a Word file...'),fromFile=all.find(i=>i.label==='Styles from a Word file...');
   state={...state,hasRows:false};
   assert.ok(items.every(i=>i.enabled()===false),'nothing to format');
+  assert.equal(fromFile.enabled(),true,'but the guide can still take styles');
   state={...state,hasRows:true};guide=false;
-  assert.ok(items.every(i=>i.enabled()===false),'no guide');
+  assert.ok(all.every(i=>i.enabled()===false),'no guide');
+});
+
+test('the File menu makes the guide a Word file, or its styles a Word template, and both wait for a guide',()=>{
+  let guide=true;const done=[];
+  const {menus}=buildMenus({hasGuide:()=>guide,openTool(){},updateGuide(){},newGuide(){},openGuide(){},closeGuide(){},search(){},keys(){},about(){},saveWord(){done.push('word');},saveTemplate(){done.push('template');}});
+  const items=menus.find(m=>m.id==='file').items.filter(i=>i!=='-');
+  const word=items.find(i=>i.label==='Save as Word file...'),template=items.find(i=>i.label==='Save styles as a Word template...');
+  assert.ok(word&&template);
+  for(const i of [word,template]){assert.ok(UI_ICONS[i.icon]);assert.ok(i.title.length>10);assert.equal(i.enabled(),true);i.run();}
+  assert.deepEqual(done,['word','template']);
+  guide=false;
+  assert.equal(word.enabled(),false);assert.equal(template.enabled(),false);
+  assert.ok(items.indexOf(word)<items.findIndex(i=>/backup/i.test(i.label)),'before the backups');
 });
