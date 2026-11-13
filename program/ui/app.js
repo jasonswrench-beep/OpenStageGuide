@@ -1,10 +1,14 @@
 // @ts-check
 /**
  * OpenStage Guide as a program: the frame (navy bar, menus), the welcome page, and an open guide (the guide itself, and the tools beside it).
- * The tools are the pane of the Word add-in, shown in a frame of the page (/program/tools?project=1&program=1), reading and saving the same
- * project through the program's own server. The program draws the guide from that project each time the pane has saved.
+ * The guide's document lives in this page, with its saving (src/guide-project-adapter.mjs). The tools are the pane of the Word add-in, shown in
+ * a frame of the page (/program/tools?project=1&program=1); they use the document by message (src/guide-remote.mjs), so there is one document and
+ * one writer. The page draws the guide from the document each time it changes.
  */
-import { parseProject } from "../../src/guide-project.mjs";
+import { createProjectAdapter } from "../../src/guide-project-adapter.mjs";
+import { webProjectStore } from "../../src/guide-project-web.mjs";
+import { serveAdapter } from "../../src/guide-remote.mjs";
+import { createDemoAdapter } from "../../src/guide-word.mjs";
 import { aboutDialog, askName, chooseGuide } from "./dialogs.js";
 import { get, post } from "./api.js";
 import { startFrame } from "./frame.js";
@@ -22,6 +26,12 @@ let toolsFrame = null;
 /** What to do when the tools have loaded: a tool chosen before they were ready. @type {string | null} */
 let wantedTool = null;
 let toolsReady = false;
+/** The open guide's document (with its saving), and the link that lets the tools in the frame use it. @type {any} */
+let guideDoc = null;
+/** @type {{ stop: () => void, status: (s: { state: string, message?: string }) => void } | null} */
+let link = null;
+/** @type {number | null} */
+let drawTimer = null;
 
 /** @param {string} message @param {boolean} [bad] */
 function say(message, bad = false) {
@@ -77,6 +87,7 @@ function openTool(id) {
 }
 
 async function showWelcome() {
+  closeDocument();
   toolsFrame = null;
   toolsReady = false;
   doc.title = "OpenStage Guide";
@@ -85,16 +96,63 @@ async function showWelcome() {
   drawWelcome(doc, main, { guides: state.guides, folder: state.folder, when, onNew: () => void newGuide(), onOpen: () => void openGuide(), onOpenNamed: (n) => void openNamed(n) });
 }
 
-async function refreshGuide() {
+/** Draw the guide from the document, as it is now. */
+function drawGuide() {
   const host = doc.getElementById("work-guide");
-  if (!host) return;
+  if (!host || !guideDoc) return;
   try {
-    const r = await fetch("/project", { cache: "no-store" });
-    const entries = r.status === 204 || !r.ok ? [] : parseProject(await r.text()).guide.paragraphs;
-    renderGuide(doc, host, entries, (xml) => new DOMParser().parseFromString(xml, "application/xml"));
+    renderGuide(doc, host, guideDoc.exportState().paragraphs, (xml) => new DOMParser().parseFromString(xml, "application/xml"));
   } catch (e) {
     say(`The guide could not be shown: ${/** @type {Error} */ (e).message}`, true);
   }
+}
+
+/** Draw again soon: a burst of changes is drawn once. */
+function scheduleDraw() {
+  if (drawTimer !== null) return;
+  drawTimer = window.setTimeout(() => {
+    drawTimer = null;
+    drawGuide();
+  }, 30);
+}
+
+/** Make the open guide's document, read from its project file, and let go of the one before. */
+function openDocument() {
+  closeDocument();
+  const made = createProjectAdapter(createDemoAdapter(), {
+    ...webProjectStore(),
+    onStatus: (s) => {
+      if (guideDoc !== made) return;
+      frame.setSaveState(s.state);
+      link?.status(s);
+      if (s.state === "error") say(s.message, true);
+    },
+    onChange: scheduleDraw,
+  });
+  guideDoc = made;
+  made.ready.then(() => { if (guideDoc === made) drawGuide(); }, () => {});
+}
+
+function closeDocument() {
+  link?.stop();
+  link = null;
+  guideDoc = null;
+  if (drawTimer !== null) window.clearTimeout(drawTimer);
+  drawTimer = null;
+}
+
+/**
+ * Save what is waiting before the open guide is left. False when it could not be saved: the guide is then left open, with its changes.
+ * A guide that could not be opened has nothing of the author's in it, so it can always be left.
+ */
+async function settle() {
+  if (!guideDoc) return true;
+  await guideDoc.flush();
+  if (!guideDoc.blocked() && guideDoc.status().state === "error") {
+    say("The open guide could not be saved just now, so it was left open with your changes. Try again in a moment.", true);
+    return false;
+  }
+  return true;
 }
 
 function showGuide() {
@@ -122,7 +180,18 @@ function showGuide() {
   work.append(guide, tools);
   main.replaceChildren(work);
   frame.refresh();
-  void refreshGuide();
+  openDocument();
+  // Listening starts now, before the frame has loaded, so its first question is never missed. Only that frame, on this address, is answered.
+  link = serveAdapter(guideDoc, {
+    post: (m) => toolsFrame?.contentWindow?.postMessage(m, location.origin),
+    listen: (fn) => {
+      const heard = (/** @type {MessageEvent} */ e) => {
+        if (e.origin === location.origin && toolsFrame && e.source === toolsFrame.contentWindow) fn(e.data);
+      };
+      window.addEventListener("message", heard);
+      return () => window.removeEventListener("message", heard);
+    },
+  });
 }
 
 async function show() {
@@ -134,6 +203,7 @@ async function show() {
 }
 
 async function newGuide() {
+  if (!(await settle())) return;
   const name = await askName(doc, { title: "New guide", label: "Name of the guide", confirm: "Create", hint: "For example: Reframing conflict workshop. You can write the guide's title in it later." });
   if (!name) return;
   try {
@@ -152,6 +222,7 @@ async function openGuide() {
 
 /** @param {string} name */
 async function openNamed(name) {
+  if (!(await settle())) return;
   try {
     await post("open", { name });
     await show();
@@ -161,6 +232,7 @@ async function openNamed(name) {
 }
 
 async function closeGuide() {
+  if (!(await settle())) return;
   try {
     await post("close");
     await show();
@@ -169,7 +241,13 @@ async function closeGuide() {
   }
 }
 
-// What the tools frame tells the program: it is ready, how the guide's saving stands, and that a save has finished.
+// Save what is waiting when the page is hidden or closed.
+window.addEventListener("pagehide", () => void guideDoc?.flush());
+doc.addEventListener("visibilitychange", () => {
+  if (doc.visibilityState === "hidden") void guideDoc?.flush();
+});
+
+// What the tools frame tells the program: it is ready. (Its calls on the document are answered by serveAdapter.)
 window.addEventListener("message", (e) => {
   if (e.origin !== location.origin || e.source !== toolsFrame?.contentWindow) return;
   const data = e.data;
@@ -181,9 +259,9 @@ window.addEventListener("message", (e) => {
       wantedTool = null;
       void openTool(id);
     }
-  } else if (data.type === "osg-status") {
-    frame.setSaveState(String(data.state ?? ""));
-    if (data.state === "saved") void refreshGuide();
+  } else if (data.type === "osg-key" && typeof data.key === "string" && ["k", "K", "/", "F10"].includes(data.key)) {
+    // A key the author pressed in the tools that belongs to the program (Ctrl+K, Ctrl+/, F10): the program's keys are heard here.
+    doc.dispatchEvent(new KeyboardEvent("keydown", { key: data.key, ctrlKey: data.ctrlKey === true, metaKey: data.metaKey === true, bubbles: true, cancelable: true }));
   }
 });
 

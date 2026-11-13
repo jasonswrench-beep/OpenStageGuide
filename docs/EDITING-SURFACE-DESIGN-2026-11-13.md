@@ -23,6 +23,18 @@ The author writes and changes the whole guide on the page: types the words, chan
 
 I would do E0 first as a short spike and report before building on it.
 
+**What E0 became (as built, same day).** The spike found a third way that gets the same result with far less risk, so that is what was built. The tools' page and stylesheet are written to own their whole page: they read their elements by id from the document, add page-level key handlers, and their stylesheet styles `body`, `header` and plain element names. Hosting them inside the program's page would have meant scoping all of that. So the frame stays, and the guide's document moved out of it:
+
+- The document, with its saving, now lives in the program's page (`createDemoAdapter` inside `createProjectAdapter`, started when a guide is opened). The page draws the guide from it at once after any change, not after a save and a second read of the file.
+- The tools in the frame use it through `src/guide-remote.mjs`: the same document interface, each call carried by `postMessage` and answered. A tool's block is built in the frame and only the finished Word-format text travels. Only the interface's own methods can be called; importing and exporting the whole state, moving the cursor and undoing cannot be reached from the frame. Both ends check who sent a message (the other page, same address).
+- One writer: the browser check now records every request that stores the project and fails if any came from the tools' frame.
+- The frame goes away tool by tool as the tools become menus and dialogs in the program's page; nothing about the document changes when that happens. The editor (E1) is built in the program's page against the same document.
+
+Two things the move turned up, both fixed:
+
+- **"Make workbook" gave the author nothing.** The in-memory document's `openDocument` and `offerDownload` only recorded what they were given (they exist for the tests), so in the program the workbook, the backup, the agenda and the narration script were "opened" nowhere and never delivered. Now the tools find there is no Word window to open a file in, fall back to their download path, and a real download happens. The browser check downloads a workbook and looks at the file. The tools' wording still says "Word could not open it for you, so it was downloaded"; the words for the program are a later pass.
+- **The suite's keys did not work while the author was in the tools.** Ctrl+K, Ctrl+/ and F10 were heard by the program's page only, and a frame is its own document. They are now passed on from the tools to the page.
+
 ## 4. How it works for the author
 
 **Rows, and one paragraph in edit at a time.** The guide stays drawn as it is now: headings are headings, forms are forms. Each paragraph is a row. Arrow keys move between rows. Enter, F2 or a click starts editing the row: its words become a text box (a real `textarea`, which is the control screen readers and spell-check handle best) that grows with its words. Escape ends editing and leaves the row selected. This is how outline editors work, and OpenAssess already edits with auto-growing text boxes.
@@ -64,7 +76,7 @@ I would do E0 first as a short spike and report before building on it.
 
 Each step ends with automatic tests, a real-browser check, screenshots for the author, and no push without a yes.
 
-- **E0. One page, one document.** Tools hosted in the program's page, frame removed, existing checks green.
+- **E0. One page, one document.** *Done 2026-11-13, in the form described in section 3 ("What E0 became"): the document lives in the program's page and the tools use it by message.* Program check 40 of 40, project check 29 of 29, 1582 tests passing.
 - **E1. Words.** Rows, keyboard model, editing the words of plain, heading, time and cue paragraphs, cursor and selection sync, autosave, undo and redo. The paragraph-into-pieces code and its round-trip tests.
 - **E2. Structure.** Split and join, insert, delete, move, row selection, copy, cut, paste, the Paragraph menu, lists.
 - **E3. Tables and fill-in elements.** The grid, rows and columns, form elements inserted and edited. (This is also the Forms tool, F3.)

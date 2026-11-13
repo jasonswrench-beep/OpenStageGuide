@@ -33,6 +33,9 @@ try{
   page.on('pageerror',e=>problems.push(String(e)));
   page.on('console',m=>{if(m.type()==='error'||/Refused|violat/i.test(m.text()))problems.push(m.text());});
   const shot=name=>page.screenshot({path:path.join(SHOTS,name)});
+  // Who saves the guide: every request that stores the project, and the page it came from.
+  const stores=[];
+  page.on('request',r=>{if(r.method()==='PUT'&&r.url().endsWith('/project'))stores.push(new URL(r.frame().url()).pathname);});
 
   // ---- the welcome page
   await page.goto(`${BASE}/`);
@@ -100,6 +103,24 @@ try{
   await page.waitForTimeout(600);
   ok(!problems.length,'nothing went wrong in the page so far: '+JSON.stringify(problems.slice(0,2)));
 
+  // ---- the workbook reaches the author: there is no Word to open it in, so it is a real download
+  // (a workbook needs something for learners in the guide: a highlight block, added from the Write menu)
+  await page.getByRole('menuitem',{name:/^Write/}).click();
+  await page.getByRole('menuitem',{name:/Instructional cues/i}).click();
+  await fr.locator('#guide-cue-highlight').evaluate(e=>{e.checked=true;e.dispatchEvent(new Event('change',{bubbles:true}));});
+  await fr.locator('#guide-block-text').fill('Name the feeling first.');
+  await fr.locator('#guide-block-form').evaluate(f=>f.requestSubmit());
+  await page.waitForFunction(()=>/Name the feeling first\./.test(document.querySelector('#work-guide')?.innerText||''),null,{timeout:10000});
+  ok(true,'a block added in the tools appears in the guide');
+  await page.getByRole('button',{name:'Make workbook'}).click();
+  await fr.locator('#guide-workbook-go').waitFor({state:'visible',timeout:10000});
+  const [download]=await Promise.all([page.waitForEvent('download',{timeout:20000}),fr.locator('#guide-workbook-go').click()]);
+  ok(/\.docx$/.test(download.suggestedFilename()),'Make workbook downloads a Word file: '+download.suggestedFilename());
+  const downloaded=await download.path();
+  ok(!!downloaded&&fs.statSync(downloaded).size>2000,'the downloaded workbook is a real file');
+  ok(/downloaded/i.test(await fr.locator('#guide-workbook-ok').innerText().catch(()=>'')),'the tools say it was downloaded');
+  await shot('5b-workbook.png');
+
   // ---- the command search and the keys window
   await page.keyboard.press('Control+k');
   await page.locator('dialog.command-search').waitFor({state:'visible'});
@@ -150,6 +171,7 @@ try{
   ok(bad===415,'a request in the wrong form is refused (415): '+bad);
   ok(files(GUIDES).filter(f=>f.endsWith('.guide-project.json')).length===1,'nothing refused made a guide');
   // (the one request above that was refused is the page's own probe, and the browser logs it)
+  ok(stores.length>0&&stores.every(f=>f==='/program/'),'the guide is saved by the program page only, never by the tools frame: '+JSON.stringify([...new Set(stores)]));
   ok(problems.slice(0,before).length===0&&problems.slice(before).every(p=>/415/.test(p)),'no page errors or policy violations in the whole run: '+JSON.stringify(problems.slice(0,3)));
 }finally{
   if(browser)await browser.close();

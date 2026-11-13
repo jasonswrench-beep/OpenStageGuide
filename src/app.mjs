@@ -37,6 +37,7 @@ import {mountToolStrip} from './tool-strip.mjs';
 import {createWordAdapter,createDemoAdapter} from './guide-word.mjs';
 import {createProjectAdapter} from './guide-project-adapter.mjs';
 import {webProjectStore} from './guide-project-web.mjs';
+import {createRemoteAdapter} from './guide-remote.mjs';
 import {installFileInputBridge} from './file-input-bridge.mjs';
 import {buildAgenda,reviewCourse} from './planning.mjs';
 import {createCheckpoint,readCheckpoint,checkpointName,MAX_PACKAGE_BYTES} from './checkpoint.mjs';
@@ -64,6 +65,16 @@ if(programMode){
   const programLook=document.createElement('link');programLook.rel='stylesheet';programLook.href='/program/pane.css';document.head.append(programLook);
 }
 const toProgram=message=>{if(programMode&&globalThis.parent&&globalThis.parent!==globalThis)globalThis.parent.postMessage(message,location.origin);};
+if(programMode){
+  // The suite's keys (Ctrl+K search, Ctrl+/ key list, F10 menus) belong to the program's page. While the author is in the tools they are passed on to it.
+  document.addEventListener('keydown',e=>{
+    const suite=(e.ctrlKey||e.metaKey)&&!e.altKey&&!e.shiftKey&&(e.key.toLowerCase()==='k'||e.key==='/');
+    const menus=e.key==='F10'&&!e.ctrlKey&&!e.metaKey&&!e.altKey;
+    if(!suite&&!menus)return;
+    e.preventDefault();
+    toProgram({type:'osg-key',key:e.key,ctrlKey:e.ctrlKey,metaKey:e.metaKey});
+  });
+}
 let project=null,busy=false,ready=false,blocked=false,previewRevision=null;
 let assessmentPanel=null;
 let verifiedBackup=null,backupSelection=0;
@@ -1401,12 +1412,13 @@ reloadBrandPresets();
 const SAVE_WORDS={new:'no changes yet',saving:'saving',saved:'saved',unsaved:'changes not saved yet',error:'not saved'};
 const showSave=s=>{
   if(!projectMode||s.state==='opening')return;
-  toProgram({type:'osg-status',state:s.state,message:s.message});
   $('connection').textContent=`Project file · ${SAVE_WORDS[s.state]||s.state}`;
   if(s.state==='error')error(new Error(s.message));
 };
-const guideAdapter=projectMode?createProjectAdapter(createDemoAdapter(),{...webProjectStore(),onStatus:showSave}):demo?createDemoAdapter():createWordAdapter();
-if(projectMode){
+// In the program the guide's document lives in the program's page (guide-remote.mjs): this page's tools reach it by message, and that page saves it.
+const fromProgram=fn=>globalThis.addEventListener('message',e=>{if(e.source===globalThis.parent&&e.origin===location.origin)fn(e.data);});
+const guideAdapter=programMode?createRemoteAdapter({post:m=>globalThis.parent.postMessage(m,location.origin),listen:fromProgram,onStatus:showSave}):projectMode?createProjectAdapter(createDemoAdapter(),{...webProjectStore(),onStatus:showSave}):demo?createDemoAdapter():createWordAdapter();
+if(projectMode&&!programMode){
   // Save whatever is waiting when the page is hidden or closed.
   globalThis.addEventListener?.('pagehide',()=>{guideAdapter.flush();});
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')guideAdapter.flush();});

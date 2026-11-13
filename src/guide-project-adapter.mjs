@@ -21,7 +21,8 @@ const READ_ONLY=new Set([
   'setTheme','setPicker','refuse','setAutoShow','fireSelection','offerDownload','setCapturedFile'
 ]);
 
-export function createProjectAdapter(document,{read,write,delayMs=400,soon=(fn,ms)=>setTimeout(fn,ms),cancel=t=>clearTimeout(t),onStatus=()=>{}}={}){
+// onChange() is called after every change to the guide, before it is saved, so what shows the guide can draw it again at once.
+export function createProjectAdapter(document,{read,write,delayMs=400,soon=(fn,ms)=>setTimeout(fn,ms),cancel=t=>clearTimeout(t),onStatus=()=>{},onChange=()=>{}}={}){
   let timer=null,inFlight=Promise.resolve(),dirty=false,blocked=false,loaded=false,state='new',message='';
   const set=(s,m='')=>{state=s;message=m;onStatus({state:s,message:m});};
   const save=()=>{
@@ -79,8 +80,9 @@ export function createProjectAdapter(document,{read,write,delayMs=400,soon=(fn,m
         if(blocked)throw new Error(message||'This guide could not be opened, so it cannot be changed.');
         if(!loaded)throw new Error('The guide is still opening. Try again in a moment.');
         const out=v.apply(target,args);
-        if(out&&typeof out.then==='function')return out.then(x=>{schedule();return x;});
-        schedule();
+        const changed=()=>{schedule();try{onChange();}catch{/* a failing view must not stop the guide being saved */}};
+        if(out&&typeof out.then==='function')return out.then(x=>{changed();return x;});
+        changed();
         return out;
       };
     }
