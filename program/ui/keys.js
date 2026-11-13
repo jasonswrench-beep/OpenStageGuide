@@ -51,6 +51,18 @@ export const KEY_GROUPS = [
     ],
   },
   {
+    id: "tables",
+    title: "Tables",
+    rows: [
+      { keys: "Enter on a table", does: "Go into its cells" },
+      { keys: "Arrow keys, Home, End, Ctrl+Home, Ctrl+End", does: "Move between cells, along a row, to the first or the last cell" },
+      { keys: "Enter or F2 on a cell", does: "Change the cell's words (a cell with a check box is changed with the tools)" },
+      { keys: "Enter, Tab, Shift+Tab (changing a cell's words)", does: "Go down a row, to the next cell, to the last cell; Tab from the last cell adds a row" },
+      { keys: "Ctrl+Enter, Ctrl+Delete", does: "Add a row below the one you are in, delete it (the header row stays)" },
+      { keys: "Escape", does: "Stop changing the words; from a cell, go back to the table" },
+    ],
+  },
+  {
     id: "words",
     title: "Changing the words of a paragraph",
     rows: [

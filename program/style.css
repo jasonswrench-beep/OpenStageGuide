@@ -317,3 +317,7 @@ dialog h2 { margin: 0 0 10px; }
 .page .g-blank { min-height: 1.6em; }
 .page [data-selected="true"] { background: var(--tint); box-shadow: inset 4px 0 0 var(--accent); }
 .page [data-selected="true"]:hover:not(.g-editing) { background: var(--tint); }
+.page td[data-row]:focus-visible, .page th[data-row]:focus-visible { outline: 3px solid var(--focus); outline-offset: -3px; }
+.page td[data-row] { cursor: text; }
+.page table.g-table textarea.g-edit { width: 100%; }
+.page table.g-table td, .page table.g-table th { height: 30px; }

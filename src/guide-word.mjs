@@ -836,6 +836,24 @@ export function createDemoAdapter({DOMParserClass=globalThis.DOMParser,Serialize
     // One edit is count 1 with one paragraph; Enter is 1 with 2; Backspace joining is 2 with 1; a new line is 0 with 1. `guard` is the words the
     // first replaced paragraph had when the editor last looked, so a stale row is refused and never applied to the wrong paragraph. Tables are
     // not touched (their cells carry no XML of their own). `group` makes a run of edits one step of Undo. `select` is where the cursor goes.
+    // Replace the table that starts at paragraph `start` by another table (the same table with a cell's words changed, or a row more or less).
+    // The table's first entry holds all its XML and the entries after it that have none are its other cells, so all of them are replaced
+    // by the cells of the new table. `guard` is the words of the first cell the editor last saw.
+    async replaceTable({start,guard,xml,select,group}){
+      const first=paras[start];
+      if(!Number.isInteger(start)||!first||!/^<w:tbl[\s>]/.test(first.xml||'')||norm(first.text)!==norm(guard))throw new Error(CHANGED);
+      let d=null;
+      try{d=parseXml(xml);}catch{d=null;}
+      if(typeof xml!=='string'||!d||!d.documentElement||d.getElementsByTagName('parsererror').length||d.documentElement.localName!=='tbl')throw new Error('That table could not be made.');
+      const added=parseBody(xml);
+      if(!added.length||!/^<w:tbl[\s>]/.test(added[0].xml||''))throw new Error('That table could not be made.');
+      let end=start+1;
+      while(end<paras.length&&!paras[end].xml)end++;
+      remember(group);
+      paras.splice(start,end-start,...added);
+      cursor=Math.max(0,Math.min(select===undefined?start:select,paras.length-1));
+      return {at:start,count:added.length};
+    },
     async replaceParagraphs({start,count,guard,xmls,select,group}){
       if(!Number.isInteger(start)||!Number.isInteger(count)||start<0||count<0||start+count>paras.length||!Array.isArray(xmls))throw new Error(CHANGED);
       const old=paras.slice(start,start+count);

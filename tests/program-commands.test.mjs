@@ -98,28 +98,28 @@ test('every item has an icon the program has, and the command search can find ea
 
 test('the Edit menu: Undo and Redo, cut copy paste, add, kind, move and delete, each with its keys, dimmed when it cannot be done, and doing what the editor is told',()=>{
   const told=[];
-  let state={canUndo:true,canRedo:false,hasRows:true},guide=true;
+  let state={canUndo:true,canRedo:false,hasRows:true,inTable:true},guide=true;
   const ctx={hasGuide:()=>guide,openTool(){},updateGuide(){},newGuide(){},openGuide(){},closeGuide(){},search(){},keys(){},about(){},
     edit:{command:name=>told.push(name),state:()=>state}};
   const {menus}=buildMenus(ctx);
   const edit=menus.find(m=>m.id==='edit');
   const by=label=>edit.items.find(i=>i!=='-'&&i.label===label);
-  assert.deepEqual(edit.items.filter(i=>i!=='-').map(i=>i.label),['Undo','Redo','Cut','Copy','Paste','Add paragraph below','Kind of paragraph...','Move up','Move down','Delete paragraph']);
+  assert.deepEqual(edit.items.filter(i=>i!=='-').map(i=>i.label),['Undo','Redo','Cut','Copy','Paste','Add paragraph below','Kind of paragraph...','Move up','Move down','Delete paragraph','Add table row below','Delete table row']);
   assert.deepEqual([by('Undo').keys,by('Redo').keys,by('Cut').keys,by('Copy').keys,by('Paste').keys,by('Move up').keys,by('Move down').keys,by('Delete paragraph').keys,by('Add paragraph below').keys],
     ['Ctrl+Z','Ctrl+Y','Ctrl+X','Ctrl+C','Ctrl+V','Alt+Up','Alt+Down','Delete','Ctrl+Enter']);
-  for(const label of ['Undo','Redo','Cut','Copy','Paste','Add paragraph below','Kind of paragraph...','Move up','Move down','Delete paragraph']){
+  for(const label of ['Undo','Redo','Cut','Copy','Paste','Add paragraph below','Kind of paragraph...','Move up','Move down','Delete paragraph','Add table row below','Delete table row']){
     const item=by(label);
     assert.ok(item.icon&&UI_ICONS[item.icon],`${label} has an icon the program has`);
     assert.ok(item.title&&item.title.length>10,`${label} says what it does`);
   }
   assert.equal(by('Undo').enabled(),true);
   assert.equal(by('Redo').enabled(),false,'nothing to redo');
-  state={canUndo:false,canRedo:true,hasRows:false};
-  assert.deepEqual([by('Undo').enabled(),by('Redo').enabled(),by('Delete paragraph').enabled(),by('Paste').enabled()],[false,true,false,false]);
-  guide=false;state={canUndo:true,canRedo:true,hasRows:true};
+  state={canUndo:false,canRedo:true,hasRows:false,inTable:false};
+  assert.deepEqual([by('Undo').enabled(),by('Redo').enabled(),by('Delete paragraph').enabled(),by('Paste').enabled(),by('Add table row below').enabled(),by('Delete table row').enabled()],[false,true,false,false,false,false]);
+  guide=false;state={canUndo:true,canRedo:true,hasRows:true,inTable:true};
   assert.equal(by('Undo').enabled(),false,'no guide, nothing to edit');
-  for(const label of ['Undo','Redo','Cut','Copy','Paste','Add paragraph below','Kind of paragraph...','Move up','Move down','Delete paragraph'])by(label).run();
-  assert.deepEqual(told,['undo','redo','cut','copy','paste','add','kind','moveUp','moveDown','delete']);
+  for(const label of ['Undo','Redo','Cut','Copy','Paste','Add paragraph below','Kind of paragraph...','Move up','Move down','Delete paragraph','Add table row below','Delete table row'])by(label).run();
+  assert.deepEqual(told,['undo','redo','cut','copy','paste','add','kind','moveUp','moveDown','delete','addRow','deleteRow']);
 });
 
 test('with no editor the Edit menu is there, dimmed, and does nothing',()=>{

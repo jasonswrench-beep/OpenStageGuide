@@ -10,6 +10,8 @@ import os from 'node:os';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {parseProject} from '../src/guide-project.mjs';
+import {readTable} from '../src/guide-table.mjs';
+import {DOMParser,XMLSerializer} from '@xmldom/xmldom';
 const require=createRequire(import.meta.url);
 if(!process.env.PLAYWRIGHT_DIR){console.error('Set PLAYWRIGHT_DIR to the playwright package folder.');process.exit(2);}
 const {chromium}=require(process.env.PLAYWRIGHT_DIR);
@@ -25,6 +27,7 @@ const server=spawn(process.execPath,['scripts/project-server.mjs','--folder',GUI
 await new Promise((res,rej)=>{let t='';server.stdout.on('data',d=>{t+=d;if(/OpenStage Guide at/.test(t))res();});server.stderr.on('data',d=>rej(new Error(String(d))));setTimeout(()=>rej(new Error('server did not start')),15000);});
 
 // What is on disk: the guide's paragraphs, once the page says it is saved.
+const tableIo={parse:x=>new DOMParser().parseFromString(x,'application/xml'),serialize:e=>new XMLSerializer().serializeToString(e)};
 const onDisk=()=>{
   const f=fs.readdirSync(GUIDES).find(n=>n.endsWith('.guide-project.json'));
   return parseProject(fs.readFileSync(path.join(GUIDES,f),'utf8')).guide.paragraphs;
@@ -326,10 +329,99 @@ try{
   ok(onDisk().some(p=>p.style==='OSG Form Title'&&p.text==='Checklist: Preparation list'),'a form from the Checklist template is in the guide, with its title');
   ok(onDisk().some(p=>p.style==='OSG Form Print'),'with its print line');
   await page.getByRole('button',{name:'Update guide'}).click();
-  await page.waitForTimeout(1200);
-  await saved();
-  ok(onDisk().some(p=>/^Checklist [A-Z0-9.]+: Preparation list$/.test(p.text)),'Update guide numbers it');
+  let numbered=false;
+  for(let i=0;i<12&&!numbered;i++){await saved();numbered=onDisk().some(p=>/^Checklist [A-Z0-9.]+: Preparation list$/.test(p.text));}
+  ok(numbered,'Update guide numbers it');
   await shot('8-form.png');
+
+  // ---- the cells of a table
+  const session=()=>readTable(onDisk().find(p=>/^<w:tbl/.test(p.xml)&&/Session notes/.test(p.xml)).xml,tableIo);
+  const cells=()=>session().rows.map(r=>r.cells.map(c=>c.text));
+  const activeCell=()=>page.evaluate(()=>{const a=document.activeElement;return {tag:a.tagName,row:a.dataset?.row??null,col:a.dataset?.col??null,value:a.value??null,inCell:!!a.closest('td,th')};});
+  const grid=page.locator('#work-guide table.g-table').filter({hasText:'Topic'}).first();
+  await grid.focus();
+  await page.keyboard.press('Enter');
+  let c=await activeCell();
+  ok(c.tag==='TH'&&c.row==='0'&&c.col==='0','Enter on a table goes into its first cell (a header cell)');
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('ArrowDown');
+  c=await activeCell();
+  ok(c.tag==='TD'&&c.row==='1'&&c.col==='1','the arrow keys move between cells');
+  await page.keyboard.press('Enter');
+  c=await activeCell();
+  ok(c.tag==='TEXTAREA'&&c.inCell&&c.value==='','Enter starts changing the words of the cell: a text box in the cell');
+  await page.keyboard.type('Intro notes');
+  await page.keyboard.press('Tab');
+  c=await activeCell();
+  ok(c.tag==='TEXTAREA'&&c.inCell,'Tab goes on to the next cell that can be written in');
+  await page.keyboard.type('Do this');
+  await page.keyboard.press('Escape');
+  c=await activeCell();
+  ok(c.tag==='TD'&&c.row==='1'&&c.col==='2','Escape stops, and the cell has the keyboard');
+  await saved();
+  ok(JSON.stringify(cells()[1])===JSON.stringify(['','Intro notes','Do this']),'the words are in the table on disk, in the right cells: '+JSON.stringify(cells()[1]));
+  await page.keyboard.press('Control+Home');
+  await page.keyboard.press('Enter');
+  await page.keyboard.press('Control+a');
+  await page.keyboard.type('Subject');
+  await page.keyboard.press('Escape');
+  await saved();
+  const t1=session();
+  ok(t1.rows[0].cells[0].text==='Subject'&&t1.rows[0].header===true,'a header cell can be changed and is still a header cell');
+  ok(/^Subject$/.test((await page.locator('#work-guide table.g-table th').filter({hasText:'Subject'}).first().innerText()).trim()),'and is drawn as one');
+
+  await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('Enter');
+  await page.keyboard.type('Plan');
+  await page.keyboard.press('Enter');
+  c=await activeCell();
+  ok(c.tag==='TEXTAREA'&&c.inCell,'Enter in a cell goes down to the cell below');
+  await page.keyboard.type('Review');
+  await page.keyboard.press('Escape');
+  await saved();
+  ok(JSON.stringify(cells().map(r=>r[0]))===JSON.stringify(['Subject','Plan','Review','']),'both are on disk, one under the other: '+JSON.stringify(cells().map(r=>r[0])));
+
+  await page.keyboard.press('Control+End');
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('Enter');
+  await page.keyboard.type('Last one');
+  const rowsBefore=session().rows.length;
+  await page.keyboard.press('Tab');
+  await saved();
+  ok(session().rows.length===rowsBefore+1,'Tab from the last cell adds a row');
+  c=await activeCell();
+  ok(c.tag==='TEXTAREA'&&c.row===null&&c.inCell,'and goes into its first cell');
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('Control+Enter');
+  await saved();
+  ok(session().rows.length===rowsBefore+2,'Ctrl+Enter in a cell adds a row below it');
+  await page.getByRole('menuitem',{name:/^Edit/}).click();
+  await page.getByRole('menuitem',{name:/Delete table row/}).click();
+  await saved();
+  ok(session().rows.length===rowsBefore+1,'Edit, Delete table row takes a row away');
+  await page.keyboard.press('Control+z');
+  await saved();
+  ok(session().rows.length===rowsBefore+2,'Ctrl+Z brings it back');
+  await page.keyboard.press('Enter');
+  await page.keyboard.press('Control+Home');
+  await page.keyboard.press('Control+Delete');
+  ok(/header row/.test(await status()),'the header row cannot be deleted, and the program says why');
+  ok(session().rows[0].header===true&&session().caption==='Session notes','the header row and the caption are as they were');
+  await shot('9-table-edited.png');
+
+  // a check box is not words
+  const checklist=page.locator('#work-guide table.g-table').filter({hasText:'Preparation'}).first();
+  const checkTable=page.locator('#work-guide table.g-table').filter({hasText:'First item'}).first();
+  await checkTable.focus();
+  await page.keyboard.press('Enter');
+  await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('Enter');
+  c=await activeCell();
+  ok(c.tag==='TD'&&c.row==='1'&&c.col==='0','a check box cell takes the keyboard but is not opened as a text box');
+  ok(/more than words/.test(await status()),'and the program says it is changed with the tools');
+  await page.keyboard.press('Escape');
+  void checklist;
 
   // ---- what cannot be changed is read, not rewritten
   await row(/Time: 10 minutes/).focus();

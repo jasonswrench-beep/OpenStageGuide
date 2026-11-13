@@ -33,7 +33,7 @@ let guideDoc = null;
 let link = null;
 /** @type {number | null} */
 let drawTimer = null;
-/** The guide as the author writes it, drawn in the page. @type {{ render: () => void, destroy: () => void, focusCursor: () => void, insert: (build: (ctx: any) => string, what: string) => unknown, command: (name: string) => unknown, state: () => { canUndo: boolean, canRedo: boolean, hasRows: boolean } } | null} */
+/** The guide as the author writes it, drawn in the page. @type {{ render: () => void, destroy: () => void, focusCursor: () => void, insert: (build: (ctx: any) => string, what: string) => unknown, command: (name: string) => unknown, state: () => { canUndo: boolean, canRedo: boolean, hasRows: boolean, inTable: boolean } } | null} */
 let editor = null;
 
 /** @param {string} message @param {boolean} [bad] */
@@ -75,7 +75,7 @@ const frame = startFrame(doc, {
   insert: (name) => insertCommand(name),
   edit: {
     command: (name) => editor?.command(name),
-    state: () => editor?.state() ?? { canUndo: false, canRedo: false, hasRows: false },
+    state: () => editor?.state() ?? { canUndo: false, canRedo: false, hasRows: false, inTable: false },
   },
   guide: () => (state.current ? { name: state.current.replace(/\.guide-project\.json$/i, "") } : null),
   openTool: (id) => openTool(id),

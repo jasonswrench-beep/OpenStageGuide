@@ -133,3 +133,75 @@ export function wordsLabel(style) {
   };
   return names[style] ?? "Paragraph words";
 }
+
+/**
+ * What a key does when a cell of a table has the keyboard and its words are not being changed.
+ * @param {KeyInfo} k
+ * @returns {"left" | "right" | "up" | "down" | "rowStart" | "rowEnd" | "top" | "bottom" | "edit" | "leave" | "addRow" | "deleteRow" | "undo" | "redo" | null}
+ */
+export function cellKey(k) {
+  const command = (k.ctrl || k.meta) && !k.alt;
+  const letter = k.key.length === 1 ? k.key.toLowerCase() : "";
+  if (command && letter === "z") return k.shift ? "redo" : "undo";
+  if (command && letter === "y" && !k.shift) return "redo";
+  if (command && !k.shift && k.key === "Enter") return "addRow";
+  if (command && !k.shift && k.key === "Delete") return "deleteRow";
+  if (command && !k.shift && k.key === "Home") return "top";
+  if (command && !k.shift && k.key === "End") return "bottom";
+  if (k.shift || k.ctrl || k.alt || k.meta) return null;
+  switch (k.key) {
+    case "ArrowLeft":
+      return "left";
+    case "ArrowRight":
+      return "right";
+    case "ArrowUp":
+      return "up";
+    case "ArrowDown":
+      return "down";
+    case "Home":
+      return "rowStart";
+    case "End":
+      return "rowEnd";
+    case "Enter":
+    case "F2":
+      return "edit";
+    case "Escape":
+      return "leave";
+    default:
+      return null;
+  }
+}
+
+/**
+ * What a key does in the words of a table cell being changed: like the words of a paragraph, but Enter and Tab go to the next cell.
+ * @param {WordsKeyInfo} k
+ * @returns {{ do: "down" | "next" | "previous" | "stop" | "left" | "right" | "up" | "downCell" | "undo" | "redo" } | null}
+ */
+export function cellWordsKey(k) {
+  if (k.composing) return null;
+  const command = (k.ctrl || k.meta) && !k.alt;
+  const letter = k.key.length === 1 ? k.key.toLowerCase() : "";
+  if (command && letter === "z") return { do: k.shift ? "redo" : "undo" };
+  if (command && letter === "y" && !k.shift) return { do: "redo" };
+  if (k.ctrl || k.alt || k.meta) return null;
+  const atStart = k.start === 0 && k.end === 0;
+  const atEnd = k.start === k.length && k.end === k.length;
+  if (k.key === "Tab") return { do: k.shift ? "previous" : "next" };
+  if (k.shift) return null;
+  switch (k.key) {
+    case "Enter":
+      return { do: "down" };
+    case "Escape":
+      return { do: "stop" };
+    case "ArrowLeft":
+      return atStart ? { do: "left" } : null;
+    case "ArrowUp":
+      return atStart ? { do: "up" } : null;
+    case "ArrowRight":
+      return atEnd ? { do: "right" } : null;
+    case "ArrowDown":
+      return atEnd ? { do: "downCell" } : null;
+    default:
+      return null;
+  }
+}

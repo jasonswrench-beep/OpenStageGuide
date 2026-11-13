@@ -10,7 +10,8 @@
  * The design is in docs/EDITING-SURFACE-DESIGN-2026-11-13.md. The page writes text and attributes only, never markup.
  */
 import { KINDS, isHeading, joinWords, kindChange, nextParagraphSpec, paragraphWith, readParagraph, setWords, splitWords, withStyle } from "../../src/guide-edit.mjs";
-import { reconcile, rowKey, rowSignature, sameList, wordsKey, wordsLabel } from "./editor-model.js";
+import { addRow, deleteRow, readTable, setCellWords } from "../../src/guide-table.mjs";
+import { cellKey, cellWordsKey, reconcile, rowKey, rowSignature, sameList, wordsKey, wordsLabel } from "./editor-model.js";
 import { describeGuide, drawNodes } from "./preview.js";
 
 /** @param {string} xml */
@@ -61,6 +62,11 @@ export function mountEditor(doc, host, guide, ui) {
   let selection = null;
   /** The row the author was last on, so a command from a menu knows which one it is for. @type {Row | null} */
   let lastRow = null;
+  /** The cell of a table the author is in, and the cell whose words are being changed. @type {{ row: Row, r: number, c: number } | null} */
+  let grid = null;
+  /** @type {{ row: Row, r: number, c: number, ta: HTMLTextAreaElement, group: string } | null} */
+  let cellEditing = null;
+  let cellGroups = 0;
   /** What was last cut or copied inside the guide: whole paragraphs, to be pasted back as they were. @type {{ paragraphs: { xml: string, style: string }[], text: string } | null} */
   let clip = null;
 
@@ -121,6 +127,8 @@ export function mountEditor(doc, host, guide, ui) {
     const { prefix, oldEnd, newEnd } = reconcile(shown.map((r) => r.sig), rowSigs);
     // A row that is being replaced cannot go on being edited: the document changed under it (Undo, or the tools).
     if (editing && shown.indexOf(editing.row) >= prefix && shown.indexOf(editing.row) < oldEnd) editing = null;
+    if (cellEditing && shown.indexOf(cellEditing.row) >= prefix && shown.indexOf(cellEditing.row) < oldEnd) cellEditing = null;
+    if (grid && shown.indexOf(grid.row) >= prefix && shown.indexOf(grid.row) < oldEnd) grid = null;
     const hadFocus = doc.activeElement && page.contains(doc.activeElement);
     for (const r of shown.slice(prefix, oldEnd)) r.el.remove();
     if (empty.parentNode) empty.remove();
@@ -188,6 +196,12 @@ export function mountEditor(doc, host, guide, ui) {
    * @param {Row} row @param {number | "start" | "end"} caret
    */
   function startEdit(row, caret) {
+    if (row.el.tagName === "TABLE") {
+      stopEdit();
+      focusCell(row, 0, 0);
+      return;
+    }
+    stopCellEdit();
     const entry = entryOf(row);
     const info = readParagraph(entry.xml ?? "", entry.style ?? "Normal", io);
     if (!info.editable) {
@@ -420,6 +434,8 @@ export function mountEditor(doc, host, guide, ui) {
     stopEdit();
     // The paragraphs that were chosen may not be the same paragraphs after this: nothing stays chosen.
     selection = null;
+    stopCellEdit();
+    grid = null;
     const done = redo ? guide.redo() : guide.undo();
     if (!done) {
       ui.say(redo ? "There is nothing to redo." : "There is nothing to undo.");
@@ -490,6 +506,7 @@ export function mountEditor(doc, host, guide, ui) {
 
   async function settle() {
     if (editing) await commit(editing);
+    if (cellEditing) await commitCell(cellEditing);
   }
 
   /** @param {string} name */
@@ -511,6 +528,10 @@ export function mountEditor(doc, host, guide, ui) {
         return copy(true);
       case "paste":
         return paste(null);
+      case "addRow":
+        return grid ? addTableRow(grid.row, grid.r, grid.c, false) : ui.say("Move into a table first: Enter on a table starts its cells.");
+      case "deleteRow":
+        return grid ? deleteTableRow(grid.row, grid.r, grid.c) : ui.say("Move into a table first: Enter on a table starts its cells.");
       case "undo":
         return history(false, false);
       case "redo":
@@ -714,6 +735,228 @@ export function mountEditor(doc, host, guide, ui) {
     ui.say(`${what} inserted. Ctrl+Z takes it back.`);
   }
 
+  // ---- the cells of a table: the arrow keys move between cells, Enter changes a cell's words, Tab goes on to the next cell
+
+  /** @param {Row} row */
+  const tableOf = (row) => readTable(entryOf(row).xml ?? "", io);
+  /** @param {Row} row @param {number} r @param {number} c */
+  const cellEl = (row, r, c) => /** @type {HTMLElement | null} */ (row.el.querySelector(`[data-row="${r}"][data-col="${c}"]`));
+
+  /** Put the keyboard on a cell of a table, or the nearest one that is there. @param {Row} row @param {number} r @param {number} c */
+  function focusCell(row, r, c) {
+    const t = tableOf(row);
+    const rr = Math.max(0, Math.min(r, t.rows.length - 1));
+    const cc = Math.max(0, Math.min(c, (t.rows[rr]?.cells.length ?? 1) - 1));
+    const el = cellEl(row, rr, cc);
+    if (!el) return;
+    for (const other of row.el.querySelectorAll("[data-row]")) /** @type {HTMLElement} */ (other).tabIndex = -1;
+    el.tabIndex = 0;
+    grid = { row, r: rr, c: cc };
+    lastRow = row;
+    el.focus();
+    placeCursor(row);
+  }
+
+  /** @param {KeyboardEvent} ev @param {HTMLElement} el */
+  function onCellKey(ev, el) {
+    const row = rowOf(el);
+    if (!row) return;
+    const r = Number(el.dataset.row);
+    const c = Number(el.dataset.col);
+    const action = cellKey({ key: ev.key, shift: ev.shiftKey, ctrl: ev.ctrlKey, alt: ev.altKey, meta: ev.metaKey });
+    if (!action) return;
+    ev.preventDefault();
+    const t = tableOf(row);
+    if (action === "left") focusCell(row, r, c - 1);
+    else if (action === "right") focusCell(row, r, c + 1);
+    else if (action === "up") focusCell(row, r - 1, c);
+    else if (action === "down") focusCell(row, r + 1, c);
+    else if (action === "rowStart") focusCell(row, r, 0);
+    else if (action === "rowEnd") focusCell(row, r, 999);
+    else if (action === "top") focusCell(row, 0, 0);
+    else if (action === "bottom") focusCell(row, t.rows.length - 1, 0);
+    else if (action === "edit") startCellEdit(row, r, c, "end");
+    else if (action === "leave") {
+      grid = null;
+      focusRow(row);
+    } else if (action === "addRow") run(() => addTableRow(row, r, c, false));
+    else if (action === "deleteRow") run(() => deleteTableRow(row, r, c));
+    else run(() => history(action === "redo", false));
+  }
+
+  /** @param {Row} row @param {number} r @param {number} c @param {number | "start" | "end"} caret */
+  function startCellEdit(row, r, c, caret) {
+    const t = tableOf(row);
+    const cell = t.rows[r]?.cells[c];
+    if (!cell) return;
+    if (!cell.editable) {
+      focusCell(row, r, c);
+      ui.say(cell.reason ?? "This cell is changed with the tools beside the guide.");
+      return;
+    }
+    stopEdit();
+    stopCellEdit();
+    const el = cellEl(row, r, c);
+    if (!el) return;
+    const ta = doc.createElement("textarea");
+    ta.className = "g-edit";
+    ta.rows = 1;
+    ta.value = cell.text;
+    ta.spellcheck = true;
+    const column = t.rows[0]?.cells[c]?.text.trim() || `column ${c + 1}`;
+    ta.setAttribute("aria-label", r === 0 ? `Column name ${c + 1}` : `${column}, row ${r}`);
+    el.replaceChildren(ta);
+    /** @type {{ row: Row, r: number, c: number, ta: HTMLTextAreaElement, group: string }} */
+    const ce = { row, r, c, ta, group: `cell:${++cellGroups}` };
+    cellEditing = ce;
+    grid = { row, r, c };
+    lastRow = row;
+    ta.addEventListener("input", () => {
+      if (/[\r\n]/.test(ta.value)) {
+        const at = ta.selectionStart;
+        ta.value = ta.value.replace(/\r\n|[\r\n]/g, " ");
+        ta.setSelectionRange(at, at);
+      }
+      grow(ta);
+      run(() => commitCell(ce));
+      tellTools();
+    });
+    ta.addEventListener("keydown", (e) => onCellWordsKey(e, ce));
+    ta.addEventListener("focusout", () => {
+      if (cellEditing === ce) stopCellEdit();
+    });
+    ta.focus();
+    const at = caret === "start" ? 0 : caret === "end" ? ta.value.length : Math.max(0, Math.min(caret, ta.value.length));
+    ta.setSelectionRange(at, at);
+    grow(ta);
+    placeCursor(row);
+  }
+
+  /** Put the words of the cell that is being changed into the table in the document. @param {{ row: Row, r: number, c: number, ta: HTMLTextAreaElement, group: string }} ce */
+  async function commitCell(ce) {
+    if (gone || !shown.includes(ce.row)) return;
+    const entry = entryOf(ce.row);
+    const xml = setCellWords(entry.xml ?? "", ce.r, ce.c, ce.ta.value, io);
+    if (xml === entry.xml) return;
+    const at = idx(ce.row);
+    await guide.replaceTable({ start: at, guard: entry.text ?? "", xml, select: at, group: ce.group });
+    entries = guide.exportState().paragraphs;
+    entrySigs = entries.map(rowSignature);
+    ce.row.sig = rowSignature(entries[at]);
+  }
+
+  function stopCellEdit() {
+    if (!cellEditing) return;
+    const ce = cellEditing;
+    cellEditing = null;
+    const el = shown.includes(ce.row) ? cellEl(ce.row, ce.r, ce.c) : null;
+    if (!el) return;
+    const cell = tableOf(ce.row).rows[ce.r]?.cells[ce.c];
+    el.replaceChildren(doc.createTextNode(cell?.text ?? ""));
+  }
+
+  /**
+   * Keys in the words of a cell: Enter goes down a row, Tab on to the next cell that can be written in (and, from the last one, to a new row),
+   * the arrow keys at the ends of the words go to the next cell.
+   * @param {KeyboardEvent} ev @param {{ row: Row, r: number, c: number, ta: HTMLTextAreaElement, group: string }} ce
+   */
+  function onCellWordsKey(ev, ce) {
+    const ta = ce.ta;
+    const action = cellWordsKey({
+      key: ev.key,
+      shift: ev.shiftKey,
+      ctrl: ev.ctrlKey,
+      alt: ev.altKey,
+      meta: ev.metaKey,
+      start: ta.selectionStart,
+      end: ta.selectionEnd,
+      length: ta.value.length,
+      composing: ev.isComposing,
+    });
+    if (!action) return;
+    ev.preventDefault();
+    if (cellEditing !== ce) return;
+    const { row, r, c } = ce;
+    run(async () => {
+      await commitCell(ce);
+      if (action.do === "undo" || action.do === "redo") return history(action.do === "redo", false);
+      if (action.do === "stop") {
+        stopCellEdit();
+        focusCell(row, r, c);
+        return;
+      }
+      const t = tableOf(row);
+      /** @param {number} rr @param {number} cc @param {"start" | "end"} caret */
+      const go = (rr, cc, caret) => {
+        if (rr < 0 || rr >= t.rows.length || cc < 0 || cc >= t.rows[rr].cells.length) return;
+        if (t.rows[rr].cells[cc].editable) startCellEdit(row, rr, cc, caret);
+        else {
+          stopCellEdit();
+          focusCell(row, rr, cc);
+        }
+      };
+      if (action.do === "down") go(r + 1, c, "end");
+      else if (action.do === "left") go(c > 0 ? r : r - 1, c > 0 ? c - 1 : (t.rows[r - 1]?.cells.length ?? 1) - 1, "end");
+      else if (action.do === "right") go(c + 1 < t.rows[r].cells.length ? r : r + 1, c + 1 < t.rows[r].cells.length ? c + 1 : 0, "start");
+      else if (action.do === "up") go(r - 1, c, "end");
+      else if (action.do === "downCell") go(r + 1, c, "start");
+      else {
+        // Tab and Shift+Tab: the next or the last cell that can be written in, in reading order.
+        const step = action.do === "next" ? 1 : -1;
+        /** @type {[number, number][]} */
+        const order = [];
+        t.rows.forEach((rowData, rr) => rowData.cells.forEach((cell, cc) => cell.editable && order.push([rr, cc])));
+        const here = order.findIndex(([rr, cc]) => rr === r && cc === c);
+        const to = order[here + step];
+        if (to) go(to[0], to[1], step > 0 ? "start" : "end");
+        else if (step > 0) await addTableRow(row, r, c, true);
+      }
+    });
+  }
+
+  /** @param {Row} row @param {number} r @param {number} c @param {boolean} toFirst go into the first cell of the new row that can be written in */
+  async function addTableRow(row, r, c, toFirst) {
+    await settle();
+    stopCellEdit();
+    const entry = entryOf(row);
+    const at = idx(row);
+    try {
+      const xml = addRow(entry.xml ?? "", r, io);
+      await guide.replaceTable({ start: at, guard: entry.text ?? "", xml, select: at });
+    } catch (e) {
+      ui.say(messageOf(e), true);
+      return;
+    }
+    render();
+    const fresh = rowAt(at);
+    if (!fresh) return;
+    if (toFirst) {
+      const first = tableOf(fresh).rows[r + 1]?.cells.findIndex((cell) => cell.editable) ?? -1;
+      if (first >= 0) startCellEdit(fresh, r + 1, first, "start");
+      else focusCell(fresh, r + 1, 0);
+    } else focusCell(fresh, r + 1, c);
+    ui.say("Row added. Ctrl+Z takes it back.");
+  }
+
+  /** @param {Row} row @param {number} r @param {number} c */
+  async function deleteTableRow(row, r, c) {
+    await settle();
+    stopCellEdit();
+    const entry = entryOf(row);
+    const at = idx(row);
+    try {
+      const xml = deleteRow(entry.xml ?? "", r, io);
+      await guide.replaceTable({ start: at, guard: entry.text ?? "", xml, select: at });
+    } catch (e) {
+      ui.say(messageOf(e), true);
+      return;
+    }
+    render();
+    const fresh = rowAt(at);
+    if (fresh) focusCell(fresh, r, c);
+    ui.say("Row deleted. Ctrl+Z brings it back.");
+  }
+
   /** @param {EventTarget | null} target @returns {Row | null} */
   function rowOf(target) {
     const el = target instanceof Element ? target.closest("[data-index]") : null;
@@ -723,6 +966,10 @@ export function mountEditor(doc, host, guide, ui) {
   // The keys of a row that has the keyboard, and a click on one.
   page.addEventListener("keydown", (ev) => {
     if (ev.target instanceof HTMLTextAreaElement) return;
+    if (ev.target instanceof HTMLElement && ev.target.matches("td[data-row], th[data-row]")) {
+      onCellKey(ev, ev.target);
+      return;
+    }
     const row = rowOf(ev.target);
     if (!row || ev.target !== row.el) return;
     const action = rowKey({ key: ev.key, shift: ev.shiftKey, ctrl: ev.ctrlKey, alt: ev.altKey, meta: ev.metaKey });
@@ -751,6 +998,15 @@ export function mountEditor(doc, host, guide, ui) {
   });
   page.addEventListener("click", (ev) => {
     if (ev.target instanceof HTMLTextAreaElement) return;
+    const cell = ev.target instanceof Element ? ev.target.closest("td[data-row], th[data-row]") : null;
+    if (cell instanceof HTMLElement) {
+      const inTable = rowOf(cell);
+      if (inTable) {
+        clearSelection();
+        startCellEdit(inTable, Number(cell.dataset.row), Number(cell.dataset.col), "end");
+      }
+      return;
+    }
     const row = rowOf(ev.target);
     if (!row) return;
     if (ev.shiftKey && lastRow && lastRow !== row && shown.includes(lastRow)) {
@@ -769,6 +1025,17 @@ export function mountEditor(doc, host, guide, ui) {
     run(() => paste(text));
   });
   page.addEventListener("focusin", (ev) => {
+    if (ev.target instanceof HTMLElement && ev.target.matches("td[data-row], th[data-row]")) {
+      const inTable = rowOf(ev.target);
+      if (inTable) {
+        if (selection && !selectedRows().includes(inTable)) clearSelection();
+        grid = { row: inTable, r: Number(ev.target.dataset.row), c: Number(ev.target.dataset.col) };
+        lastRow = inTable;
+        setTabStop(inTable);
+        placeCursor(inTable);
+      }
+      return;
+    }
     if (ev.target instanceof HTMLTextAreaElement) return;
     const row = rowOf(ev.target);
     if (row && ev.target === row.el) {
@@ -800,7 +1067,7 @@ export function mountEditor(doc, host, guide, ui) {
     /** What the Edit menu needs to know to dim what cannot be done now. */
     state() {
       const h = guide.historyState();
-      return { canUndo: h.undo > 0, canRedo: h.redo > 0, hasRows: targetRows().length > 0 };
+      return { canUndo: h.undo > 0, canRedo: h.redo > 0, hasRows: targetRows().length > 0, inTable: !!grid && shown.includes(grid.row) };
     },
     /** Put the keyboard on the row of the cursor. */
     focusCursor() {

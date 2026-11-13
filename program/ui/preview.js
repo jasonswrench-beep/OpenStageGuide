@@ -160,6 +160,7 @@ function tableNode(tbl) {
   const rows = [];
   for (const tr of kids(tbl, "tr")) {
     const header = !!first(tr, W, "tblHeader") && kids(tr, "trPr").length > 0;
+    const r = rows.length;
     /** @type {Node_[]} */
     const cells = [];
     for (const tc of kids(tr, "tc")) {
@@ -171,7 +172,8 @@ function tableNode(tbl) {
         if (content.length) content.push({ tag: "br" });
         content.push(...inlineNodes(parts));
       }
-      cells.push({ tag: header ? "th" : "td", attrs: header ? { scope: "col" } : undefined, children: content });
+      // The row and column are on the cell, so the editor knows which cell of the table the author is in.
+      cells.push({ tag: header ? "th" : "td", attrs: { ...(header ? { scope: "col" } : {}), "data-row": String(r), "data-col": String(cells.length) }, children: content });
     }
     rows.push({ tag: "tr", children: cells });
   }

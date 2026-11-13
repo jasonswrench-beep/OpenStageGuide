@@ -102,3 +102,36 @@ test('every text box has a name a screen reader can say, and an unknown style st
   assert.equal(wordsLabel('Normal'),'Paragraph words');
   assert.equal(wordsLabel('Something else'),'Paragraph words');
 });
+
+import {cellKey,cellWordsKey} from '../program/ui/editor-model.js';
+
+test('keys on a cell of a table: arrows between cells, Home and End along a row, Ctrl+Home and Ctrl+End, Enter to change the words, Escape to leave, Ctrl+Enter and Ctrl+Delete for rows',()=>{
+  assert.deepEqual(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End','Enter','F2','Escape'].map(key=>cellKey({key})),['left','right','up','down','rowStart','rowEnd','edit','edit','leave']);
+  assert.equal(cellKey({key:'Home',ctrl:true}),'top');
+  assert.equal(cellKey({key:'End',ctrl:true}),'bottom');
+  assert.equal(cellKey({key:'Enter',ctrl:true}),'addRow');
+  assert.equal(cellKey({key:'Delete',ctrl:true}),'deleteRow');
+  assert.equal(cellKey({key:'z',ctrl:true}),'undo');
+  assert.equal(cellKey({key:'Z',ctrl:true,shift:true}),'redo');
+  assert.equal(cellKey({key:'Delete'}),null,'a plain Delete does not take a row away');
+  assert.equal(cellKey({key:'ArrowDown',shift:true}),null);
+  assert.equal(cellKey({key:'a'}),null);
+});
+
+test('keys in the words of a cell: Enter goes down, Tab and Shift+Tab to the next and last cell, the arrows only at the ends of the words, Escape stops',()=>{
+  const k=(key,more={})=>({key,start:0,end:0,length:6,...more});
+  assert.deepEqual(cellWordsKey(k('Enter')),{do:'down'});
+  assert.deepEqual(cellWordsKey(k('Tab')),{do:'next'});
+  assert.deepEqual(cellWordsKey(k('Tab',{shift:true})),{do:'previous'});
+  assert.deepEqual(cellWordsKey(k('Escape')),{do:'stop'});
+  assert.deepEqual(cellWordsKey(k('ArrowLeft')),{do:'left'});
+  assert.deepEqual(cellWordsKey(k('ArrowUp')),{do:'up'});
+  assert.equal(cellWordsKey(k('ArrowLeft',{start:2,end:2})),null,'inside the words the arrow moves the caret');
+  assert.deepEqual(cellWordsKey(k('ArrowRight',{start:6,end:6})),{do:'right'});
+  assert.deepEqual(cellWordsKey(k('ArrowDown',{start:6,end:6})),{do:'downCell'});
+  assert.equal(cellWordsKey(k('ArrowDown',{start:5,end:5})),null);
+  assert.deepEqual(cellWordsKey(k('z',{ctrl:true})),{do:'undo'});
+  assert.equal(cellWordsKey(k('Enter',{shift:true})),null,'Shift+Enter is left to the box');
+  assert.equal(cellWordsKey(k('Enter',{composing:true})),null,'an input method\'s Enter is not "go down"');
+  assert.equal(cellWordsKey(k('Backspace')),null,'Backspace in a cell is an ordinary Backspace: it never joins cells');
+});

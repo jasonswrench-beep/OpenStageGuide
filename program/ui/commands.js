@@ -75,7 +75,7 @@ export const TOOL_ICONS = {
 };
 
 /** What the Edit menu does with no editor open: nothing, and every command is dimmed. */
-const NO_EDIT = { command: () => {}, state: () => ({ canUndo: false, canRedo: false, hasRows: false }) };
+const NO_EDIT = { command: () => {}, state: () => ({ canUndo: false, canRedo: false, hasRows: false, inTable: false }) };
 
 /** The Insert menu: each item is a command of `ctx.insert` (see forms.js), after its name. */
 const INSERT_ITEMS = /** @type {{ name: string, label: string, icon: UiIconName, title: string }[]} */ ([
@@ -94,13 +94,13 @@ const INSERT_ITEMS = /** @type {{ name: string, label: string, icon: UiIconName,
  * The menus, with the commands that do things through `ctx`. `ctx.edit` is the editor's side of the Edit menu: command(name) does one
  * (undo, redo, cut, copy, paste, add, kind, moveUp, moveDown, delete) and state() says what can be done now.
  * `ctx.insert(name)` makes one of the INSERT_ITEMS (a form, lines, a table...) after the row the author is on.
- * @typedef {{ command: (name: string) => unknown, state: () => { canUndo: boolean, canRedo: boolean, hasRows: boolean } }} EditApi
+ * @typedef {{ command: (name: string) => unknown, state: () => { canUndo: boolean, canRedo: boolean, hasRows: boolean, inTable: boolean } }} EditApi
  * @param {{ edit?: EditApi, insert?: (name: string) => unknown, hasGuide: () => boolean, openTool: (id: string) => void, updateGuide: () => void, newGuide: () => void, openGuide: () => void, closeGuide: () => void, search: () => void, keys: () => void, about: () => void }} ctx
  * @returns {{ menus: MenuDef[], quick: MenuCommand[] }}  the menus, and the commands of the navy bar while a guide is open
  */
 export function buildMenus(ctx) {
   const editor = ctx.edit ?? NO_EDIT;
-  const can = (/** @type {"canUndo" | "canRedo" | "hasRows"} */ what) => () => ctx.hasGuide() && editor.state()[what];
+  const can = (/** @type {"canUndo" | "canRedo" | "hasRows" | "inTable"} */ what) => () => ctx.hasGuide() && editor.state()[what];
   const edits = (/** @type {string} */ name) => () => void editor.command(name);
   /** @param {string} id @returns {MenuCommand} */
   const tool = (id) => {
@@ -137,6 +137,9 @@ export function buildMenus(ctx) {
       { label: "Move up", icon: "arrow-up", keys: "Alt+Up", title: "Move the paragraphs you are on or have chosen above the one before", run: edits("moveUp"), enabled: can("hasRows") },
       { label: "Move down", icon: "arrow-down", keys: "Alt+Down", title: "Move the paragraphs you are on or have chosen below the one after", run: edits("moveDown"), enabled: can("hasRows") },
       { label: "Delete paragraph", icon: "trash", keys: "Delete", title: "Delete the paragraphs you are on or have chosen (Undo brings them back)", run: edits("delete"), enabled: can("hasRows") },
+      "-",
+      { label: "Add table row below", icon: "plus", keys: "Ctrl+Enter", title: "In a table: an empty row after the one you are in", run: edits("addRow"), enabled: can("inTable") },
+      { label: "Delete table row", icon: "trash", keys: "Ctrl+Delete", title: "In a table: delete the row you are in (the header row stays)", run: edits("deleteRow"), enabled: can("inTable") },
     ],
   };
   /** @type {MenuDef} */
