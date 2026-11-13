@@ -1,0 +1,5 @@
+OpenStage Guide product icon supplied by Jason Wrench as OpenStage_Guide.svg.
+The supplied vector source is retained as openstage-guide.svg without modification.
+PNG renditions are resized from that source for Office ribbon and application branding.
+This product icon is separate from the textbook instructional icon collection.
+The author has chosen to license this product icon under the Apache License, Version 2.0, together with the OpenStage Guide code (see LICENSE and NOTICE). The training icons in public/assets/icons are a separate collection under CC BY-NC-SA 4.0.

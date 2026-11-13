@@ -1,0 +1,55 @@
+# Dependencies, generated output and local evidence
+node_modules/
+.local/
+test-results/
+coverage/
+dist/
+build/
+.cache/
+__pycache__/
+*.py[cod]
+*.log
+
+# Credentials, certificates and local settings
+.env
+.env.*
+*.key
+*.pem
+*.pfx
+*.p12
+*.cer
+*.crt
+*.der
+*.jks
+.vscode/
+.idea/
+*.user
+*.suo
+
+# User documents, test downloads and backups
+*.doc
+*.docx
+*.docm
+*.dot
+*.dotx
+*.dotm
+*.ppt
+*.pptx
+*.ppsx
+*.xls
+*.xlsx
+*.pdf
+*.zip
+*.osgbackup
+
+# Operating-system metadata
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Local review workspaces and agent state
+/qa/
+/incident-review/
+/checkpoints/
+/.codex/
+/.agents/

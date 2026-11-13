@@ -1,0 +1,178 @@
+:root{font-family:Segoe UI,Arial,sans-serif;color:#202e2d;background:#f6f5ef;font-size:14px;--green:#174d43;--line:#d9ddd5;--muted:#5c6b65}*{box-sizing:border-box}body{margin:0;min-width:300px}header{padding:12px 16px 10px;background:var(--green);color:#fff}.family{font-size:18px;font-weight:700;letter-spacing:2.1px}.family span{font-weight:400;color:#c9e3d8;letter-spacing:1.2px}.connection{display:inline-block;background:#ffffff15;border:1px solid #ffffff40;border-radius:20px;padding:3px 9px;font-size:11px;margin-top:8px}nav{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid var(--line);padding:0 12px;background:#fff;position:sticky;top:0;z-index:2}nav button{border:0;border-radius:0;padding:14px 3px;font-size:12px;background:none;color:var(--muted);margin:0}nav button[aria-selected=true]{color:var(--green);border-bottom:3px solid var(--green);font-weight:700}main{padding:18px 22px 26px}.course-summary{display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid var(--line);padding:0 0 15px;margin-bottom:24px;font-size:12px;font-weight:600}.course-summary span:last-child{white-space:nowrap;color:var(--muted)}.eyebrow{font-size:10px;font-weight:700;letter-spacing:1.6px;color:var(--green);margin-bottom:10px}h1{font-family:Georgia,serif;font-size:29px;font-weight:400;line-height:1.12;margin:0 0 15px;letter-spacing:-.6px}h2{font-size:14px;margin:25px 0 12px}p{line-height:1.55;margin:0 0 16px;color:#485a53}form{margin-top:22px}label{display:block;font-size:12px;font-weight:600;margin:17px 0 7px}input,textarea,select{font:inherit;font-size:13px;width:100%;padding:11px;border:1px solid #bbc8bf;border-radius:5px;background:#fff;color:#202e2d}textarea{resize:vertical;line-height:1.5}input::placeholder,textarea::placeholder{color:#748079}button{font:inherit;font-size:13px;cursor:pointer;padding:11px 14px;border-radius:5px;background:#fff;border:1px solid #bdc9c1;color:var(--green);font-weight:600;margin-top:12px;min-height:38px}.primary{display:flex;justify-content:space-between;align-items:center;background:var(--green);color:white;border-color:var(--green);width:100%;margin-top:17px}.primary:hover{background:#0d3b32}button:disabled{opacity:.45;cursor:not-allowed}button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible,summary:focus-visible,a:focus-visible{outline:3px solid #b56b18;outline-offset:3px}.two{display:grid;grid-template-columns:1fr 90px;gap:12px}.required{color:var(--muted);font-size:10px;font-weight:400;float:right}.cue-preview{display:flex;align-items:center;gap:10px;margin:13px 0 8px;font-size:12px}.cue-preview img{width:29px;height:29px}.path{list-style:none;counter-reset:steps;margin:0;padding:0}.path li{counter-increment:steps;position:relative;padding:1px 0 18px 36px}.path li:before{content:counter(steps);position:absolute;left:0;top:0;border:1px solid #b9c9ba;border-radius:50%;width:24px;height:24px;display:grid;place-items:center;font-size:11px;color:var(--green)}.path b{display:block;font-size:12px;margin-bottom:4px}.path span{font-size:12px;color:var(--muted);line-height:1.5;display:block}.outline button{display:block;text-align:left;width:100%;margin:8px 0;padding:12px}.outline small{display:block;margin-top:5px;font-weight:400;color:var(--muted)}.muted{color:var(--muted)}.small{font-size:11px;line-height:1.55;margin-top:12px}.paper{margin-top:18px;border:1px solid var(--line);background:white;padding:20px;max-height:480px;overflow:auto}.paper h2{font-family:Georgia,serif;font-size:20px}.paper h3{font-size:14px;margin:20px 0 9px}.paper p{font-size:12px;white-space:pre-wrap}.writing-line{height:25px;border-bottom:1px solid #d3d9d1}.support{margin-top:28px;padding-top:18px;border-top:1px solid var(--line)}summary{font-size:12px;cursor:pointer;font-weight:600}.support p{font-size:12px;margin-top:14px}.support a{font-size:11px;color:var(--green)}footer{padding:15px 22px;border-top:1px solid var(--line);font-size:10px;color:var(--muted);display:flex;justify-content:space-between}#status:not(:empty){background:#e4eee5;color:#214b39;padding:11px;border-radius:5px;margin-bottom:15px;font-size:12px}#error{background:#fff0e9;color:#783c23;padding:12px;border:1px solid #e9c6b6;border-radius:5px;margin-bottom:15px;font-size:12px;line-height:1.5}[hidden]{display:none!important}@media(forced-colors:active){button,input,textarea,select,.paper{border:1px solid ButtonText}}@media(max-width:340px){header,main{padding-left:16px;padding-right:16px}h1{font-size:26px}.two{grid-template-columns:1fr 75px}}
+
+.backup-details{white-space:pre-wrap;overflow-wrap:anywhere}.product-brand{display:flex;align-items:center;gap:11px}.product-icon{display:block;flex:0 0 32px;width:32px;height:32px;border-radius:6px}.product-brand .family{font-size:16px;letter-spacing:1.5px}
+
+/* Keep navigation visible while long activity forms scroll inside the Word pane. */
+html,body{height:100%}body{display:flex;flex-direction:column;min-width:260px;overflow:hidden}
+header,nav,footer{flex-shrink:0}main{flex:1;min-height:0;overflow-y:auto;scrollbar-gutter:stable}
+main>section{padding-bottom:12px}input,textarea,select{min-width:0}.course-summary span:first-child{overflow-wrap:anywhere}
+.cue-preview{gap:14px;padding:8px 0}.cue-preview img{width:64px;height:64px;object-fit:contain;flex-shrink:0}
+nav{grid-template-columns:repeat(5,minmax(0,1fr));padding-left:6px;padding-right:6px}nav button{font-size:11px}
+.outline .outline-activity{width:calc(100% - 16px);margin-left:16px;font-weight:400;border-left:3px solid #bdc9c1}
+.workspace-tools{display:flex;gap:6px;padding:6px 12px;background:white;border-bottom:1px solid var(--line);flex-shrink:0}.workspace-tools button{flex:1;font-size:11px;margin:0;min-height:30px;padding:6px}.workspace-tools button[aria-selected=true]{background:#e4eee5}
+.agenda-table{border-collapse:collapse;width:100%;font-size:12px;margin:16px 0;table-layout:fixed}.agenda-table caption{text-align:left;font-weight:600;margin-bottom:10px}.agenda-table th,.agenda-table td{border:1px solid var(--line);padding:9px 7px;text-align:left;overflow-wrap:anywhere;vertical-align:top}.agenda-table th:first-child{width:34%}.agenda-table th:last-child{width:16%}.agenda-module th{background:#e4eee5;width:auto!important}
+.review-list{list-style:none;padding:0}.review-list li{padding:16px 0;border-bottom:1px solid var(--line)}.review-list strong{font-size:12px}.review-list p{font-size:12px;margin:7px 0}.review-list button{margin-top:0;font-size:12px}
+.workspace-tools{flex-wrap:wrap}.workspace-tools button{flex:1 1 100px}#library-preview{white-space:pre-wrap;overflow-wrap:anywhere;max-height:400px;overflow:auto}
+#ppt-baseline{white-space:pre-wrap;overflow-wrap:anywhere;max-height:400px;overflow:auto}
+#ppt-change-preview{white-space:pre-wrap;overflow-wrap:anywhere;max-height:500px;overflow:auto}
+#ppt-update-lineage{width:auto;margin-right:7px;padding:0;vertical-align:middle}
+#materials-draft-list p,#materials-plan-list li{white-space:pre-wrap;overflow-wrap:anywhere}
+#materials-review-approved{width:auto;margin-right:7px;padding:0;vertical-align:middle}#materials-current-list{white-space:pre-wrap;overflow-wrap:anywhere}
+#library-content-reviewed{width:auto;margin-right:7px;padding:0;vertical-align:middle}#library-content-materials{white-space:pre-wrap;overflow-wrap:anywhere}
+@media(max-height:750px){main{padding-top:12px}.course-summary{margin-bottom:16px}footer{padding:8px 16px}h1{font-size:25px}}
+.build-info{margin-top:8px;padding:6px 8px;border:1px solid #ffffff40;border-radius:6px;background:#ffffff12;display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px}.build-info p{color:#fff;font-size:11px;line-height:1.35;margin:0;overflow-wrap:anywhere;flex:1 1 150px;min-width:0}.build-info p[data-status=stale],.build-info p[data-status=mixed]{color:#ffe1ac}.build-info button{margin:0;min-height:26px;padding:3px 8px;font-size:11px;flex:0 0 auto}
+#view-guide .guide-starters button{display:block;width:100%;margin-top:8px}#view-guide .guide-starters .hint{margin:4px 0 6px}
+.guide-where{font-size:13px;line-height:1.45;margin:6px 0 10px;padding:8px 10px;border-radius:5px;background:#e4eee5;color:#214b39}.guide-where[data-state=none]{background:#fff0e9;color:#783c23;border:1px solid #e9c6b6}
+#guide-item-msg-box{margin:10px 0 6px}#guide-item-msg-box .guide-error,#guide-item-msg-box .guide-ok{margin:0 0 8px}.guide-ok{background:#e4eee5;color:#214b39;padding:11px;border-radius:5px;font-size:12px;line-height:1.5}#guide-item-offer{margin:0 0 8px}#guide-item-offer button{width:100%}
+.build-info button:focus-visible{outline-color:#fff}
+
+
+#course-frontmatter{border:1px solid var(--line);border-radius:5px;padding:12px;margin:16px 0;background:#fff}#course-frontmatter legend{font-weight:600;font-size:13px}#course-frontmatter input[type=checkbox]{width:auto;vertical-align:middle;margin:0 7px 0 0}#course-frontmatter p{font-size:12px}
+
+#facilitator-output{white-space:pre-wrap;overflow-wrap:anywhere}#facilitator-options input[type=checkbox],#facilitator-reviewed{width:auto;vertical-align:middle;margin-right:7px}
+
+#assessment-reviewed{width:auto;vertical-align:middle;margin-right:7px}#activity-replacement{padding:12px;border:1px solid #b56b18;margin:14px 0}#assessment-review{padding:12px;border:1px solid var(--line);margin:14px 0}
+
+#coverage-objective,#coverage-gap-objective{white-space:pre-wrap;overflow-wrap:anywhere}#coverage-entry-form input[type=checkbox],#coverage-reviewed,#coverage-gap-current{width:auto;vertical-align:middle;margin-right:7px}#coverage-links p,#coverage-review-rows p{white-space:pre-wrap;overflow-wrap:anywhere}
+#plan-controls{border:1px solid var(--line);border-radius:5px;padding:12px;margin:12px 0;background:#fff}#plan-controls legend{font-weight:600}#plan-groups li{overflow-wrap:anywhere;padding:6px 0}#plan-groups button{font-size:11px;margin:4px 4px 4px 0}#plan-reviewed,#agenda-reviewed{width:auto;vertical-align:middle;margin-right:7px}
+
+/* Session assessment controls are scoped; legacy authoring/output styles remain unchanged. */
+#view-assessments fieldset{min-width:0;border:1px solid var(--line);border-radius:5px;padding:12px;margin:14px 0}
+#view-assessments legend{font-weight:700;padding:0 4px}
+#view-assessments input[type=radio],#view-assessments input[type=checkbox]{width:auto;vertical-align:middle;margin-right:7px;padding:0}
+#view-assessments .measure-anchor{border-bottom:1px solid var(--line);padding:8px 0;overflow-wrap:anywhere}
+#view-assessments code,#view-assessments pre{white-space:pre-wrap;overflow-wrap:anywhere}
+#view-assessments .measure-confirm{padding:12px;border:2px solid #b56b18;background:#fff8ed;margin:14px 0}
+#view-assessments #measure-error{background:#fff0e9;color:#783c23;padding:12px;border:1px solid #e9c6b6;border-radius:5px}
+#view-assessments .measure-choice{font-weight:400;line-height:1.5;margin:10px 0}
+#view-assessments #measure-test-status{white-space:pre-wrap}
+#view-assessments{overflow-wrap:anywhere}
+
+/* Guide pane (Stage 1) */
+.guide-nav{grid-template-columns:1fr}
+details.legacy{background:#fff;border-bottom:1px solid var(--line);padding:2px 12px}
+details.legacy summary{padding:8px 0;font-size:11px;color:var(--muted)}
+details.legacy nav{position:static}
+#view-guide input[type=radio],#view-guide input[type=checkbox]{width:auto;vertical-align:middle;margin-right:7px}
+#view-guide .guide-check{font-weight:400;line-height:1.5;margin:12px 0}
+#view-guide .hint{font-size:12px;color:var(--muted);font-weight:400;margin:6px 0 10px}
+#view-guide .guide-actions{display:flex;gap:8px;flex-wrap:wrap}
+#view-guide .guide-actions button{flex:1 1 110px;margin-top:8px}
+#view-guide .guide-secondary{margin-top:6px}
+#view-guide .guide-cues{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+#view-guide .guide-cue{display:flex;align-items:center;gap:8px;margin:0;padding:6px 8px;border:1px solid var(--line);border-radius:5px;background:#fff;font-weight:600;cursor:pointer}
+#view-guide .guide-cue:focus-within{outline:3px solid #b56b18;outline-offset:2px}
+#view-guide .guide-cue input{margin:0}
+#view-guide .guide-cue img{flex:0 0 28px}
+#view-guide fieldset{min-width:0;border:1px solid var(--line);border-radius:5px;padding:4px 12px 8px;margin:14px 0}
+#view-guide legend{font-weight:700;padding:0 4px;font-size:12px}
+#view-guide .guide-contents{list-style:none;padding:0;margin:0}
+#view-guide .guide-contents li{margin:0}
+#view-guide .guide-contents .guide-lesson{margin-left:16px}
+#view-guide .guide-link{display:block;width:100%;text-align:left;border:0;background:none;padding:8px 4px;margin:0;font-weight:600;min-height:0}
+#view-guide .guide-module .guide-link{font-weight:700}
+#view-guide .guide-selected,#view-guide .guide-edit{border:1px solid var(--line);border-radius:6px;background:#fff;padding:4px 12px 12px;margin:12px 0}
+#view-guide .guide-selected h2,#view-guide .guide-edit h2{margin-top:8px}
+#view-guide .guide-issues{padding-left:18px}
+#view-guide .guide-issues li{margin:8px 0;line-height:1.5}
+#view-guide .guide-issues .guide-link{display:inline;width:auto;margin-left:8px;text-decoration:underline;padding:0}
+.guide-status:not(:empty){background:#e4eee5;color:#214b39;padding:11px;border-radius:5px;margin-bottom:15px;font-size:12px}
+.guide-error{background:#fff0e9;color:#783c23;padding:12px;border:1px solid #e9c6b6;border-radius:5px;margin-bottom:15px;font-size:12px;line-height:1.5}
+/* What a button did is said in these two lines. They stay at the top of the visible pane, so a button halfway down the pane
+   (Add missing standard pages, Build Training at a Glance...) is never answered out of sight. scroll-padding keeps a focused control from
+   landing underneath them. */
+.guide-status:not(:empty),.guide-error:not([hidden]){position:sticky;top:0;z-index:5;box-shadow:0 2px 6px #00000026}
+main{scroll-padding-top:7rem}
+/* Compact layout (2026-11-06). A third of the pane was taken by bars that never scroll away, and long lists made the Guide screen about
+   six screens tall, so the author did a lot of scrolling. The bars are slim, the screen is five short parts shown one at a time, and
+   the long cue list stays put away until it is asked for. */
+header{display:flex;align-items:center;justify-content:space-between;gap:4px 8px;flex-wrap:wrap;padding:6px 12px}
+header .product-brand{gap:8px}header .product-icon{flex:0 0 26px;width:26px;height:26px}header .product-brand .family{font-size:14px;letter-spacing:1.2px}
+header .connection{margin-top:0;font-size:10px;padding:2px 8px}
+nav button{padding:8px 3px}.guide-nav button{padding:7px 3px}
+details.legacy>summary{padding:5px 12px}
+footer{align-items:center;padding:4px 12px}
+header .build-info{flex:1 1 100%;margin:0;padding:3px 6px;gap:2px 8px;flex-wrap:nowrap}header .build-info p{font-size:10px;line-height:1.3;flex:1 1 auto}header .build-info button{min-height:22px;padding:1px 7px;font-size:10px;white-space:nowrap}
+main{padding:10px 14px 16px}
+.visually-hidden{position:absolute!important;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+#view-guide h1{font-size:21px;margin:0 0 6px;letter-spacing:-.3px}
+#view-guide .guide-titlebar{display:flex;align-items:baseline;justify-content:space-between;gap:2px 10px;flex-wrap:wrap;margin-bottom:2px}
+#view-guide .guide-titlebar h1{font-size:19px;margin:0;overflow-wrap:anywhere}#view-guide .guide-titlebar .muted{margin:0;font-size:11px;white-space:nowrap}
+#view-guide h2{margin:14px 0 5px;font-size:13px}#view-guide h2.guide-first{margin-top:4px}
+#view-guide p{margin:0 0 8px;line-height:1.45}
+#view-guide .hint{margin:3px 0 6px}#view-guide .guide-tight{margin:2px 0}
+#view-guide label{margin:9px 0 4px}
+#view-guide input,#view-guide textarea,#view-guide select{padding:6px 9px}
+#view-guide button{min-height:32px;padding:5px 12px;margin-top:8px}
+#view-guide .primary{margin-top:10px}
+#view-guide form{margin-top:6px}
+#view-guide .guide-actions button{margin-top:6px}
+#view-guide .guide-check{margin:7px 0}
+#view-guide fieldset{margin:8px 0;padding:2px 10px 6px}
+#view-guide .guide-status:not(:empty),#view-guide .guide-error:not([hidden]){padding:8px 10px;margin-bottom:8px}
+#view-guide .guide-parts{display:flex;flex-wrap:wrap;margin:6px 0 8px;border-bottom:1px solid var(--line)}
+#view-guide .guide-parts button{flex:1 1 auto;margin:0;min-height:34px;padding:6px 5px;border:0;border-bottom:3px solid transparent;border-radius:0;background:none;font-size:12px;color:var(--muted);font-weight:600}
+#view-guide .guide-parts button[aria-selected=true]{color:var(--green);border-bottom-color:var(--green);font-weight:700}
+#view-guide .guide-selected-bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 8px;padding:5px 10px;margin:6px 0}
+#view-guide .guide-selected-bar p{margin:0;flex:1 1 130px;font-size:12px}#view-guide .guide-selected-bar button{margin:0;flex:0 0 auto}
+/* The note under the cursor line and the Write below this block button each take a whole row, so nothing is squeezed into a narrow column or pushed off the right edge of the pane (found when pictures were taken for the Quick Start, 2026-11-09). */
+#view-guide .guide-selected-bar #guide-selected-hint{flex:1 1 100%}#view-guide .guide-selected-bar #guide-leave-block{flex:1 1 100%}
+#view-guide .guide-row2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 8px}
+#view-guide .guide-row2>div{min-width:0}#view-guide .guide-row-wide{grid-template-columns:minmax(0,1fr) 96px}
+#view-guide .guide-row-end{align-items:start}#view-guide .guide-row-end fieldset{margin:8px 0 0}
+#view-guide .guide-cue-toggle{display:flex;align-items:center;justify-content:flex-start;gap:10px;width:100%;text-align:left;padding:5px 10px;min-height:44px;margin:4px 0 2px}
+#view-guide .guide-cue-toggle img{flex:0 0 28px}
+.guide-cue-toggle-text{flex:1 1 auto;min-width:0;overflow-wrap:anywhere;font-weight:400;color:#202e2d}.guide-cue-toggle-text strong{font-size:14px}
+.guide-cue-toggle-kind{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.6px}
+.guide-cue-toggle-action{flex:0 0 auto;color:var(--green);font-size:12px;text-decoration:underline}
+#view-guide .guide-cue-panel{border:1px solid var(--line);border-radius:6px;background:#fff;padding:2px 10px 10px;margin:6px 0}
+#view-guide .guide-cue{padding:4px 6px;gap:6px;font-size:12px}#view-guide .guide-cue img{flex:0 0 24px;width:24px;height:24px}
+#view-guide .guide-where-details{margin:2px 0 4px}#view-guide .guide-where-details summary{font-size:11px;font-weight:400;color:var(--muted)}#guide-switch{display:flex;gap:0;margin:4px 0 6px;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:#fff}
+#view-guide #guide-switch button{flex:1 1 0;min-width:0;margin:0;border:0;border-radius:0;min-height:32px;padding:5px 4px;font-size:12px;background:#fff}
+#view-guide #guide-switch button+button{border-left:1px solid var(--line)}
+#view-guide #guide-switch button[aria-pressed=true]{background:var(--green);color:#fff}
+body:has(#view-guide:not([hidden])) .guide-nav{display:none}#view-guide .guide-opt{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:8px;align-items:center}
+#view-guide .guide-opt>label:first-child{grid-column:1/-1}
+#view-guide .guide-opt .guide-check{margin:0;white-space:nowrap}
+#view-guide .guide-starters button{margin-top:6px;min-height:32px}#view-guide .guide-starters .hint{margin:2px 0 4px}
+#view-guide #guide-item-where{margin:4px 0 6px;padding:6px 9px}
+#view-guide .guide-parts button{padding:6px 3px;font-size:12px}
+
+/* The strip above the open tool: its name and note, and "More tools", the few tools that belong with it (src/tool-strip.mjs). */
+.tool-strip{flex:0 0 auto;padding:8px 14px 6px;background:#fff;border-bottom:1px solid var(--line)}
+.tool-strip h1{font-size:20px;margin:2px 0 3px;letter-spacing:-.3px}.tool-strip h1:focus{outline:none}
+.tool-strip .hint{margin:0 0 6px;font-size:12px}
+.tool-more{margin:4px 0 0}.tool-more>summary{display:inline-block;padding:3px 0;font-size:12px;color:var(--green)}
+.tool-more-list{list-style:none;margin:4px 0 2px;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+.tool-more-list li{margin:0}.tool-more-list button{margin:0;min-height:32px;padding:5px 10px;font-size:12px}
+.legacy-foot{flex:0 0 auto;background:#fff;border-top:1px solid var(--line)}
+.guide-keys{list-style:none;margin:0 0 14px;padding:0}.guide-keys li{margin:0 0 6px;font-size:13px}
+.guide-keys kbd{display:inline-block;min-width:9.5em;margin-right:8px;padding:1px 6px;border:1px solid #bbc8bf;border-radius:4px;background:#fff;font:12px Consolas,monospace}
+/* Update from slides: one box for each slide that differs, with a tick for each change. */
+.guide-upd-item{margin:0 0 8px;padding:6px 9px;border:1px solid var(--line);border-radius:6px;background:#fff}
+.guide-upd-head{margin:0 0 3px;font-size:12px;font-weight:700;color:#202e2d}
+.guide-upd-item .guide-check{margin:3px 0;font-size:12.5px}.guide-upd-item .hint{margin:0 0 4px;font-size:11.5px}
+#view-guide .guide-lib-list{list-style:none;margin:8px 0;padding:0}
+#view-guide .guide-lib-item{margin:0 0 8px;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:#fff}
+#view-guide .guide-lib-item h3{margin:0 0 2px;font-size:14px}
+#view-guide .guide-lib-item .guide-lib-kind{display:inline-block;margin-left:6px;color:var(--muted);font-size:11px;font-weight:400;text-transform:uppercase;letter-spacing:.6px}
+#view-guide .guide-lib-item p{margin:2px 0 6px}
+#view-guide .guide-lib-item details{margin:2px 0 4px}
+#view-guide .guide-lib-item summary{font-size:12px;color:var(--muted)}
+#view-guide .guide-lib-item ul{margin:4px 0 4px 18px;padding:0}
+#view-guide .guide-lib-item .guide-lib-part{font-size:12px;margin:4px 0}
+#view-guide .guide-lib-item .guide-actions button{margin-top:4px}
+#view-guide .guide-lib-item ul{font-size:12px}
+#view-guide .guide-agenda-table{border-collapse:collapse;width:100%;font-size:12px;margin:8px 0;table-layout:fixed}
+#view-guide .guide-agenda-table caption{text-align:left;font-weight:600;margin-bottom:6px}
+#view-guide .guide-agenda-table th,#view-guide .guide-agenda-table td{border:1px solid var(--line);padding:4px 6px;text-align:left;vertical-align:top;overflow-wrap:anywhere;background:#fff}
+#view-guide .guide-agenda-table th:first-child,#view-guide .guide-agenda-table td:first-child{width:30%}
+#view-guide .guide-agenda-table th:last-child,#view-guide .guide-agenda-table td:last-child{width:14%}
+#view-guide .guide-agenda-table .guide-agenda-module th{background:#e9efe9}
+#view-guide .guide-agenda-table .guide-agenda-lesson td{font-weight:600}
+#view-guide .guide-agenda-table .guide-agenda-block td:nth-child(2){padding-left:16px}
+#view-guide .guide-align-list{list-style:none;margin:8px 0;padding:0}
+#view-guide .guide-align-item{margin:0 0 8px;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:#fff}
+#view-guide .guide-align-item h3{margin:0 0 4px;font-size:13px}
+#view-guide .guide-align-item p{margin:2px 0;font-size:12px}
+#view-guide .guide-align-gap{color:#8a3b12;font-weight:600}

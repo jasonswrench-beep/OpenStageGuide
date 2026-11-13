@@ -1,0 +1,9 @@
+{
+  "icons": [
+    "archive", "archive-restore", "book-open", "book-open-check", "check", "chevron-down", "circle-alert", "circle-check", "circle-question-mark",
+    "clipboard-list", "clock", "copy", "ellipsis", "file-check", "file-down", "file-input", "file-plus", "file-stack", "file-text", "folder-open",
+    "folder-plus", "folders", "house", "info", "keyboard", "layers", "layout-dashboard", "library", "list-checks", "list-tree", "message-square",
+    "monitor-play", "palette", "pencil", "plus", "presentation", "printer", "refresh-cw", "search", "settings", "square-pen", "square-plus",
+    "target", "trash", "triangle-alert", "x"
+  ]
+}

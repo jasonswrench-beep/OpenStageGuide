@@ -1,0 +1,67 @@
+OpenStage Guide
+Copyright 2026 Jason S. Wrench and the OpenStage Guide contributors
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+---
+
+Third-party components:
+
+JSZip 3.10.1 (public/vendor/jszip.min.js, loaded by the task pane)
+  https://stuk.github.io/jszip/
+  JSZip is dual licensed, MIT or GPLv3 at the user's choice. OpenStage Guide uses it under the MIT License,
+  Copyright (c) 2009-2016 Stuart Knightley, David Duponchel, Franz Buchinger, Antonio Afonso. The full text is
+  in public/vendor/JSZip-LICENSE.md.
+
+PDF.js 3.11.174 (public/vendor/pdf.min.js and pdf.worker.min.js, loaded only by the file window, picker.html, to draw the pages of a PDF
+of a presentation as slide pictures)
+  https://mozilla.github.io/pdf.js/
+  Apache License 2.0, Copyright 2023 Mozilla Foundation and contributors. The full text is in public/vendor/pdfjs-LICENSE.txt.
+  It runs in the browser on the author's own PC and sends nothing anywhere.
+
+acorn 8.19.0 (used only by scripts/build-snapshot.mjs to check the source before the server serves it; not sent to the browser)
+  https://github.com/acornjs/acorn
+  MIT License, Copyright (C) 2012-2022 by various contributors.
+
+Office.js (not included and not loaded by the program: public/taskpane.html still names it for the code that drives Word, and the
+program's server removes that line from the tools page it serves)
+  Microsoft's own terms apply to it. OpenStage Guide does not copy, host or change it.
+
+Development-only packages (listed in package.json under devDependencies) are used to run the tests and are not part of
+what the server sends to the browser.
+
+---
+
+Artwork that is not part of the Apache License above:
+
+Training icons (public/assets/icons, and the smaller sizes made from them)
+  Created and supplied by Jason S. Wrench. Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International
+  (https://creativecommons.org/licenses/by-nc-sa/4.0/). The terms are in public/assets/ICON-LICENSE.txt. They are not
+  part of the Apache License; anyone who copies or distributes them keeps those terms.
+
+New cue icons (public/assets/icons-doc, the 48 files that are not among the original fourteen; vector masters in docs/icons-source)
+  Supplied by Jason S. Wrench on 2026-11-06, drawn at his request in the style of the training icons (see docs/icons-source/README-from-the-author.md).
+  Jason S. Wrench decided on 2026-11-06 that they are licensed under the Apache License above, like the code (not under the
+  Creative Commons terms of the original fourteen). The original fourteen training icons keep their own terms, stated above.
+
+Product icon (public/assets/openstage-guide.svg and its PNG sizes, ribbon-16.png to ribbon-256.png, which the program also uses as its logo)
+  Supplied by Jason S. Wrench, who decided on 2026-10-30 that it is part of OpenStage Guide and is licensed under
+  the Apache License above, like the code. See also public/assets/PRODUCT-ICON.txt.
+
+OpenStage Guide as a program (program/)
+  The menu bar, pop-up menus and command search (program/ui/menubar.js, popupmenu.js, commandsearch.js), the Keyboard keys window, the suite look
+  (program/openstage-ui.css and the shared rules at the top of program/style.css) and the dialog and navy-bar patterns are copied from OpenAssess
+  (https://github.com/jasonswrench-beep/openstage-assess, Apache-2.0, the same owner), which copied them from OpenStage Author. Keep them alike.
+  The icons (program/ui/ui-icons.js, made by scripts/make-ui-icons.mjs) are Lucide icons, ISC licence, with the Feather notices that go with some
+  of them, as in the file's own header.
+

@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Choose files</title>
+<link rel="stylesheet" href="/style.css">
+<script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+<script src="/vendor/jszip.min.js"></script>
+<script src="/vendor/pdf.min.js"></script>
+<script type="module" src="/src/picker.mjs"></script></head>
+<body>
+<main class="picker">
+<h1 id="picker-heading" tabindex="-1">Choose a picture</h1>
+<p id="picker-intro" class="hint">Word cannot show a file window inside the pane, so the files are chosen here. When you choose Use these files, this window closes and the pane carries on.</p>
+<div id="picker-picture">
+<label for="pick-picture">Picture file (PNG, JPG or GIF)</label>
+<input id="pick-picture" type="file" accept="image/png,image/jpeg,image/gif">
+</div>
+<div id="picker-slides" hidden>
+<label for="pick-deck">Presentation (.pptx)</label>
+<input id="pick-deck" type="file" accept=".pptx">
+<label for="pick-slide-pictures">Pictures of the slides (optional)</label>
+<p id="pick-slide-help" class="hint">Easiest: a PDF of the presentation. In PowerPoint, choose File, Save a Copy, then PDF. Or choose the slides saved as pictures (File, Export, PNG, all slides), all together. Without either, the slides go in as text only.</p>
+<input id="pick-slide-pictures" type="file" accept=".pdf,application/pdf,image/png,image/jpeg" multiple aria-describedby="pick-slide-help">
+</div>
+<div id="picker-files" hidden>
+<label id="pick-any-label" for="pick-any">File</label>
+<input id="pick-any" type="file">
+</div>
+<p id="pick-status" class="hint" role="status" aria-live="polite"></p>
+<div class="guide-actions"><button id="pick-go" type="button" class="primary">Use these files</button><button id="pick-cancel" type="button">Cancel</button></div>
+</main>
+</body></html>

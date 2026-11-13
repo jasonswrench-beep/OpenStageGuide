@@ -1,0 +1,21 @@
+{
+  "name": "openstage-guide",
+  "version": "0.1.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "description": "Tool for helping training and development professionals create facilitator guides and participant workbooks.",
+  "scripts": {
+    "start": "node scripts/project-server.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "assets": "node scripts/prepare.mjs",
+    "icons": "node scripts/make-ui-icons.mjs",
+    "check:program": "node scripts/check-program-browser.mjs",
+    "check:project": "node scripts/check-project-browser.mjs"
+  },
+  "dependencies": { "acorn": "8.19.0", "jszip": "3.10.1" },
+  "devDependencies": {
+    "@xmldom/xmldom": "0.8.15"
+  },
+  "engines": { "node": ">=20" }
+}

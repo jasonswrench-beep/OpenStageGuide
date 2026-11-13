@@ -1,0 +1,7 @@
+/* The pane of the add-in, as the tools of the program (taskpane.html?project=1&program=1). Loaded after the pane's own style.css by src/app.mjs.
+   The program's frame already has the product's name and the save state, so the pane's own header, footer and course summary are not shown, and
+   its green is the program's blue. */
+html.in-program { --green: #0e7490; background: #ffffff; }
+.in-program body { background: #ffffff; }
+.in-program header, .in-program footer, .in-program .course-summary, .in-program nav.guide-nav { display: none !important; }
+.in-program main { padding-top: 12px; }

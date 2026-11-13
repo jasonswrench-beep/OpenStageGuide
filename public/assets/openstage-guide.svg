@@ -1,0 +1,27 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" width="1024" height="1024" viewBox="0 0 1024 1024" version="1.1" role="img" aria-labelledby="title description">
+  <title id="title">OpenStage Guide — Open Frame icon</title>
+  <desc id="description">A soft ivory open book with a central spine and two content lines on each page, representing leader guides and participant workbooks. Editable vector artwork on the suite's navy rounded tile. Transparent outside the tile.</desc>
+  <defs>
+    <linearGradient id="navy" x1="0" y1="0" x2="768" y2="1024" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#102037"/>
+      <stop offset="1" stop-color="#0B172A"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="180" y1="160" x2="844" y2="900" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFF9ED"/>
+      <stop offset="1" stop-color="#EADFC9"/>
+    </linearGradient>
+  </defs>
+  <g id="Tile" inkscape:label="Navy tile">
+    <rect id="navy-tile" x="0" y="0" width="1024" height="1024" rx="164" fill="url(#navy)"/>
+  </g>
+  <g id="Symbol" inkscape:label="OpenStage Guide open book" fill="none" stroke="url(#accent)" stroke-width="52" stroke-linecap="round" stroke-linejoin="round">
+      <path id="left-page-outline" d="M512 310 C406 230 282 206 176 242 V734 C290 694 406 722 512 802"/>
+    <path id="right-page-outline" d="M512 310 C618 230 742 206 848 242 V734 C734 694 618 722 512 802"/>
+    <path id="book-spine" d="M512 310 V802"/>
+    <path id="left-content-line-1" d="M280 402 C334 400 388 416 432 442"/>
+    <path id="left-content-line-2" d="M280 532 C334 530 388 546 432 572"/>
+    <path id="right-content-line-1" d="M744 402 C690 400 636 416 592 442"/>
+    <path id="right-content-line-2" d="M744 532 C690 530 636 546 592 572"/>
+    </g>
+</svg>

@@ -1,0 +1,798 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>OpenStage Guide</title>
+<link rel="stylesheet" href="/style.css">
+<link rel="icon" href="/assets/ribbon-32.png" type="image/png">
+<script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+<script src="/vendor/jszip.min.js"></script>
+<script type="module" src="/src/app.mjs"></script></head>
+<body>
+<header><div class="product-brand"><img class="product-icon" src="/assets/ribbon-80.png" width="32" height="32" alt=""><div class="family">OPENSTAGE <span> / GUIDE</span></div></div><div id="connection" class="connection">Connecting to Word…</div><div class="build-info"><p id="build-loaded" role="status">Loaded build identity is being checked.</p><button id="build-check" type="button">Check loaded build</button></div></header>
+<nav class="guide-nav" aria-label="Guide" hidden><button data-view="guide" aria-selected="true">Guide</button></nav>
+<div id="tool-strip" class="tool-strip" hidden>
+<h1 id="tool-title" tabindex="-1"></h1>
+<p id="tool-note" class="hint"></p>
+<details id="tool-more" class="tool-more"><summary>More tools</summary>
+<ul id="tool-more-list" class="tool-more-list"></ul>
+</details>
+</div>
+<main>
+<div id="status" role="status" aria-live="polite"></div>
+<div id="error" role="alert" hidden></div>
+<div class="course-summary"><span id="course-name">Your next course starts here</span><span id="course-time">0 min</span></div>
+<section id="view-guide" aria-label="Guide builder">
+<p id="guide-status" role="status" aria-live="polite" class="guide-status"></p>
+<p id="guide-error" role="alert" class="guide-error" hidden></p>
+<p id="guide-retry-box" hidden><button id="guide-retry" type="button">Try again</button></p>
+
+<div id="guide-help" hidden>
+<h1 id="guide-help-heading" tabindex="-1">Help</h1>
+<p>How to use the tools, and a finished example.</p>
+<h2>A finished example</h2>
+<p class="hint">The sample guide is a small finished guide with a module, a lesson and blocks of the kinds you will use most. It goes at the top of this document.</p>
+<button id="guide-help-sample" type="button">Try the sample guide</button>
+<h2 id="guide-help-keys-heading">Keyboard shortcuts</h2>
+<p class="hint">They work from the document, with the pane open or not.</p>
+<ul id="guide-help-keys" class="guide-keys" aria-labelledby="guide-help-keys-heading">
+<li><kbd>Ctrl+Shift+Alt+G</kbd> Open the Guide pane</li>
+<li><kbd>Ctrl+Shift+Alt+R</kbd> Review the guide</li>
+<li><kbd>Ctrl+Shift+Alt+M</kbd> Go to the next module</li>
+<li><kbd>Ctrl+Shift+Alt+N</kbd> Go to the previous module</li>
+<li><kbd>Ctrl+Shift+Alt+L</kbd> Go to the next lesson</li>
+<li><kbd>Ctrl+Shift+Alt+K</kbd> Go to the previous lesson</li>
+<li><kbd>Ctrl+Shift+Alt+C</kbd> Go to the Contents page</li>
+<li><kbd>Ctrl+Shift+Alt+T</kbd> Go to Training at a Glance</li>
+</ul>
+<h2>The instructions</h2>
+<p><a id="guide-help-read" href="help.html" target="_blank" rel="noopener">Read the instructions</a> (they open in your browser).</p>
+</div>
+
+<div id="guide-start" hidden>
+<h1 id="guide-start-heading" tabindex="-1">Start a guide</h1>
+<p>Give your guide a title. The standard pages go at the top of this document, and anything you have already written stays below them.</p>
+<form id="guide-start-form">
+<label for="guide-start-kind">What are you making?</label>
+<select id="guide-start-kind"></select>
+<label for="guide-title">Guide title</label>
+<input id="guide-title" type="text" autocomplete="off" required>
+<label class="guide-check" for="guide-standard"><input id="guide-standard" type="checkbox" checked> Add the standard pages <span class="hint">Acknowledgements, contents, Getting Started, Training at a Glance</span></label>
+<label for="guide-start-look">Look</label>
+<select id="guide-start-look"></select>
+<button id="guide-start-go" type="submit" class="primary">Start guide</button>
+</form>
+<p class="guide-secondary"><button id="guide-sample" type="button">Try the sample guide</button></p>
+</div>
+
+<div id="guide-switch" class="guide-actions" role="group" aria-label="Screens" hidden>
+<button id="guide-tab-guide" type="button" aria-pressed="true">Guide</button>
+<button id="guide-tab-assess" type="button" aria-pressed="false">Assessments</button>
+<button id="guide-tab-workbook" type="button" aria-pressed="false">Workbook</button>
+</div>
+
+<div id="guide-build" hidden>
+<div id="guide-sec-titlebar" class="guide-titlebar">
+<h1 id="guide-build-heading" tabindex="-1">Your guide</h1>
+<p id="guide-total" class="muted"></p>
+</div>
+<div id="guide-sec-selected">
+<div id="guide-selected" class="guide-selected guide-selected-bar" hidden>
+<h2 id="guide-selected-heading" class="visually-hidden">In your document</h2>
+<p id="guide-selected-text"></p>
+<button id="guide-edit-selected" type="button">Edit</button>
+<p id="guide-selected-hint" class="muted" hidden></p>
+<button id="guide-leave-block" type="button" hidden>Write below this block</button>
+</div>
+</div>
+
+
+<div id="guide-parts" class="guide-parts" role="tablist" aria-label="Guide tools"><button type="button" role="tab" id="guide-part-tab-add" aria-controls="guide-part-add" aria-selected="true" tabindex="0">Add</button><button type="button" role="tab" id="guide-part-tab-slides" aria-controls="guide-part-slides" aria-selected="false" tabindex="-1">Slides</button><button type="button" role="tab" id="guide-part-tab-elearning" aria-controls="guide-part-elearning" aria-selected="false" tabindex="-1">E-Learning</button><button type="button" role="tab" id="guide-part-tab-look" aria-controls="guide-part-look" aria-selected="false" tabindex="-1">Look &amp; pages</button><button type="button" role="tab" id="guide-part-tab-organize" aria-controls="guide-part-organize" aria-selected="false" tabindex="-1">Tidy</button></div>
+<div id="guide-part-add" class="guide-part" role="tabpanel" aria-labelledby="guide-part-tab-add">
+<form id="guide-edit-form" class="guide-edit" hidden aria-labelledby="guide-edit-heading">
+<h2 id="guide-edit-heading" tabindex="-1">Edit</h2>
+<label for="guide-edit-title">Title</label>
+<input id="guide-edit-title" type="text" autocomplete="off">
+<label for="guide-edit-minutes" id="guide-edit-minutes-label">Lesson minutes</label>
+<input id="guide-edit-minutes" type="text" inputmode="numeric" autocomplete="off">
+<p id="guide-edit-note" class="hint"></p>
+<div class="guide-actions"><button id="guide-edit-save" type="submit" class="primary">Save changes</button><button id="guide-edit-cancel" type="button">Cancel</button></div>
+</form>
+
+<div id="guide-sec-module">
+<h2 id="guide-module-heading" class="guide-first">Add a module or lesson</h2>
+<div class="guide-row2 guide-row-wide">
+<div><label for="guide-new-title">Title</label>
+<input id="guide-new-title" type="text" autocomplete="off"></div>
+<div><label for="guide-new-minutes">Lesson minutes</label>
+<input id="guide-new-minutes" type="text" inputmode="numeric" autocomplete="off" value="10"></div>
+</div>
+<div class="guide-actions"><button id="guide-add-module" type="button">Add module</button><button id="guide-add-lesson" type="button">Add lesson</button></div>
+<details class="guide-where-details"><summary>Where does it go?</summary><p class="hint">A new module goes after the module your cursor is in, a new lesson after the lesson your cursor is in, and a new block after the block your cursor is in.</p></details>
+</div>
+
+<div id="guide-sec-block">
+<h2 id="guide-block-heading">Add a block</h2>
+<p id="guide-block-note" class="hint"></p>
+<form id="guide-block-form">
+<div class="guide-cue-chooser">
+<button id="guide-cue-toggle" type="button" class="guide-cue-toggle" aria-expanded="false" aria-controls="guide-cue-panel"><img id="guide-cue-current-icon" src="" alt="" width="28" height="28"><span class="guide-cue-toggle-text"><span class="guide-cue-toggle-kind">Cue</span> <strong id="guide-cue-current"></strong></span><span id="guide-cue-toggle-action" class="guide-cue-toggle-action">Change</span></button>
+<p id="guide-cue-help" class="hint"></p>
+<div id="guide-cue-panel" class="guide-cue-panel" hidden>
+<div class="guide-row2">
+<div><label for="guide-cue-group">Kind of cue</label>
+<select id="guide-cue-group" aria-controls="guide-cues"></select></div>
+<div><label for="guide-cue-find">Find a cue</label>
+<input id="guide-cue-find" type="search" autocomplete="off" aria-controls="guide-cues"></div>
+</div>
+<p id="guide-cue-count" class="hint" role="status" aria-live="polite"></p>
+<div id="guide-cues" class="guide-cues" role="radiogroup" aria-label="Cue"></div>
+</div>
+</div>
+<details id="guide-pic-box" class="guide-pic-box"><summary id="guide-pic-summary">Add a picture to this block (optional)</summary>
+<button id="guide-pic-choose" type="button">Choose a picture (PNG, JPG or GIF)...</button>
+<p id="guide-pic-chosen" class="hint" role="status" aria-live="polite"></p>
+<label for="guide-pic-alt">Describe the picture (alt text)</label>
+<input id="guide-pic-alt" type="text" autocomplete="off">
+<label class="guide-check" for="guide-pic-decorative"><input id="guide-pic-decorative" type="checkbox"> This picture is only decoration</label>
+<label for="guide-pic-width">Size</label>
+<select id="guide-pic-width"></select>
+<p class="hint">The picture goes in its own line under the cue. Describe what it shows in a few words, for people who cannot see it. The block's text below is its caption.</p>
+</details>
+<div id="guide-activity-box" hidden>
+<label class="guide-check" for="guide-activity-parts"><input id="guide-activity-parts" type="checkbox"> Write it as labelled parts <span class="hint">Objective, materials, preparation, instructions, case study</span></label>
+</div>
+<label id="guide-block-text-label" for="guide-block-text">Text</label>
+<textarea id="guide-block-text" rows="3"></textarea>
+<div id="guide-activity-fields" hidden>
+<label for="guide-act-objective">Objective (optional)</label>
+<textarea id="guide-act-objective" rows="2"></textarea>
+<label for="guide-act-materials">Materials (optional, facilitator only)</label>
+<textarea id="guide-act-materials" rows="2"></textarea>
+<label for="guide-act-preparation">Preparation (optional, facilitator only)</label>
+<textarea id="guide-act-preparation" rows="2"></textarea>
+<label for="guide-act-instructions">Instructions, one step to a line</label>
+<textarea id="guide-act-instructions" rows="4"></textarea>
+<label for="guide-act-caseStudy">Case study (optional)</label>
+<textarea id="guide-act-caseStudy" rows="3"></textarea>
+</div>
+<label for="guide-block-notes">Facilitator notes (optional)</label>
+<textarea id="guide-block-notes" rows="2"></textarea>
+<div class="guide-row2 guide-row-end"><div><label for="guide-block-minutes">Minutes (optional)</label>
+<input id="guide-block-minutes" type="text" inputmode="numeric" autocomplete="off"></div>
+<fieldset class="guide-audience"><legend>Shown to</legend>
+<label class="guide-check" for="guide-audience-everyone"><input id="guide-audience-everyone" type="radio" name="guide-audience" value="everyone" checked> Everyone</label>
+<label class="guide-check" for="guide-audience-facilitator"><input id="guide-audience-facilitator" type="radio" name="guide-audience" value="facilitator"> Facilitator only</label>
+</fieldset>
+</div>
+<button id="guide-block-go" type="submit" class="primary">Insert block</button>
+<button id="guide-block-cancel" type="button" hidden>Cancel edit</button>
+<p class="hint guide-tight">Ctrl+Enter in a text box also inserts.</p>
+</form>
+</div>
+<div id="guide-sec-owncues">
+<details class="guide-own-cues"><summary>Your own cues</summary>
+<p class="hint">Name up to three cues of your own, such as Debrief. They are kept in this document and appear in the cue list under "For you". Each has a picture of its own.</p>
+<label for="guide-own-1">Your cue 1</label>
+<input id="guide-own-1" type="text" maxlength="24" autocomplete="off">
+<label for="guide-own-2">Your cue 2</label>
+<input id="guide-own-2" type="text" maxlength="24" autocomplete="off">
+<label for="guide-own-3">Your cue 3</label>
+<input id="guide-own-3" type="text" maxlength="24" autocomplete="off">
+<button id="guide-own-save" type="button">Save my cues</button>
+<p id="guide-own-note" class="hint" role="status" aria-live="polite"></p>
+</details>
+</div>
+<div id="guide-sec-library">
+<h2 id="guide-lib-heading">Activity library</h2>
+<p class="hint">Choose an activity and it goes into your guide after the block your cursor is in, written as labelled parts: objective, materials, preparation, instructions and, if it uses one, a case study. Change the words afterward, in Word or with Edit.</p>
+<label for="guide-lib-find">Find an activity</label>
+<input id="guide-lib-find" type="search" autocomplete="off" aria-controls="guide-lib-list">
+<p id="guide-lib-count" class="hint" role="status" aria-live="polite"></p>
+<ul id="guide-lib-list" class="guide-lib-list"></ul>
+<h3 id="guide-lib-mine-heading">Your activities</h3>
+<p id="guide-lib-mine-note" class="hint">Put your cursor in an Activity you wrote, then choose Save. It is kept on this computer and is here in every guide you open.</p>
+<button id="guide-lib-save" type="button">Save the activity my cursor is in</button>
+<ul id="guide-lib-mine" class="guide-lib-list"></ul>
+</div>
+
+</div>
+
+<div id="guide-part-slides" class="guide-part" role="tabpanel" aria-labelledby="guide-part-tab-slides" hidden>
+<div id="guide-sec-import">
+<h2 id="guide-slides-heading">Slides from a presentation</h2>
+<p class="hint">Put a presentation's slides into your lesson, each with its number, title, animation clicks, speaker notes and, if you give them, its picture. Choose the presentation; for the pictures, choose a PDF of it (PowerPoint: File, Save a Copy, PDF) or the slides saved as pictures.</p>
+<button id="guide-slides-choose" type="button">Choose the presentation...</button>
+<p id="guide-slides-summary" class="hint" role="status" aria-live="polite"></p>
+<fieldset id="guide-slides-fieldset" hidden><legend>Slides to insert</legend>
+<div id="guide-slides-list"></div>
+<div class="guide-actions"><button id="guide-slides-all" type="button">Choose all</button><button id="guide-slides-none" type="button">Choose none</button></div>
+</fieldset>
+<p id="guide-slides-pics-note" class="hint" role="status" aria-live="polite"></p>
+<label class="guide-check" for="guide-slides-share"><input id="guide-slides-share" type="checkbox"> Show these slides in the learner workbook</label>
+<button id="guide-slides-go" type="button" class="primary">Insert slides</button>
+<p class="hint">The slides go after the block your cursor is in. Hidden slides are not chosen unless you choose them. A slide with no matching picture gets its title, clicks and notes only.</p>
+
+</div>
+<div id="guide-sec-update" hidden>
+<h2 id="guide-upd-heading">Update from slides</h2>
+<p class="hint">You changed the presentation. Choose it again; for the pictures, also choose a new PDF of it (PowerPoint: File, Save a Copy, PDF). Only what differs from the guide is listed, and anything unchanged is left alone. A slide that moved or was renamed in PowerPoint is still found.</p>
+<button id="guide-upd-choose" type="button">Choose the changed presentation...</button>
+<p id="guide-upd-summary" class="hint" role="status" aria-live="polite"></p>
+<div id="guide-upd-which-box" hidden>
+<label for="guide-upd-which">This is a new version of</label>
+<select id="guide-upd-which"></select>
+</div>
+<fieldset id="guide-upd-fieldset" hidden><legend>Changes to bring in</legend>
+<div id="guide-upd-list"></div>
+<div class="guide-actions"><button id="guide-upd-all" type="button">Tick all</button><button id="guide-upd-none" type="button">Tick none</button></div>
+</fieldset>
+<label class="guide-check" for="guide-upd-share"><input id="guide-upd-share" type="checkbox"> Show new slides in the learner workbook</label>
+<button id="guide-upd-go" type="button" class="primary">Update the guide</button>
+<p class="hint">Speaker notes you rewrote in Word are kept unless you tick them. A slide that moved is renumbered where it is; it is not moved in the guide. New slides go in after the slide before them. Nothing is changed until you choose Update the guide, and Ctrl+Z in your document takes it back.</p>
+</div>
+</div>
+
+<div id="guide-part-elearning" class="guide-part" role="tabpanel" aria-labelledby="guide-part-tab-elearning" hidden>
+<h2 id="guide-el-heading">E-Learning screens</h2>
+<p class="hint">For designing E-Learning screen by screen. Add screen puts in the usual blocks (visual direction, on-screen text, narration) with a sample sentence under each; type over the sentences. The narration is counted and timed at 150 words a minute.</p>
+<label for="guide-el-title">Screen title</label>
+<input id="guide-el-title" type="text" autocomplete="off">
+<label for="guide-el-minutes">Minutes (optional)</label>
+<input id="guide-el-minutes" type="text" inputmode="numeric" autocomplete="off">
+<label class="guide-check" for="guide-el-interaction"><input id="guide-el-interaction" type="checkbox"> This screen has an interaction <span class="hint">Adds Interaction and Feedback blocks</span></label>
+<button id="guide-el-add" type="button" class="primary">Add screen</button>
+<p id="guide-el-summary" class="hint" role="status" aria-live="polite"></p>
+<div class="guide-actions"><button id="guide-el-script" type="button">Make the narration script (Word)</button><button id="guide-el-text" type="button">Save the script as text</button></div>
+<button id="guide-el-author" type="button">Send to OpenStage Author</button>
+<p class="hint">Makes a zip with a project for OpenStage Author: a slide for each screen, with its heading, on-screen text and narration, and a notes file with everything else the storyboard says. Unzip it, then open the folder that ends in .osproj in OpenStage Author.</p>
+
+</div>
+
+<div id="guide-part-look" class="guide-part" role="tabpanel" aria-labelledby="guide-part-tab-look" hidden>
+<div id="guide-sec-look">
+<h2 id="guide-look-heading">Look</h2>
+<p id="guide-look-now" class="hint" role="status" aria-live="polite"></p>
+<details class="guide-own-cues" id="guide-look-box"><summary>Change the look</summary>
+<div id="guide-looks" class="guide-looks" role="radiogroup" aria-label="Look for the guide"></div>
+<label for="guide-look-org">Your name or organization (shown in the footer, optional)</label>
+<input id="guide-look-org" type="text" autocomplete="off" maxlength="120">
+<label for="guide-look-accent">Accent colour, like #164B6B (leave empty to use the look's own)</label>
+<input id="guide-look-accent" type="text" autocomplete="off" spellcheck="false" maxlength="7" placeholder="#164B6B">
+<label class="guide-check" for="guide-look-header"><input id="guide-look-header" type="checkbox"> Add a running header and footer <span class="hint">The guide's title at the top of each page; page numbers at the bottom</span></label>
+<label for="guide-look-copyright">Copyright line (optional, in the footer)</label>
+<input id="guide-look-copyright" type="text" autocomplete="off" maxlength="120">
+<label for="guide-look-revised">Revision date (optional, in the footer)</label>
+<input id="guide-look-revised" type="text" autocomplete="off" maxlength="40">
+<button id="guide-look-apply" type="button" class="primary">Apply this look</button>
+<p id="guide-look-note" class="hint" role="status" aria-live="polite"></p>
+</details>
+</div>
+
+<div id="guide-sec-standard">
+<h2>Standard pages</h2>
+<p class="hint">A guide opens with its title, Acknowledgements, Contents and Getting Started. The Appendix is optional and goes at the end.</p>
+<div class="guide-actions"><button id="guide-add-standard" type="button">Add missing standard pages</button><button id="guide-add-appendix" type="button">Add Appendix</button></div>
+<p id="guide-standard-note" class="hint"></p>
+</div>
+
+<div id="guide-sec-built">
+<h2>Pages built from your guide</h2>
+<p class="hint">These pages are built from your guide when you ask. Nothing changes them by itself, so build them again after the guide changes. The overview is for the module your cursor is in.</p>
+<div class="guide-actions"><button id="guide-build-glance" type="button">Build Training at a Glance</button><button id="guide-build-cues" type="button">Build Graphic Cues page</button><button id="guide-build-overview" type="button">Build module overview</button></div>
+<p id="guide-glance-note" class="hint"></p>
+<p id="guide-cues-note" class="hint"></p>
+<p id="guide-overview-note" class="hint"></p>
+</div>
+
+</div>
+
+<div id="guide-part-organize" class="guide-part" role="tabpanel" aria-labelledby="guide-part-tab-organize" hidden>
+<div id="guide-sec-move">
+<div id="guide-tidy" class="guide-selected" hidden>
+<h2 id="guide-tidy-heading">Move or delete</h2>
+<p id="guide-tidy-text"></p>
+<div class="guide-actions"><button id="guide-move-up" type="button">Move up</button><button id="guide-move-down" type="button">Move down</button><button id="guide-delete" type="button">Delete</button></div>
+<div id="guide-delete-confirm" hidden>
+<p id="guide-delete-text" role="alert"></p>
+<div class="guide-actions"><button id="guide-delete-yes" type="button">Yes, delete it</button><button id="guide-delete-no" type="button">Keep it</button></div>
+</div>
+</div>
+</div>
+
+<div id="guide-sec-keeptidy">
+<h2>Keep it tidy</h2>
+<div class="guide-actions"><button id="guide-update" type="button">Update guide</button><button id="guide-open-review" type="button">Review guide</button><button id="guide-refresh" type="button">Refresh</button></div>
+<p id="guide-update-note" class="hint"></p>
+</div>
+
+<div id="guide-sec-contents">
+<h2 id="guide-contents-heading">Contents</h2>
+<p class="hint">Choose a line to go there.</p>
+<ul id="guide-contents" class="guide-contents" aria-labelledby="guide-contents-heading"></ul>
+</div>
+
+<div id="guide-sec-agenda">
+<h2 id="guide-agenda-heading">Timing and agenda</h2>
+<p class="hint">Times for each lesson, worked out from the minutes in your guide. A lesson takes the minutes on its blocks, or its Time line when its blocks have none. For a break, add a Break block with its minutes.</p>
+<label for="guide-agenda-start">Start time</label>
+<input id="guide-agenda-start" type="time" value="09:00" required>
+<p id="guide-agenda-summary" class="hint" role="status" aria-live="polite"></p>
+<table id="guide-agenda-table" class="guide-agenda-table" hidden>
+<caption>Agenda</caption>
+<thead><tr><th scope="col">Time</th><th scope="col">What</th><th scope="col">Min.</th></tr></thead>
+<tbody id="guide-agenda-body"></tbody>
+</table>
+<ul id="guide-agenda-notes" class="guide-issues"></ul>
+<div class="guide-actions"><button id="guide-agenda-refresh" type="button">Work it out again</button><button id="guide-agenda-download" type="button" class="primary">Make the agenda in Word</button></div>
+</div>
+
+<div id="guide-sec-align">
+<h2 id="guide-align-heading">Learning alignment</h2>
+<p class="hint">Which objectives have an activity and an assessment item. Your objectives are the Objective blocks in your lessons. An Activity is tied to an objective when its Objective part says the same thing, and an assessment item when its Learning objective does.</p>
+<p id="guide-align-summary" class="hint" role="status" aria-live="polite"></p>
+<ul id="guide-align-list" class="guide-align-list"></ul>
+<h3 id="guide-align-loose-heading" hidden>Not tied to an objective</h3>
+<ul id="guide-align-loose" class="guide-issues"></ul>
+<div class="guide-actions"><button id="guide-align-refresh" type="button">Check again</button></div>
+</div>
+
+<div id="guide-sec-versions">
+<h2 id="guide-ver-heading">Delivery versions</h2>
+<p class="hint">Plan a shorter or longer session from the same guide: choose the lessons to teach, put them in order, and see the times against a target. Your versions are kept in this document.</p>
+<label for="guide-ver-select">Version</label>
+<select id="guide-ver-select"></select>
+<div class="guide-actions"><button id="guide-ver-new" type="button">New version</button><button id="guide-ver-delete" type="button">Delete this version</button></div>
+<div id="guide-ver-edit" hidden>
+<label for="guide-ver-name">Name</label>
+<input id="guide-ver-name" type="text" maxlength="80" autocomplete="off">
+<div class="guide-row2">
+<div><label for="guide-ver-target">Target minutes</label>
+<input id="guide-ver-target" type="text" inputmode="numeric" autocomplete="off" aria-describedby="guide-ver-target-hint"></div>
+<div><label for="guide-ver-start">Start time</label>
+<input id="guide-ver-start" type="time" value="09:00"></div>
+</div>
+<p id="guide-ver-target-hint" class="hint">For example 60, 180 or 360. Leave it empty for no target.</p>
+<fieldset><legend>Lessons to teach, in order</legend>
+<ul id="guide-ver-lessons" class="guide-lib-list"></ul>
+</fieldset>
+<p id="guide-ver-summary" class="hint" role="status" aria-live="polite"></p>
+<table id="guide-ver-table" class="guide-agenda-table" hidden>
+<caption>Agenda for this version</caption>
+<thead><tr><th scope="col">Time</th><th scope="col">What</th><th scope="col">Min.</th></tr></thead>
+<tbody id="guide-ver-body"></tbody>
+</table>
+<div class="guide-actions"><button id="guide-ver-make" type="button" class="primary">Make this version's agenda in Word</button></div>
+</div>
+</div>
+<div id="guide-sec-backup">
+<h2 id="guide-bk-heading">Save a backup</h2>
+<p class="hint">A backup is a complete copy of this document as it is now: its words, pictures, notes and styles, and what the guide keeps inside it (its look, its slides, its delivery versions). It is saved as an ordinary Word file that opens on any computer. Unsaved changes are included.</p>
+<div class="guide-actions"><button id="guide-bk-save" type="button" class="primary">Save a backup</button></div>
+<p class="hint">The copy goes to your Downloads folder (or where Word asks). Keep one somewhere other than this computer's drive too, such as OneDrive or a USB stick.</p>
+</div>
+<div id="guide-sec-restore">
+<h2 id="guide-rs-heading">Restore a backup</h2>
+<p class="hint">Choose a backup you saved earlier. It opens in a new Word window as a separate document: nothing in the document you are working in changes. To go back to it, save the opened copy over your guide, or keep working in the copy.</p>
+<label for="guide-bk-file">Backup file (a .docx, or a .zip made by the older backup)</label>
+<input id="guide-bk-file" type="file" accept=".docx,.zip">
+<div id="guide-bk-found" hidden>
+<h3 id="guide-bk-found-heading">This backup</h3>
+<ul id="guide-bk-facts"></ul>
+<div class="guide-actions"><button id="guide-bk-open" type="button" class="primary">Open this backup in a new window</button></div>
+</div>
+</div>
+</div>
+</div>
+
+<div id="guide-assess" hidden>
+<div class="guide-titlebar">
+<h1 id="guide-assess-heading" tabindex="-1">Assessments</h1>
+</div>
+<div id="guide-assess-selected" class="guide-selected guide-selected-bar" hidden>
+<h2 id="guide-assess-selected-heading" class="visually-hidden">In your document</h2>
+<p id="guide-assess-selected-text"></p>
+<button id="guide-assess-edit" type="button">Edit this item</button>
+</div>
+
+<div id="guide-assess-parts" class="guide-parts" role="tablist" aria-label="Assessment tools"><button type="button" role="tab" id="guide-apart-tab-items" aria-controls="guide-apart-items" aria-selected="true" tabindex="0">Items</button><button type="button" role="tab" id="guide-apart-tab-paste" aria-controls="guide-apart-paste" aria-selected="false" tabindex="-1">Paste questions</button><button type="button" role="tab" id="guide-apart-tab-bank" aria-controls="guide-apart-bank" aria-selected="false" tabindex="-1">Question bank</button></div>
+<div id="guide-apart-items" class="guide-part" role="tabpanel" aria-labelledby="guide-apart-tab-items">
+<h2>Start a section</h2>
+<div class="guide-starters">
+<button id="guide-sec-level-one" type="button" aria-describedby="guide-sec-level-one-hint">Level One: reaction survey</button>
+<p id="guide-sec-level-one-hint" class="hint">Learners rate the training right after it. No right answers, no answer key.</p>
+<button id="guide-sec-level-two" type="button" aria-describedby="guide-sec-level-two-hint">Level Two: knowledge check (quiz)</button>
+<p id="guide-sec-level-two-hint" class="hint">The quiz. Questions with right answers, and an answer key for you.</p>
+<button id="guide-sec-level-three" type="button" aria-describedby="guide-sec-level-three-hint">Level Three: follow-up survey</button>
+<p id="guide-sec-level-three-hint" class="hint">Learners report back some weeks later on what they used. No answer key.</p>
+</div>
+<p class="hint">A new section goes after the section or module your cursor is in. Items then go inside it.</p>
+
+<h2 id="guide-item-heading">Add an item</h2>
+<p id="guide-item-where" class="guide-where" data-state="none"></p>
+<p id="guide-item-note" class="hint"></p>
+<form id="guide-item-form">
+<div class="guide-cue-chooser">
+<button id="guide-type-toggle" type="button" class="guide-cue-toggle" aria-expanded="false" aria-controls="guide-type-panel"><span class="guide-cue-toggle-text"><span class="guide-cue-toggle-kind">Type of item</span> <strong id="guide-type-current"></strong></span><span id="guide-type-toggle-action" class="guide-cue-toggle-action">Change</span></button>
+<p id="guide-item-help" class="hint"></p>
+<div id="guide-type-panel" class="guide-cue-panel" hidden>
+<div id="guide-item-types" class="guide-cues" role="radiogroup" aria-label="Type of item"></div>
+</div>
+</div>
+<label for="guide-item-stem" id="guide-item-stem-label">Question</label>
+<textarea id="guide-item-stem" rows="3"></textarea>
+<p id="guide-item-stem-hint" class="hint"></p>
+<fieldset id="guide-item-options" hidden><legend id="guide-item-options-legend">Options (tick the correct one)</legend>
+<div class="guide-opt"><label for="guide-item-opt-1">Option a</label><input id="guide-item-opt-1" type="text" autocomplete="off"><label class="guide-check" for="guide-item-correct-1"><input id="guide-item-correct-1" type="checkbox"> a is correct</label></div>
+<div class="guide-opt"><label for="guide-item-opt-2">Option b</label><input id="guide-item-opt-2" type="text" autocomplete="off"><label class="guide-check" for="guide-item-correct-2"><input id="guide-item-correct-2" type="checkbox"> b is correct</label></div>
+<div class="guide-opt"><label for="guide-item-opt-3">Option c</label><input id="guide-item-opt-3" type="text" autocomplete="off"><label class="guide-check" for="guide-item-correct-3"><input id="guide-item-correct-3" type="checkbox"> c is correct</label></div>
+<div class="guide-opt"><label for="guide-item-opt-4">Option d</label><input id="guide-item-opt-4" type="text" autocomplete="off"><label class="guide-check" for="guide-item-correct-4"><input id="guide-item-correct-4" type="checkbox"> d is correct</label></div>
+<div class="guide-opt"><label for="guide-item-opt-5">Option e (optional)</label><input id="guide-item-opt-5" type="text" autocomplete="off"><label class="guide-check" for="guide-item-correct-5"><input id="guide-item-correct-5" type="checkbox"> e is correct</label></div>
+<div class="guide-opt"><label for="guide-item-opt-6">Option f (optional)</label><input id="guide-item-opt-6" type="text" autocomplete="off"><label class="guide-check" for="guide-item-correct-6"><input id="guide-item-correct-6" type="checkbox"> f is correct</label></div>
+</fieldset>
+<fieldset id="guide-item-truefalse" class="guide-audience" hidden><legend>The statement is</legend>
+<label class="guide-check" for="guide-item-true"><input id="guide-item-true" type="radio" name="guide-item-truth" value="true"> True</label>
+<label class="guide-check" for="guide-item-false"><input id="guide-item-false" type="radio" name="guide-item-truth" value="false"> False</label>
+</fieldset>
+<div id="guide-item-answer-box" hidden><label for="guide-item-answer" id="guide-item-answer-label">Answer</label><textarea id="guide-item-answer" rows="2"></textarea></div>
+<div id="guide-item-numeric" hidden>
+<label for="guide-item-tolerance">How close an answer can be and still count (optional)</label>
+<input id="guide-item-tolerance" type="text" inputmode="decimal" autocomplete="off" aria-describedby="guide-item-numeric-hint">
+<label for="guide-item-units">Units (optional)</label>
+<input id="guide-item-units" type="text" autocomplete="off">
+<p id="guide-item-numeric-hint" class="hint">The correct number above is for the key. Give the number alone, like 42 or 3.5. If an answer within 0.5 counts, type 0.5 here. The units, like kg, are told to the learner on the line they write the answer on.</p>
+</div>
+<div id="guide-item-lines-box" hidden><label for="guide-item-lines">Lines to write on</label><input id="guide-item-lines" type="text" inputmode="numeric" autocomplete="off"></div>
+<div id="guide-item-matching" hidden>
+<label for="guide-item-pairs">Pairs, one to a line: the item, then its match</label>
+<textarea id="guide-item-pairs" rows="5" aria-describedby="guide-item-pairs-hint"></textarea>
+<p id="guide-item-pairs-hint" class="hint">Separate the item from its match with | or a tab, so a line pasted from a spreadsheet works. The choices are listed in alphabetical order, so the order of the items does not give the answers away.</p>
+<label for="guide-item-extras">Extra choices that match nothing (optional, one to a line)</label>
+<textarea id="guide-item-extras" rows="2"></textarea>
+</div>
+<div id="guide-item-rating" hidden>
+<label for="guide-item-statements">Statements, one to a line</label>
+<textarea id="guide-item-statements" rows="5"></textarea>
+<fieldset class="guide-audience"><legend>Rating scale</legend>
+<label class="guide-check" for="guide-item-scale-agree"><input id="guide-item-scale-agree" type="radio" name="guide-item-scale" value="agree" checked> Five-point agreement <span class="hint">Strongly disagree to Strongly agree</span></label>
+<label class="guide-check" for="guide-item-scale-success"><input id="guide-item-scale-success" type="radio" name="guide-item-scale" value="success"> Five-point success <span class="hint">Not at all to Completely</span></label>
+<label class="guide-check" for="guide-item-scale-custom"><input id="guide-item-scale-custom" type="radio" name="guide-item-scale" value="custom"> My own labels</label>
+</fieldset>
+<label for="guide-item-labels">My own labels, separated by commas (2 to 7)</label>
+<input id="guide-item-labels" type="text" autocomplete="off">
+</div>
+<div id="guide-item-ordering" hidden>
+<label for="guide-item-order-items">The items in the right order, one to a line</label>
+<textarea id="guide-item-order-items" rows="5" aria-describedby="guide-item-order-hint"></textarea>
+<p id="guide-item-order-hint" class="hint">3 to 8 items. In the document they are listed mixed up, with letters, and the key gives the right order.</p>
+</div>
+<div id="guide-item-performance" hidden>
+<label for="guide-item-criteria">Checklist criteria, one to a line</label>
+<textarea id="guide-item-criteria" rows="5" aria-describedby="guide-item-criteria-hint"></textarea>
+<p id="guide-item-criteria-hint" class="hint">Add points after a | if you want them, like: Listens without interrupting | 2. The checklist goes in the key, for the facilitator. The learner gets the task and lines to write on.</p>
+</div>
+<div id="guide-item-rubric" hidden>
+<label for="guide-item-rubric-levels">Levels, one to a line (2 to 5), best first</label>
+<textarea id="guide-item-rubric-levels" rows="3" aria-describedby="guide-item-rubric-hint"></textarea>
+<label for="guide-item-rubric-rows">Criteria, one to a line: the criterion, then what each level looks like</label>
+<textarea id="guide-item-rubric-rows" rows="6" aria-describedby="guide-item-rubric-hint"></textarea>
+<p id="guide-item-rubric-hint" class="hint">Add points after a | on a level line if you want them, like: Meets | 2. Each criterion line has the criterion and then one description for each level, in the same order, separated by |, like: Listens | Never interrupts | Interrupts once or twice | Often interrupts.</p>
+<label class="guide-check" for="guide-item-rubric-learners"><input id="guide-item-rubric-learners" type="checkbox"> Show the rubric to learners <span class="hint">It then goes under the task, and into the workbook. Unticked, it goes in the key for the facilitator and the learner gets the task and lines to write on.</span></label>
+</div>
+<div id="guide-item-semantic" hidden>
+<label for="guide-item-sd-pairs">Pairs of opposite words, one pair to a line</label>
+<p id="guide-item-sd-hint" class="hint">Like: Boring | Interesting. Separate the two words with | or a tab.</p>
+<textarea id="guide-item-sd-pairs" rows="5" aria-describedby="guide-item-sd-hint"></textarea>
+<fieldset class="guide-audience"><legend>Points on the scale</legend>
+<label class="guide-check" for="guide-item-sd-5"><input id="guide-item-sd-5" type="radio" name="guide-item-sd" value="5" checked> 5 points</label>
+<label class="guide-check" for="guide-item-sd-7"><input id="guide-item-sd-7" type="radio" name="guide-item-sd" value="7"> 7 points</label>
+</fieldset>
+</div>
+<div id="guide-item-action" hidden>
+<label for="guide-item-actions">How many actions to ask for (1 to 5)</label>
+<input id="guide-item-actions" type="text" inputmode="numeric" autocomplete="off" maxlength="1" value="3" aria-describedby="guide-item-actions-hint">
+<p id="guide-item-actions-hint" class="hint">Each action has four lines to write on: the opportunity, what could get in the way, what the learner will do, and by when.</p>
+</div>
+<div id="guide-item-key-box">
+<label for="guide-item-why">Why it is right (optional, goes in the key)</label><textarea id="guide-item-why" rows="2"></textarea>
+<label for="guide-item-points">Points (optional)</label><input id="guide-item-points" type="text" inputmode="numeric" autocomplete="off">
+<label for="guide-item-objective">Learning objective (optional)</label><input id="guide-item-objective" type="text" autocomplete="off">
+</div>
+<div id="guide-item-msg-box" hidden>
+<p id="guide-item-problem" role="alert" class="guide-error" hidden></p>
+<p id="guide-item-ok" role="status" class="guide-ok" hidden></p>
+<p id="guide-item-offer" hidden><button id="guide-item-start-two" type="button">Start a Level Two section here</button></p>
+</div>
+<button id="guide-item-go" type="submit" class="primary" aria-describedby="guide-item-where">Insert item</button>
+<button id="guide-item-cancel" type="button" hidden>Cancel edit</button>
+<p class="hint">Ctrl+Enter in a text box also inserts.</p>
+</form>
+
+</div>
+<div id="guide-apart-paste" class="guide-part" role="tabpanel" aria-labelledby="guide-apart-tab-paste" hidden>
+<h2 id="guide-paste-heading">Paste many questions</h2>
+<p class="hint">Paste questions in the plain-text layout test banks use. They go in the section your cursor is in, after the item your cursor is in, and are numbered to follow the questions already there. Nothing is added unless every question reads; the ones that do not are named.</p>
+<details id="guide-paste-help"><summary>What the layout looks like</summary>
+<p class="hint">Each question starts with its number. Options are lettered, with a * before the correct one. Put a Type: line before a question that is not multiple choice: MA (more than one correct), TF (true or false), E (essay), S (short answer), F (fill in the blank, the options are the accepted answers) or MT (matching, each option written like a. Term = Meaning). An Answer: line after the options, or an Answers: list at the end, can give the key instead of the *. A Points: line before a question gives its points. Titles, feedback lines and publisher notes are skipped.</p>
+<pre class="hint">Type: MA
+1) Which of these are noble gases?
+*a. Neon
+*b. Argon
+c. Oxygen
+
+2) Sound travels faster than light.
+a. True
+*b. False</pre></details>
+<form id="guide-paste-form">
+<label for="guide-paste-text">Questions</label>
+<textarea id="guide-paste-text" rows="8"></textarea>
+<p id="guide-paste-problem" role="alert" class="guide-error" hidden></p>
+<ul id="guide-paste-list" class="guide-issues" hidden></ul>
+<p id="guide-paste-ok" role="status" class="guide-ok" hidden></p>
+<button id="guide-paste-go" type="submit" class="primary">Add the pasted questions</button>
+</form>
+
+</div>
+<div id="guide-apart-bank" class="guide-part" role="tabpanel" aria-labelledby="guide-apart-tab-bank" hidden>
+<h2 id="guide-bank-heading">Import from an OpenAssess bank</h2>
+<p class="hint">Choose a bank file (.openassess) from your OpenAssess question bank. Its questions are added as items, in the section your cursor is in, up to 50 at a time. A question that has a picture or an equation, or that is a type the guide does not have, is listed with the reason and left out.</p>
+<form id="guide-bank-form">
+<label for="guide-bank-file">Bank file</label>
+<input id="guide-bank-file" type="file" accept=".openassess">
+<div id="guide-bank-box" hidden>
+<p id="guide-bank-summary"></p>
+<label for="guide-bank-folder">Questions from</label>
+<select id="guide-bank-folder"></select>
+<label for="guide-bank-start">Start at question number</label>
+<input id="guide-bank-start" type="text" inputmode="numeric" autocomplete="off" value="1" aria-describedby="guide-bank-window">
+<p id="guide-bank-window" class="hint"></p>
+<details id="guide-bank-skipped-box" hidden><summary>Questions that cannot be added</summary>
+<ul id="guide-bank-skipped" class="guide-issues"></ul></details>
+</div>
+<p id="guide-bank-problem" role="alert" class="guide-error" hidden></p>
+<p id="guide-bank-ok" role="status" class="guide-ok" hidden></p>
+<button id="guide-bank-go" type="submit" class="primary">Add questions from the bank</button>
+</form>
+</div>
+</div>
+
+<div id="guide-workbook" hidden>
+<h1 id="guide-workbook-heading" tabindex="-1">Learner workbook</h1>
+<p class="hint">A separate Word file with what is for learners. Your guide is not changed. Make it again whenever the guide changes: edits made in a workbook do not come back to the guide.</p>
+<h2>From your guide</h2>
+<p id="guide-workbook-summary"></p>
+<p id="guide-workbook-left"></p>
+<p id="guide-workbook-added" class="hint"></p>
+<details id="guide-workbook-leftout-box" hidden><summary>Show your own text that was left out</summary>
+<p class="hint">Text you typed yourself outside an assessment section is left out, because the pane cannot tell whether you meant it for learners. To put text in the workbook, add it as a block for Everyone.</p>
+<ul id="guide-workbook-leftout" class="guide-issues"></ul></details>
+<h2>Look</h2>
+<div id="guide-wb-looks" class="guide-looks" role="radiogroup" aria-label="Look"></div>
+<label for="guide-wb-org">Your name or organization (shown in the footer, optional)</label>
+<input id="guide-wb-org" type="text" autocomplete="off" maxlength="120">
+<label for="guide-wb-accent">Accent colour, like #164B6B (leave empty to use the look's own)</label>
+<input id="guide-wb-accent" type="text" autocomplete="off" spellcheck="false" maxlength="7" placeholder="#164B6B">
+<fieldset class="guide-audience"><legend>Printing</legend>
+<label class="guide-check" for="guide-wb-print-color"><input id="guide-wb-print-color" type="radio" name="guide-wb-print" value="color" checked> In colour</label>
+<label class="guide-check" for="guide-wb-print-gray"><input id="guide-wb-print-gray" type="radio" name="guide-wb-print" value="grayscale"> Black and white</label>
+</fieldset>
+<fieldset class="guide-audience"><legend>Page size</legend>
+<label class="guide-check" for="guide-wb-page-letter"><input id="guide-wb-page-letter" type="radio" name="guide-wb-page" value="Letter" checked> Letter</label>
+<label class="guide-check" for="guide-wb-page-a4"><input id="guide-wb-page-a4" type="radio" name="guide-wb-page" value="A4"> A4</label>
+</fieldset>
+<label for="guide-wb-lines">Lines to write on after each question or activity (0 to 6)</label>
+<input id="guide-wb-lines" type="text" inputmode="numeric" autocomplete="off" maxlength="1" value="3">
+<p class="hint">Ask, Discussion, Activity and Workbook blocks are followed by "Your notes:" and this many bordered lines. Use 0 for none.</p>
+<div id="guide-workbook-msg-box" hidden>
+<p id="guide-workbook-problem" role="alert" class="guide-error" hidden></p>
+<p id="guide-workbook-ok" role="status" class="guide-ok" hidden></p>
+</div>
+<button id="guide-workbook-go" type="button" class="primary">Make the workbook</button>
+<p class="hint">It opens in a new Word window. Save it where you want. A leak check runs first; if it finds anything meant for the facilitator, the workbook is not made.</p>
+<details id="guide-workbook-checks-box" hidden><summary>What was checked in the workbook</summary>
+<p class="hint">These checks are not Word's own Accessibility Checker and not a screen-reader test. They do not stop the workbook: you can fix what they find in the copy.</p>
+<h3>To fix</h3><ul id="guide-workbook-fix" class="guide-issues"></ul>
+<h3>To look at</h3><ul id="guide-workbook-look-at" class="guide-issues"></ul>
+<h3>Print check</h3><ul id="guide-workbook-print" class="guide-issues"></ul>
+<h3>To check yourself</h3><ul id="guide-workbook-human" class="guide-issues"></ul>
+</details>
+</div>
+
+<div id="guide-review" hidden>
+<h1 id="guide-review-heading" tabindex="-1">Review this guide</h1>
+<p id="guide-review-summary"></p>
+<h2>To fix</h2>
+<ul id="guide-review-fix" class="guide-issues"></ul>
+<h2>To look at</h2>
+<ul id="guide-review-look" class="guide-issues"></ul>
+<h2>To check yourself</h2>
+<ul id="guide-review-check" class="guide-issues"></ul>
+<div class="guide-actions"><button id="guide-review-run" type="button">Review again</button><button id="guide-review-back" type="button">Back to guide</button></div>
+<h2>Save as PDF</h2>
+<p class="hint">This reviews the document first. With nothing to fix, it asks Word for its own PDF and checks that the PDF is tagged. With anything to fix, no PDF is made.</p>
+<p id="guide-review-pdf-problem" role="alert" class="guide-error" hidden></p>
+<p id="guide-review-pdf-ok" role="status" class="guide-ok" hidden></p>
+<button id="guide-review-pdf" type="button">Save as PDF</button>
+</div>
+</section>
+<section id="view-course" aria-labelledby="course-heading" hidden>
+<div class="eyebrow">COURSE FOUNDATION</div><h1 id="course-heading">A guide worth teaching from.</h1><p>Build your facilitator notes and participant materials together, one activity at a time.</p>
+<form id="course-form"><p>Start with the title and optional private course details. They are saved together with the new course. Add learning modules afterward.</p><details id="course-setup-guidance"><summary>Course setup guidance and example</summary><p>Choose a title learners can recognize. Describe who will attend, what the course should accomplish, who authored it and which sources or permissions need attribution. These four details stay in the private master and full backup; current public outputs exclude them.</p><p>Read-only example: Title: Communicating through conflict. Audience: New team leaders. Purpose: Practice a constructive response to a workplace disagreement. Authors: Example training team. Attribution: Original exercises by the training team; list any reused sources and permissions.</p><p>This example is guidance only. Opening or closing it does not fill or change your entries. Cover pages, contents, institutional/delivery settings and full student/experienced modes remain future work.</p></details><label for="course-starter">Guide starter</label><select id="course-starter"><option value="minimal" selected>Minimal — title and learning modules</option><option value="wrench">Wrench — private front matter in a new blank guide</option></select><fieldset id="course-frontmatter" hidden><legend>Wrench front matter</legend><p>Opening is always included. Choose any additional private authoring sections. Write their content directly in Word after creation. These sections are excluded from current public outputs and are not learning modules. This partial starter supplies semantic headings and empty bodies; it does not reproduce the original template’s layout, cover or contents.</p><label><input id="course-section-getting-started" type="checkbox"> Getting started</label><label><input id="course-section-background" type="checkbox"> Background</label><label><input id="course-section-team" type="checkbox"> Development team / acknowledgements</label><label><input id="course-section-overview" type="checkbox"> Program overview</label><p>Requires a new blank supported DOCX without existing text, tables, pictures, controls, headers or other story content. Existing content is preserved if creation is refused.</p></fieldset><label for="course-title">Course title</label><input id="course-title" required maxlength="200" placeholder="e.g. Communicating through conflict"><label for="course-setup-audience">Audience — private course detail (optional)</label><textarea id="course-setup-audience" maxlength="50000" rows="2" placeholder="Who will take this course?"></textarea><label for="course-setup-purpose">Purpose — private course detail (optional)</label><textarea id="course-setup-purpose" maxlength="50000" rows="2" placeholder="What should the course help them accomplish?"></textarea><label for="course-setup-authors">Authors — private course detail (optional)</label><textarea id="course-setup-authors" maxlength="50000" rows="2" placeholder="Who created this guide?"></textarea><label for="course-setup-attribution">Attribution — private course detail (optional)</label><textarea id="course-setup-attribution" maxlength="50000" rows="3" placeholder="Sources, licenses, acknowledgments or permissions"></textarea><button class="primary" type="submit">Create course in Word <span aria-hidden="true">↗</span></button></form>
+<div id="existing-course" hidden><p>Your course is saved in this Word document. Edit its text directly in Word, then refresh before creating a workbook.</p><button id="refresh">Refresh from Word</button></div>
+<div id="course-details" hidden><h2>Course details</h2><p>Describe who this course is for and why it exists. Keep authorship and rights information with the master.</p><button id="course-details-load">Load current course details</button><p id="course-details-summary" class="small" role="status">Load the current details before editing.</p><form id="course-details-form"><label for="course-detail-audience">Audience</label><textarea id="course-detail-audience" rows="2" maxlength="50000" placeholder="Who will use this course?"></textarea><label for="course-detail-purpose">Purpose</label><textarea id="course-detail-purpose" rows="3" maxlength="50000" placeholder="What should this course help people accomplish?"></textarea><label for="course-detail-authors">Authors</label><textarea id="course-detail-authors" rows="2" maxlength="50000" placeholder="Names and affiliations, as appropriate"></textarea><label for="course-detail-attribution">Attribution and rights notes</label><textarea id="course-detail-attribution" rows="3" maxlength="50000" placeholder="Credits, permissions and rights notices for this course"></textarea><button class="primary" type="submit">Save course details</button></form><p class="small muted">These details stay in the master and its backups. They do not yet generate cover pages or appear in the participant workbook. This records your rights notes; it does not grant permission or replace the supplied icon attribution. Reload if Word text or course settings change while you are editing.</p></div>
+<h2>The authoring path</h2><ol class="path"><li><b>Shape a module</b><span>Give it a purpose and a learning objective.</span></li><li><b>Build an activity</b><span>Connect teaching instructions with learner practice.</span></li><li><b>Make the workbook</b><span>Preview learner content and download a Word copy.</span></li></ol>
+<button id="show-outline">View course outline</button>
+</section>
+<section id="view-outline" aria-labelledby="outline-heading" hidden><div class="eyebrow">YOUR COURSE AT A GLANCE</div><h1 id="outline-heading">Course outline</h1><p>Select a module or activity to jump to its text in Word. Durations show the planned teaching time.</p><label for="outline-query">Find in course text</label><input id="outline-query" type="search" maxlength="200" aria-describedby="outline-search-help"><p id="outline-search-help" class="small muted">Searches titles, objectives, instructional cues and private facilitator, participant and answer text in the current panel view. Use Refresh from Word to include newer document edits. Filters do not change the course.</p><label for="outline-icon">Instructional cue</label><select id="outline-icon"><option value="">All cues</option></select><label for="outline-status">Content filter</label><select id="outline-status"><option value="all">All content</option><option value="unfinished">Unfinished prompts</option><option value="needs-attention">Needs attention in Review Guide</option><option value="missing-objective">Modules missing an objective</option><option value="no-recorded-materials">No recorded materials</option></select><p class="small muted">No recorded materials shows activities with no supported saved material entries. Supplies may still be required, and recorded lists may be incomplete.</p><button id="outline-clear" type="button">Clear outline filters</button><p id="outline-results" role="status" aria-live="polite"></p><div id="outline" class="outline"><p class="muted">Your modules will appear here.</p></div><p class="small muted">Edit text in Word and use Refresh from Word on the Course tab to update the outline. Moving and reordering items will follow.</p></section>
+<section id="view-module" aria-labelledby="module-heading" hidden><div class="eyebrow">01 / SHAPE THE LEARNING</div><h1 id="module-heading">Add a module</h1><p>A clear objective keeps the lesson and practice connected.</p>
+<form id="module-form"><label for="module-title">Module title</label><input id="module-title" required maxlength="200" placeholder="e.g. Recognize the conflict"><label for="module-objective">Learning objective</label><textarea id="module-objective" rows="4" placeholder="By the end, participants will be able to…"></textarea><button class="primary" type="submit">Add module to Word</button></form></section>
+<section id="view-activity" aria-labelledby="activity-heading" hidden><div class="eyebrow">02 / TURN CONTENT INTO PRACTICE</div><h1 id="activity-heading">Build an activity</h1><button data-view="edit-activity">Edit existing activity settings</button><p id="activity-target">Add a module before creating an activity.</p>
+<h2>Editable assessment starters</h2><p>Original authoring prompts for feedback, evidence of learning and application reflection. Justify suitability for your audience and purpose. These are not validated instruments, automatic scores, response collection or scheduled follow-up.</p><label for="assessment-starter">Assessment starter</label><select id="assessment-starter"><option value="">Choose a starter</option></select><button id="assessment-load" type="button">Load assessment starter into Activity</button><div id="activity-replacement" hidden><p id="activity-replacement-summary" role="status"></p><p>Keep or separately preserve your current draft before replacing it. Keeping it retains this panel session only; closing the panel can lose unsaved work.</p><button id="activity-replace-cancel" type="button">Keep current Activity draft</button><button id="activity-replace-confirm" type="button">Discard current draft and load selected copy</button></div><div id="assessment-review" hidden><p id="assessment-origin" role="status"></p><p id="assessment-unresolved" role="status"></p><label for="assessment-reviewed"><input id="assessment-reviewed" type="checkbox"> I replaced the prompts, justified suitability and reviewed this exact starter draft and destination. No measurement validity is claimed.</label></div><p id="activity-library-note" class="small" role="status"></p><form id="activity-form"><label for="activity-module">Add to module</label><select id="activity-module" required aria-describedby="activity-target"></select><label for="activity-title">Activity title</label><input id="activity-title" required maxlength="200" placeholder="e.g. Reframe the conversation"><div class="two"><div><label for="activity-icon">Instructional cue</label><select id="activity-icon"></select></div><div><label for="activity-minutes">Minutes</label><input id="activity-minutes" type="number" min="0" max="1440" value="10" step="0.5" required></div></div>
+<div id="cue-preview" class="cue-preview"></div><details id="activity-copied-materials" hidden><summary>Review copied material entries</summary><div id="activity-copied-materials-list"></div></details>
+<label for="activity-facilitator">Facilitator instructions</label><textarea id="activity-facilitator" rows="3" placeholder="How to introduce, run, and debrief this activity"></textarea>
+<label for="activity-participant">Participant instructions <span class="required">Required</span></label><textarea id="activity-participant" rows="4" required placeholder="The task participants will see in their workbook"></textarea>
+<label for="activity-answers">Facilitator answers or debrief notes</label><textarea id="activity-answers" rows="3" placeholder="Kept out of the participant workbook"></textarea>
+<label for="activity-lines">Writing lines in workbook</label><input id="activity-lines" type="number" min="0" max="20" value="5" step="1"><button id="activity-insert" class="primary" type="submit">Insert activity in Word</button></form><p class="small muted">Choose any module. The activity is added after its existing activities, before the next module. Moving existing activities will follow.</p></section>
+<section id="view-edit-activity" aria-labelledby="edit-activity-heading" hidden><div class="eyebrow">REFINE AN EXISTING ACTIVITY</div><h1 id="edit-activity-heading">Activity settings</h1><p>Change teaching time and workbook writing space. Edit titles, instructions and answers directly in Word, then load the activity again.</p><label for="edit-activity-id">Existing activity</label><select id="edit-activity-id"></select><button id="edit-activity-load">Load current settings</button><p id="edit-activity-summary" class="small" role="status">Choose an activity and load its current settings.</p><form id="edit-activity-form"><label for="edit-activity-minutes">Minutes</label><input id="edit-activity-minutes" type="number" min="0" max="1440" step="0.5" required><label for="edit-activity-lines">Writing lines in workbook</label><input id="edit-activity-lines" type="number" min="0" max="20" step="1" required><button class="primary" type="submit">Save activity settings</button></form><p class="small muted">Keep a backup before changing settings. The existing instructional icon is retained. Changing icons and moving activities will follow. If Word text changes after loading, reload before saving.</p><h2>Author-declared objective links</h2><p>Link this existing activity to current module objectives as practice, assessment or both. This maps design intent, not proof of learning or validity. Notes are private and excluded from current output/library copies. New copies start unlinked.</p><button id="coverage-load" type="button">Load activity objective links</button><button id="coverage-discard" type="button">Discard objective-link draft</button><p id="coverage-summary" role="status"></p><ul id="coverage-links"></ul><form id="coverage-entry-form"><label for="coverage-target">Target module objective</label><select id="coverage-target"></select><pre id="coverage-objective" class="paper" aria-label="Loaded current objective and old reviewed text"></pre><label for="coverage-practice"><input id="coverage-practice" type="checkbox"> Practice</label><label for="coverage-assessment"><input id="coverage-assessment" type="checkbox"> Assessment</label><label for="coverage-rationale">Private rationale for this link</label><textarea id="coverage-rationale" maxlength="50000" rows="3"></textarea><label for="coverage-current"><input id="coverage-current" type="checkbox"> I explicitly reviewed this exact current nonblank objective. Update only this link’s reviewed snapshot.</label><button id="coverage-apply" type="submit">Apply objective link to draft</button><button id="coverage-entry-clear" type="button">Clear objective-link entry</button></form><label for="coverage-reviewed"><input id="coverage-reviewed" type="checkbox"> I reviewed this activity’s complete link draft and private rationales.</label><button id="coverage-save" type="button">Save activity objective links</button><p class="small muted">Apply or explicitly clear the raw entry before saving. Loading another activity requires preserving and discarding this draft. Objective changes retain old links as stale/uncounted; only explicit re-review approves the new text. Changes made while saving retain newer draft work. Full-master backups preserve same-project annotations.</p><button data-view="activity">Add a new activity</button><button data-view="checkpoints">Open backups</button></section>
+<section id="view-library" aria-labelledby="library-heading" hidden><h1 id="library-heading">Reusable activity copies</h1><p>This authoring library includes facilitator instructions and answers. Keep exported library files private. Copies are independent; editing a library item never updates earlier insertions.</p><p class="small muted">Entries stay in this panel session until it reloads. Download the library to keep it, then import that file in a later session. This is separate from a full-master backup. Download library remains available if course operations pause, so you can preserve session copies before closing the panel.</p><form id="library-save-form"><label for="library-name">Name for the current activity form</label><input id="library-name" maxlength="200" required><label for="library-tags">Tags separated by commas</label><input id="library-tags" maxlength="1200"><button type="submit">Save current activity form as a new copy</button></form><label for="library-filter">Find by name or tag</label><input id="library-filter"><label for="library-item">Saved activity copy</label><select id="library-item"></select><p id="library-summary" role="status"></p><pre id="library-preview" class="paper"></pre><button id="library-use">Use this copy in the activity form</button><h2>Edit stored activity content</h2><p>Edit the saved library copy in its own draft. This does not change the Activity insertion form or activities already in Word. Review or revise this copy’s materials below. Existing course activities and loaded insertion drafts keep their own material lists.</p><button id="library-content-load">Load selected content for editing</button><button id="library-content-discard">Discard stored-content draft</button><p id="library-content-summary" role="status"></p><form id="library-content-form"><label for="library-content-title">Stored activity title</label><textarea id="library-content-title" maxlength="50000" rows="3" required></textarea><label for="library-content-participant">Stored participant instructions</label><textarea id="library-content-participant" maxlength="50000" rows="3" required></textarea><label for="library-content-facilitator">Private stored facilitator instructions</label><textarea id="library-content-facilitator" maxlength="50000" rows="3" ></textarea><label for="library-content-answers">Private stored answers</label><textarea id="library-content-answers" maxlength="50000" rows="3" ></textarea><label for="library-content-icon">Stored instructional cue</label><select id="library-content-icon"></select><label for="library-content-minutes">Stored minutes</label><input id="library-content-minutes" type="text" inputmode="decimal" maxlength="128" required><label for="library-content-lines">Stored workbook writing lines</label><input id="library-content-lines" type="text" inputmode="numeric" maxlength="128" required><h3>Stored material requirements</h3><ul id="library-content-materials"></ul><fieldset><legend>Add or edit a stored material</legend><label for="library-material-item">Material name</label><input id="library-material-item" maxlength="200"><label for="library-material-quantity">Total quantity for this activity</label><input id="library-material-quantity" type="text" inputmode="decimal" maxlength="128" value="1"><label for="library-material-unit">Unit</label><input id="library-material-unit" maxlength="80"><label for="library-material-use">Supply type</label><select id="library-material-use"><option value="consumable">Consumed or retained</option><option value="reusable">Reusable shared pool</option></select><label for="library-material-notes">Private preparation notes</label><textarea id="library-material-notes" rows="2" maxlength="2000"></textarea><button id="library-material-apply" type="button">Add or apply material entry</button><button id="library-material-clear" type="button">Clear unfinished material entry</button><p id="library-material-summary" role="status">Material rows are part of the stored-content draft.</p></fieldset><label for="library-content-reviewed"><input id="library-content-reviewed" type="checkbox">I reviewed these stored changes; existing activities and loaded insertion drafts stay unchanged</label><button id="library-content-save" type="submit">Save reviewed library content</button></form><button id="library-content-undo">Undo last stored-content edit</button><p class="small muted">Content edits and their last-edit undo are session-only. Add/apply or clear unfinished material entry text, review all fields, then save into the library and Download library to keep changes. Unsaved editor text is not in that download. Preserve/discard an active editor before loading another copy or undoing. Unfinished prompts may stay in a reusable copy; resolve them before insertion. Library-only editing and private download remain available while course operations are paused.</p><h2>Manage saved copies</h2><button id="library-manage-load">Load selected name and tags</button><p id="library-manage-summary" role="status"></p><form id="library-manage-form"><label for="library-edit-name">Library copy name</label><input id="library-edit-name" maxlength="200" required><label for="library-edit-tags">Library tags separated by commas</label><input id="library-edit-tags" maxlength="1200"><button type="submit">Save library name and tags</button></form><button id="library-remove">Remove selected session copy</button><button id="library-undo">Undo last library removal</button><p class="small muted">These controls change only the session library. Renaming retains its library identity and activity content. Removal does not delete any source file or inserted activity. Undo keeps the most recent removed copy for this session and refuses duplicate names or IDs; download the library to preserve your current catalog.</p><button id="library-export">Download library</button><label for="library-file">Import an OpenStage activity library file</label><input id="library-file" type="file" accept=".json,application/json"><button id="library-import">Check and add file entries</button><p class="small muted">Import adds entries; duplicate IDs or names are refused. Files are limited to 1 MB and 100 entries. Review the copied text in the Activity form and replace unfinished prompts before inserting. Cue sequences and expanded activity fields will follow.</p></section><section id="view-slides" aria-labelledby="slides-heading" hidden><h1 id="slides-heading">Review a PowerPoint source</h1><p>Read-only source preview. Your presentation and Word course stay unchanged. Speaker notes are private authoring material and never become learner instructions automatically.</p><label for="ppt-file">Standard PPTX file up to 16 MB</label><input id="ppt-file" type="file" accept=".pptx"><button id="ppt-read">Read slides into a review draft</button><button id="ppt-reset">Discard current slide review</button><label for="ppt-review-file">Private review record to restore up to 32 MB</label><input id="ppt-review-file" type="file" accept=".json,application/json"><button id="ppt-restore">Restore review using the selected matching PPTX</button><p id="ppt-summary" role="status"></p><p id="ppt-warnings" class="small"></p><label for="ppt-slide">Slide in source order</label><select id="ppt-slide"></select><form id="ppt-review-form"><label for="ppt-title">Reviewed title</label><textarea id="ppt-title" maxlength="50000" rows="2"></textarea><label for="ppt-text">Reviewed slide text</label><textarea id="ppt-text" maxlength="50000" rows="5"></textarea><label for="ppt-notes">Reviewed speaker notes for authors only</label><textarea id="ppt-notes" maxlength="50000" rows="5"></textarea><label for="ppt-module">Proposed course module</label><select id="ppt-module"></select><label for="ppt-lesson">Proposed lesson name</label><input id="ppt-lesson" maxlength="50000"><button type="submit">Save slide review in this session</button></form><h2>Compare a revised presentation</h2><p>Choose a revised version for a read-only comparison. Matches are proposals: slide numbers do not prove that two decks share a history. No changes are applied.</p><label for="ppt-update-file">Revised PPTX up to 16 MB</label><input id="ppt-update-file" type="file" accept=".pptx"><label for="ppt-update-lineage"><input id="ppt-update-lineage" type="checkbox">I intend to compare a revised version of this source presentation</label><button id="ppt-compare">Compare extracted slide content</button><p id="ppt-compare-summary" role="status"></p><p id="ppt-compare-warning" class="small"></p><label for="ppt-change">Proposed change to inspect</label><select id="ppt-change"></select><pre id="ppt-change-preview" class="paper"></pre><p class="small muted">Original source, your reviewed text (including the current unsaved editor) and incoming source are shown separately. This comparison is session-only. Keep both PPTX files and your private review record to repeat it. Editing the review invalidates comparison results. Layout, images and media are not compared. Verified backup, accept/reject/apply and baseline promotion remain future work.</p><h2>Original extracted text</h2><pre id="ppt-baseline" class="paper"></pre><button id="ppt-export">Download private review draft</button><p class="small muted">This session draft keeps the original extraction separate from your edits. The hash identifies this exact file snapshot; slide IDs belong to that presentation and do not establish lineage across unrelated decks. Assignments are proposals only. Save before switching slides; download the private draft to keep a review record. Reading another deck requires explicitly discarding the current session review first, so download any work you want to keep. To restore a review later, select its private record and the exact original PPTX, then Restore review. Matching file bytes and extraction are checked; proposed module assignments still need review. Images, formatting, media and inherited master/layout text are not imported. Applying reviewed slides or accepted updates to Word, baseline promotion and verified backup before applying remain future work.</p></section><section id="view-materials" aria-labelledby="materials-heading" hidden><h1 id="materials-heading">Activity materials</h1><p>Keep supply requirements with the authoring master. Preparation notes are private and excluded from participant workbooks. Quantities are totals for this activity, not per-person counts.</p><label for="materials-activity">Existing activity</label><select id="materials-activity"></select><button id="materials-load">Load current materials</button><button id="materials-discard">Discard current materials draft</button><label for="materials-restore-file">Private materials draft to restore up to 2 MB</label><input id="materials-restore-file" type="file" accept=".json,application/json"><button id="materials-restore">Restore draft for selected activity</button><p id="materials-draft-summary" role="status">Load an activity before editing its materials.</p><form id="materials-add-form"><label for="material-item">Material name</label><input id="material-item" maxlength="200" required><label for="material-quantity">Total quantity for this activity</label><input id="material-quantity" type="text" inputmode="decimal" maxlength="128" value="1" required><label for="material-unit">Unit</label><input id="material-unit" maxlength="80" placeholder="copies, sets, boards" required><label for="material-use">Supply type</label><select id="material-use"><option value="consumable">Consumed or retained — add across activities</option><option value="reusable">Reusable shared pool — available for next activity</option></select><label for="material-notes">Private preparation notes</label><textarea id="material-notes" maxlength="2000" rows="2"></textarea><button type="submit">Add item to materials draft</button></form><ul id="materials-draft-list"></ul><div id="materials-restore-review" hidden><h2>Review restored requirements</h2><p id="materials-restore-origin"></p><p>Saved requirements at the checked current revision:</p><ul id="materials-current-list"></ul><label for="materials-review-approved"><input id="materials-review-approved" type="checkbox">I reviewed the restored list against these saved requirements before replacing them</label></div><button id="materials-save">Save activity materials</button><button id="materials-draft-download">Download private materials draft</button><p class="small muted">Adding/removing draft items does not save them. Preserve/discard the current draft before loading materials again. Private draft download remains available if course operations pause. To restore, preserve/discard the current draft, select the matching course/activity and review the imported requirements before saving. Save materials, then save the Word file. Reload after direct course edits; stale drafts are refused. Activity copies in the library retain their material entries.</p><h2>Reuse the loaded activity</h2><p>Save the loaded activity text and current materials draft as an independent authoring library copy, including private facilitator/answer text. Source edits after loading do not propagate.</p><form id="materials-library-form"><label for="materials-library-name">Library copy name</label><input id="materials-library-name" maxlength="200" required><label for="materials-library-tags">Library tags separated by commas</label><input id="materials-library-tags" maxlength="1200"><button type="submit">Save loaded activity and draft materials to library</button></form><h2>Saved course preparation list</h2><button id="materials-refresh">Refresh saved list from Word</button><p id="materials-plan-summary" role="status"></p><p id="materials-plan-assumption" class="small"></p><ul id="materials-plan-list"></ul><p class="small muted">Matching names (case-insensitive), units (case-sensitive) and supply types are combined. Different units stay separate. Empty activity lists can mean no supplies or not yet entered; this list does not certify completeness. Selected-plan ZIP delivery packs are on the Delivery Packs tab. Parallel groups, per-person scaling, stock and handout packs remain future work.</p><h2>Shareable materials checklist</h2><p>Prepare a separate full-course or selected-plan checklist from saved requirements. The preview below is the exact exported supplies and activity labels. Private preparation notes and unfinished drafts are excluded. This does not certify that all needed materials are recorded.</p><label for="materials-checklist-plan">Checklist scope</label><select id="materials-checklist-plan"><option value="">Full course (default)</option></select><p class="small muted">A saved plan lists selected activities in its authored order. It does not approve required objectives, audience or prerequisites.</p><button id="materials-checklist-preview">Refresh checklist preview</button><pre id="materials-checklist-output" class="paper" aria-label="Materials checklist export preview">Refresh and review the checklist from saved materials.</pre><label for="materials-checklist-reviewed"><input id="materials-checklist-reviewed" type="checkbox" disabled> I reviewed this exact saved checklist, selected scope if any, and completeness limits.</label><button id="materials-checklist-download" disabled>Download new materials checklist</button><p class="small muted">Creates a uniquely named new DOCX. It does not replace or regenerate an existing output. Refresh and review again after saved course changes. Quantities are recorded activity totals, with no per-person scaling, conversions, parallel allowance or stock deduction.</p></section><section id="view-output" aria-labelledby="output-heading" hidden><div class="eyebrow">03 / GIVE LEARNERS THEIR COPY</div><h1 id="output-heading">Participant workbook</h1><p>Includes module objectives, learner instructions, and writing space. Facilitator instructions and answers stay in the authoring document.</p><label for="workbook-plan">Workbook scope</label><select id="workbook-plan"><option value="">Full course (default)</option></select><p class="small muted">A selected plan includes only its activities and inherited module objective text. Selection does not approve objective coverage or plan requirements.</p><button id="preview" class="primary">Refresh and preview</button><div id="workbook-preview" class="paper"><p class="muted">Your workbook preview will appear here.</p></div><label for="workbook-plan-reviewed" id="workbook-plan-review-label" hidden><input id="workbook-plan-reviewed" type="checkbox" disabled> I reviewed this exact selected-plan workbook, inherited objectives, selected scope and output limits.</label><button id="download" disabled>Download new participant workbook</button><p class="small muted">Edit titles and instructions in the authoring document, then refresh and review this preview before downloading a new copy. Full course is the default; a saved plan can produce a separate selected workbook after exact review. Selected-plan ZIP delivery packs are on the Delivery Packs tab. Regenerating or replacing an existing output requires a verified backup and remains unavailable.</p><section id="workbook-family-section" aria-labelledby="workbook-family-heading">
+<h2 id="workbook-family-heading">New workbook design preview</h2>
+<p>Choose one of five original designs for a NEW generated learner workbook copy. This preview uses supported saved learner content only. Page appearance has not yet been checked in Word. The current workbook download above stays available.</p>
+<label for="family-template">Workbook design</label><select id="family-template"></select>
+<label for="family-base-language">Base document language</label><select id="family-base-language"><option value="en-US">English (United States) — default</option><option value="en-GB">English (United Kingdom)</option><option value="en-CA">English (Canada)</option><option value="es-ES">Spanish (Spain)</option><option value="es-MX">Spanish (Mexico)</option><option value="fr-FR">French (France)</option><option value="fr-CA">French (Canada)</option><option value="de-DE">German (Germany)</option></select>
+<p class="small muted">This tags the generated document’s base language. It does not translate text or tag mixed-language passages individually. It is separate from organization-brand presets.</p>
+<fieldset id="family-brand-controls"><legend>Organization branding for this new copy</legend>
+<p class="small muted">Leave an override blank to use this design’s default. Requested colors are never changed silently. Approved font names do not confirm installation on another computer.</p>
+<label for="family-brand-organizationName">Organization name</label><input id="family-brand-organizationName" maxlength="120">
+<label for="family-brand-text">Body text color (#RRGGBB)</label><input id="family-brand-text" maxlength="7" placeholder="Use design default">
+<label for="family-brand-background">Page background color (#FFFFFF only in this version)</label><input id="family-brand-background" maxlength="7" placeholder="Use design default">
+<label for="family-brand-accent">Decorative accent color (#RRGGBB)</label><input id="family-brand-accent" maxlength="7" placeholder="Use design default">
+<label for="family-brand-accentText">Accent text color (#RRGGBB)</label><input id="family-brand-accentText" maxlength="7" placeholder="Use design default">
+<label for="family-brand-accentBackground">Accent text background (#RRGGBB)</label><input id="family-brand-accentBackground" maxlength="7" placeholder="Use design default">
+<label for="family-brand-headingFont">Heading font</label><select id="family-brand-headingFont"><option value="">Use design default</option><option>Aptos</option><option>Aptos Display</option><option>Arial</option><option>Calibri</option><option>Georgia</option><option>Segoe UI</option><option>Times New Roman</option></select>
+<label for="family-brand-bodyFont">Body font</label><select id="family-brand-bodyFont"><option value="">Use design default</option><option>Aptos</option><option>Aptos Display</option><option>Arial</option><option>Calibri</option><option>Georgia</option><option>Segoe UI</option><option>Times New Roman</option></select>
+<label for="family-brand-fallbackFont">East Asian/complex-script fallback font</label><select id="family-brand-fallbackFont"><option value="">Use design default</option><option>Aptos</option><option>Aptos Display</option><option>Arial</option><option>Calibri</option><option>Georgia</option><option>Segoe UI</option><option>Times New Roman</option></select>
+<label for="family-brand-bodyPt">Body size (points, 11–18)</label><input id="family-brand-bodyPt" type="text" inputmode="decimal" maxlength="12" placeholder="Use design default">
+<label for="family-brand-headingPt">Heading base size (points, 14–28)</label><input id="family-brand-headingPt" type="text" inputmode="decimal" maxlength="12" placeholder="Use design default">
+<label for="family-brand-lineSpacing">Line spacing (1–2)</label><input id="family-brand-lineSpacing" type="text" inputmode="decimal" maxlength="12" placeholder="Use design default">
+<label for="family-brand-pageSize">Page size</label><select id="family-brand-pageSize"><option value="">Use design default</option><option>Letter</option><option>A4</option></select>
+<label for="family-brand-marginIn">Margin (inches, 0.5–1.5)</label><input id="family-brand-marginIn" type="text" inputmode="decimal" maxlength="12" placeholder="Use design default">
+<label for="family-brand-responseLineIn">Writing line height (inches, 0.25–0.7)</label><input id="family-brand-responseLineIn" type="text" inputmode="decimal" maxlength="12" placeholder="Use design default">
+<label for="family-brand-printMode">Print color</label><select id="family-brand-printMode"><option value="">Use design default</option><option value="color">Color</option><option value="grayscale">Grayscale</option></select>
+</fieldset>
+
+<fieldset id="family-front-controls"><legend>Optional public cover and copyright</legend>
+<p class="small muted">These fields are public when included. They are session drafts unless you explicitly save a design bundle below: they are not saved automatically into the course or local brand presets and may be lost on reload or document switching; Word may ignore the attempted unload warning. Organization on the cover uses the Organization name in branding above. No private course or facilitator metadata is filled in. Your cover title changes only this new copy's displayed title, metadata and filename.</p>
+<label for="family-front-include-cover"><input id="family-front-include-cover" type="checkbox"> Include a public cover</label>
+<label for="family-front-cover-title">Public cover title</label><textarea id="family-front-cover-title" rows="2" maxlength="5000"></textarea>
+<label for="family-front-cover-subtitle">Optional subtitle</label><textarea id="family-front-cover-subtitle" rows="2" maxlength="8000"></textarea>
+<label for="family-front-cover-author">Optional author</label><input id="family-front-cover-author" maxlength="1000">
+<label for="family-front-cover-edition">Optional edition</label><input id="family-front-cover-edition" maxlength="500">
+<label for="family-front-cover-year">Optional cover year or range</label><input id="family-front-cover-year" maxlength="32" placeholder="2026 or 2024-2026">
+<label for="family-front-cover-audience">Optional public audience</label><textarea id="family-front-cover-audience" rows="2" maxlength="5000"></textarea>
+<label for="family-front-include-copyright"><input id="family-front-include-copyright" type="checkbox"> Include a copyright page</label>
+<label for="family-front-copyright-rightsHolder">Rights holder (separate from author or organization)</label><input id="family-front-copyright-rightsHolder" maxlength="1000">
+<label for="family-front-copyright-year">Copyright year or ordered range</label><input id="family-front-copyright-year" maxlength="32" placeholder="2026 or 2024-2026">
+<label for="family-front-copyright-noticeChoice">Notice choice</label><select id="family-front-copyright-noticeChoice"><option value="">Choose explicitly</option><option value="all-rights-reserved">All rights reserved</option><option value="custom-permissions">Custom permissions</option><option value="named-license">Named license you select</option><option value="custom-text">Custom notice</option></select>
+<label for="family-front-copyright-noticeText">Editable notice text</label><textarea id="family-front-copyright-noticeText" rows="5" maxlength="16000"></textarea>
+<label for="family-front-copyright-licenseName">Named license (only when selected)</label><input id="family-front-copyright-licenseName" maxlength="200">
+<label for="family-front-copyright-licenseVersion">License version (only when selected)</label><input id="family-front-copyright-licenseVersion" maxlength="80">
+<label for="family-front-copyright-licenseUrl">License terms URL (only when selected, HTTP or HTTPS)</label><input id="family-front-copyright-licenseUrl" type="text" maxlength="2048">
+<label for="family-front-copyright-permissionsContact">Optional permissions contact</label><textarea id="family-front-copyright-permissionsContact" rows="2" maxlength="2000"></textarea>
+<label for="family-front-copyright-credits">Optional credits and third-party exceptions</label><textarea id="family-front-copyright-credits" rows="3" maxlength="16000"></textarea>
+<p class="small muted">No rights, ownership, year or license is inferred. Choose and edit wording you are authorized to use. A starter is only editable text, not verified legal terms. License URLs are printed text; no terms are fetched. The separate cover logo controls support one informative PNG; other image assets remain unavailable.</p>
+<button id="family-front-starter" type="button">Request editable notice starter</button><button id="family-front-reset" type="button">Reset cover/copyright draft</button>
+</fieldset>
+
+<fieldset id="family-logo-controls"><legend>Optional public cover logo</legend>
+<p class="small muted">One local PNG on the public cover. Selection, role, description and width are session-only unless you explicitly save a design bundle below; they are not stored automatically in the course or brand presets. Reload or document switching can lose them; Word may ignore unload warnings. Use an image you are authorized to publish.</p>
+<label for="family-logo-file">PNG logo, up to 2 MiB and 2048 pixels per side</label><input id="family-logo-file" type="file" accept=".png,image/png">
+<label for="family-logo-include"><input id="family-logo-include" type="checkbox"> Include this verified logo on the enabled public cover</label>
+<label for="family-logo-role">Image role</label><select id="family-logo-role"><option value="">Choose explicitly</option><option value="informative">Informative: author an alternative description</option><option value="decorative">Decorative (export currently unavailable)</option></select>
+<label for="family-logo-alt">Meaningful alternative description</label><textarea id="family-logo-alt" rows="3" maxlength="1000"></textarea>
+<label for="family-logo-width">Requested width in inches (0.5 to 3)</label><input id="family-logo-width" type="text" inputmode="decimal" maxlength="32" value="1.5">
+<img id="family-logo-image" hidden><p class="small muted">Local image preview only. The export fits the requested width and at most 2 inches high, preserving proportions; actual size is shown in the refreshed review. Original pixel colors are preserved, including in grayscale print mode. RGB/RGBA 8-bit noninterlaced PNG only; unsupported color profiles must be converted to sRGB first. No color accuracy, alt quality or native accessibility approval is implied. Decorative export, JPEG, SVG and background images are unavailable.</p>
+<button id="family-logo-restore" type="button">Restore last verified image</button><button id="family-logo-remove" type="button">Remove only image</button><button id="family-logo-reset" type="button">Reset logo draft</button>
+</fieldset>
+<fieldset id="family-research-controls"><legend>Optional opening educational research</legend>
+<p class="small muted">Authored public rationale, evidence, application, limitations and references. These fields are session-only: not saved into the course, private front matter or local brand presets. They can be lost on reload or document switching; Word may ignore the attempted unload warning. No source Background text is copied here. Claims, citations and applicability have not been verified.</p>
+<label for="family-research-include"><input id="family-research-include" type="checkbox"> Include the opening educational research and rationale section</label>
+<label for="family-research-rationale">Educational rationale</label><textarea id="family-research-rationale" rows="4" maxlength="16000"></textarea>
+<label for="family-research-evidence">Research evidence (authored claims and citations)</label><textarea id="family-research-evidence" rows="4" maxlength="16000"></textarea>
+<label for="family-research-application">Application to this course or selected session</label><textarea id="family-research-application" rows="4" maxlength="16000"></textarea>
+<label for="family-research-limitations">Limitations and applicability</label><textarea id="family-research-limitations" rows="4" maxlength="16000"></textarea>
+<label for="family-research-references">References (your authored formatting)</label><textarea id="family-research-references" rows="4" maxlength="16000"></textarea>
+<p class="small muted">Write at least one field before including the section. Only nonblank subsections are printed, after linked contents and before learner content. No findings, references, links or citation format are generated. Review relevance for each selected/full scope.</p><button id="family-research-reset" type="button">Reset only research draft</button>
+</fieldset>
+<fieldset id="family-toc-controls"><legend>Optional contents navigation</legend>
+<label for="family-toc-include"><input id="family-toc-include" type="checkbox"> Include a linked table of contents (no page numbers)</label>
+<p class="small muted">Links follow the headings actually included in this new copy, including copyright and learning objectives when present. Cover/title and the contents heading itself are excluded. This is a snapshot of internal navigation, not an updating Word contents field: manual edits after download do not update its entry text or calculate pages. Regenerate from saved source after heading changes. Page numbers and native link/accessibility behavior still require Word qualification. The choice is session-only unless included in an explicitly saved design bundle; it is not saved automatically in the course or brand presets and may be lost on reload or document switching.</p>
+</fieldset>
+<p class="small muted">This version supports the optional informative PNG cover logo described above; headers, footers and other visual assets remain unavailable. It cannot transfer content into an existing Word file, preserve manual Word additions or certify accessibility.</p>
+<button id="family-preview">Refresh new-copy design preview</button>
+<p id="family-brand-status" role="status" class="small">Choose a design and refresh its preview.</p>
+<button id="family-use-safe-alternative" type="button" hidden disabled>Use suggested values</button>
+<pre id="family-preview-content" class="paper" aria-label="Complete new workbook copy review">Refresh and review the new workbook design before applying it to a new copy.</pre>
+<label for="family-reviewed" id="family-review-label"><input id="family-reviewed" type="checkbox" disabled> I reviewed this exact content, public cover/copyright inclusion and wording, contents navigation, informative logo and description if included, selected scope, effective branding, writing space and output limits.</label>
+<button id="family-apply" disabled>Apply to NEW workbook copy</button>
+<p class="small muted">Creates a fresh DOCX file from saved learner text. It does not change this Word master or an earlier copy. Refresh and review again after any change. Inspect the resulting pages and accessibility before sharing.</p>
+</section>
+<div id="family-logo-confirm" role="group" aria-labelledby="family-logo-confirm-text" hidden><p id="family-logo-confirm-text"></p><button id="family-logo-keep" type="button">Keep current logo draft</button><button id="family-logo-replace" type="button">Replace only named logo fields</button></div><p id="family-logo-status" role="status" aria-live="polite" tabindex="-1"></p><p id="family-logo-error" role="alert" hidden></p>
+<div id="family-research-confirm" role="group" aria-labelledby="family-research-confirm-text" hidden><p id="family-research-confirm-text"></p><button id="family-research-keep" type="button">Keep current research draft</button><button id="family-research-replace" type="button">Replace only research draft</button></div><p id="family-research-status" role="status" aria-live="polite" tabindex="-1"></p><p id="family-research-error" role="alert" hidden></p>
+<div id="family-front-confirm" role="group" aria-labelledby="family-front-confirm-text" hidden><p id="family-front-confirm-text"></p><button id="family-front-keep" type="button">Keep current public draft</button><button id="family-front-replace" type="button">Replace the named draft fields</button></div>
+<p id="family-front-status" role="status" aria-live="polite" tabindex="-1"></p><p id="family-front-error" role="alert" hidden></p>
+<fieldset id="family-design-file-section"><legend>Save or load a PRIVATE workbook design bundle</legend>
+<p id="family-design-file-notice">Explicit local JSON files preserve your raw family, base language, branding, cover/copyright, contents, research and current verified PNG logo. They contain authored material and image bytes; keep them with the intended authors. No course or selected-plan content, assessment scoring definitions, responses, preset catalog, review consent or export readiness is included. Loading preserves the current course and workbook scope and requires fresh output review. No automatic storage or transmission occurs.</p>
+<button id="family-design-file-save" type="button">Save PRIVATE workbook design bundle</button>
+<label for="family-design-file-input">PRIVATE workbook design JSON bundle to check (up to 6 MiB)</label><input id="family-design-file-input" type="file" accept=".json,application/json">
+<button id="family-design-file-load" type="button">Check selected design bundle</button><pre id="family-design-file-output" class="paper" aria-label="Workbook design bundle replacement review">No design bundle checked.</pre>
+<img id="family-design-file-image" hidden alt="" width="1" height="1">
+<div id="family-design-file-confirm" role="group" aria-labelledby="family-design-file-confirm-text" hidden><p id="family-design-file-confirm-text"></p><button id="family-design-file-keep" type="button">Keep current design and logo</button><button id="family-design-file-replace" type="button">Replace design from checked bundle</button></div>
+<p id="family-design-file-status" role="status" aria-live="polite" tabindex="-1"></p><p id="family-design-file-error" role="alert" hidden></p>
+</fieldset>
+<fieldset id="family-preset-controls"><legend>Local organization-brand presets</legend>
+<p class="small muted">Presets save only your typed brand overrides in this add-in's local browser storage. They may not appear in another Word WebView or on another device. A preset never changes the selected workbook design or the course. Saving does not certify contrast, fonts or accessibility; loading checks the current rules again.</p>
+<label for="family-preset-list">Saved brand preset</label><select id="family-preset-list"><option value="">Choose a saved preset</option></select>
+<label for="family-preset-name">Preset name</label><input id="family-preset-name" maxlength="80" placeholder="Name this brand">
+<button id="family-preset-save-new" type="button">Save as new local preset</button>
+<button id="family-preset-overwrite" type="button">Overwrite selected preset</button>
+<button id="family-preset-load" type="button">Load selected brand into current design</button>
+<button id="family-preset-reset" type="button">Reset active brand to design defaults</button>
+<button id="family-preset-reload" type="button">Reload saved preset list</button>
+<p id="family-preset-status" role="status" class="small">Local presets have not been loaded.</p>
+<div id="family-preset-confirm" hidden><p id="family-preset-confirm-text"></p><button id="family-preset-keep" type="button">Keep my current branding</button><button id="family-preset-discard" type="button">Discard current branding and continue</button></div>
+</fieldset>
+<h2>Private facilitator guide — structured copy</h2><p id="facilitator-disclosure">Contains private teaching directions and saved preparation notes. Share only with intended facilitators. This text-only copy omits unmanaged Word additions, images, formatting/layout, headers/footers and attachments. Keep your original master and full backup. Edits to this copy do not update the master. It is not a full-master copy or a replacement for your backup. A selected saved-plan copy is available below; audience, prerequisite and required-objective policies remain unavailable. Selected-plan ZIP delivery packs are on the Delivery Packs tab.</p><label for="facilitator-plan">Private facilitator copy scope</label><select id="facilitator-plan"><option value="">Full course (default)</option></select><p class="small muted">A selected private copy includes only saved plan activities in their authored order and inherited selected-module objectives. Course details and front matter are omitted. Required objectives, audience, prerequisites and assessment policy are not established by selection.</p><fieldset id="facilitator-options"><legend>Optional private-copy content — off by default</legend><label for="facilitator-answers"><input id="facilitator-answers" type="checkbox"> Include answers/debrief</label><label for="facilitator-participant"><input id="facilitator-participant" type="checkbox"> Include participant instructions and writing-line setting</label></fieldset><button id="facilitator-preview">Refresh private facilitator preview</button><pre id="facilitator-output" class="paper" aria-label="Exact private facilitator copy preview">Refresh and review the private copy before downloading.</pre><label for="facilitator-reviewed"><input id="facilitator-reviewed" type="checkbox" disabled> I reviewed this exact private copy, its content choices, unresolved suggestions and omissions, and will share it only with intended facilitators.</label><button id="facilitator-download" disabled>Download new private facilitator copy</button><p class="small muted">Creates a uniquely named DOCX from the saved full-course record or exact reviewed saved plan. Empty optional sections are omitted; unfinished authoring suggestions are included for review. No images or participant response-space pages are generated. Review layout and accessibility before use.</p></section>
+<section id="view-assessments" aria-labelledby="measure-heading" hidden>
+<div class="eyebrow">AUTHOR AND TEST A MEASURE</div><h1 id="measure-heading">Assessment draft and score tester</h1>
+<p id="measure-session-notice">Assessment work stays in this pane session unless you explicitly save or load a PRIVATE authoring file below. Nothing is saved automatically to Word, browser storage or a service. PRIVATE authoring files preserve definition/item/subscale data only; synthetic test responses, scores, review consent and separate Word-export instructions/copy/language are excluded. Explicit reviewed Word exports create blank respondent or PRIVATE author copies, not editable drafts. Switching sections within this same pane keeps current work; switching Word documents may start another pane session. Closing or reloading can lose work not saved in a PRIVATE authoring file. An unload warning is attempted, but Word may not show it. Use synthetic responses, not learner records.</p>
+<p class="small">Original authored measures only: validation evidence is not established. This raw-score tester supplies no norms, cutoffs, clinical interpretation or high-stakes decisions. Existing prose assessment starters remain separate.</p>
+<p id="measure-status" role="status" aria-live="polite" tabindex="-1"></p><p id="measure-error" role="alert" hidden></p>
+<div id="measure-confirm" class="measure-confirm" role="group" aria-labelledby="measure-confirm-text" hidden><p id="measure-confirm-text"></p><button id="measure-keep" type="button">Keep my current work</button><button id="measure-discard" type="button">Discard the described work and continue</button></div>
+<fieldset id="measure-file-section"><legend>PRIVATE assessment files - manual Save and Load</legend><p id="measure-file-notice">These editable authoring files contain scoring codes, reverse keys and subscale rules. Keep them PRIVATE; they are not blank respondent assessments. Save PRIVATE authoring draft preserves unfinished definition/item/subscale text. Save PRIVATE definition (checked format) requires a current structurally valid definition and no unfinished editor work. Format and scoring-rule checks do not establish psychometric validation, norms or cutoffs. Neither includes synthetic responses, scores, review consent or separate Word-export instructions, copy choice and language. Load retains those current export choices but requires fresh review. There is no automatic storage or transmission. The in-session recorded ID/version ledger remains checked after New or Load; it is not a durable published registry. A validated-definition download attempt and a confirmed definition-file Load also record that exact ID/version in this pane.</p><button id="measure-file-save-draft" type="button">Save PRIVATE authoring draft (.json)</button><button id="measure-file-save-definition" type="button">Save PRIVATE definition (checked format) (.json)</button><label for="measure-file-input">Choose one PRIVATE assessment authoring JSON file (up to 4 MiB)</label><input id="measure-file-input" type="file" accept=".json,application/json" aria-describedby="measure-file-notice"><button id="measure-file-load" type="button">Check selected PRIVATE file</button><pre id="measure-file-output" class="paper" aria-label="Exact PRIVATE assessment file replacement review">No PRIVATE assessment file checked.</pre><p id="measure-file-status" role="status" aria-live="polite"></p><p id="measure-file-error" role="alert" hidden></p></fieldset>
+<button id="measure-new" type="button">Start a new session assessment</button>
+<fieldset><legend>Definition identity</legend><p id="measure-id" class="small"></p><label for="measure-title">Assessment title</label><input id="measure-title" maxlength="16000" type="text"><label for="measure-version">Authored definition version (1-1000000)</label><input id="measure-version" type="text" inputmode="numeric" maxlength="12" value="1"><p class="small">After a version is captured, changing its content requires a new version number. The recorded ID/version identity ledger lasts only for this pane session. PRIVATE files can preserve authoring data, not that ledger or capture/review state.</p></fieldset>
+<h2>Items</h2><label for="measure-item-list">Saved session item</label><select id="measure-item-list"><option value="">Choose an item</option></select><button id="measure-item-load" type="button">Load selected item draft</button><button id="measure-item-new" type="button">New item draft</button><button id="measure-item-remove" type="button">Remove selected item</button><ol id="measure-items"></ol>
+<form id="measure-item-form" autocomplete="off"><fieldset><legend>Item draft</legend><p id="measure-item-id" class="small"></p><label for="measure-item-type">Item type</label><select id="measure-item-type"><option value="likert">Likert-type item</option><option value="semantic-differential">Semantic differential</option></select><label for="measure-item-prompt">Item prompt</label><textarea id="measure-item-prompt" rows="3" maxlength="16000"></textarea><label for="measure-item-reverse"><input id="measure-item-reverse" type="checkbox"> Reverse-key this item using L + U - raw code</label><fieldset id="measure-semantic"><legend>Semantic-differential meaning</legend><label for="measure-item-target">Target being rated</label><input id="measure-item-target" maxlength="16000"><label for="measure-item-left">Left endpoint</label><input id="measure-item-left" maxlength="16000"><label for="measure-item-right">Right endpoint</label><input id="measure-item-right" maxlength="16000"><label for="measure-item-high">Intended high keyed-score meaning</label><textarea id="measure-item-high" rows="2" maxlength="16000"></textarea><p class="small">The right endpoint is not automatically favorable. State the meaning and direction explicitly. These fields remain in this draft when Likert type is selected, but are omitted from that Likert definition.</p></fieldset>
+<fieldset><legend>Editable response anchors</legend><label for="measure-anchor-preset">Anchor starting point</label><select id="measure-anchor-preset"><option value="agreement">Agreement (5 anchors)</option><option value="frequency">Frequency (5 anchors)</option><option value="importance">Importance (5 anchors)</option><option value="semantic">Semantic positions (7 anchors)</option><option value="custom">Custom positions</option></select><label for="measure-anchor-count">Custom anchor count (2-11)</label><input id="measure-anchor-count" type="text" inputmode="numeric" maxlength="2" value="5"><label for="measure-anchor-min">Minimum numeric code (-1000000 to1000000)</label><input id="measure-anchor-min" type="text" inputmode="numeric" maxlength="12" value="1"><button id="measure-anchor-apply" type="button">Replace draft anchors from starting point</button><p class="small">Edit every label and code below as needed. Codes must be consecutive integers; display order is independent. Stable option IDs identify choices, not their positions.</p><div id="measure-anchors"></div><button id="measure-anchor-add" type="button">Add another anchor</button></fieldset><button id="measure-item-save" type="button" class="primary">Save item in this session draft</button></fieldset></form>
+<h2>Explicit subscale scoring</h2><p>No overall score is inferred. Leave this list empty for item values only. Sum requires every response. Mean defaults to complete-case; a partial mean needs an explicit minimum answered count. Missing and N/A differ, and both remain in planned N.</p><label for="measure-rule-list">Saved session subscale</label><select id="measure-rule-list"><option value="">Choose a subscale</option></select><button id="measure-rule-load" type="button">Load selected scoring rule</button><button id="measure-rule-new" type="button">New scoring-rule draft</button><button id="measure-rule-remove" type="button">Remove selected subscale</button><ol id="measure-rules"></ol>
+<form id="measure-rule-form" autocomplete="off"><fieldset><legend>Subscale draft</legend><p id="measure-rule-id" class="small"></p><label for="measure-rule-name">Subscale name</label><input id="measure-rule-name" maxlength="16000"><fieldset><legend>Item membership</legend><div id="measure-members"></div></fieldset><label for="measure-rule-method">Aggregation</label><select id="measure-rule-method"><option value="mean">Mean</option><option value="sum">Sum</option></select><label for="measure-rule-missing">Missing-response rule</label><select id="measure-rule-missing"><option value="complete-case">Require all planned responses</option><option value="minimum-answered">Partial mean with explicit minimum answered</option></select><label for="measure-rule-k">Minimum answered k (partial mean only)</label><input id="measure-rule-k" type="text" inputmode="numeric" maxlength="3"><button id="measure-rule-save" type="button" class="primary">Save subscale in this session draft</button></fieldset></form>
+<h2>Review and capture a test definition</h2><p>Save or resolve the item and scoring-rule drafts first. Review the exact definition before capturing it. Capturing a different definition replaces the tester only after an explicit confirmation; current responses remain until then.</p><button id="measure-review" type="button">Review current definition</button><pre id="measure-review-output" class="paper" aria-label="Exact assessment definition review">No definition reviewed.</pre><label for="measure-reviewed"><input id="measure-reviewed" type="checkbox" disabled> I reviewed this exact definition, anchors, directions, membership and missing-response rules.</label><button id="measure-capture" type="button" disabled>Capture reviewed definition for testing</button>
+<h2>Single synthetic-response tester</h2><p id="measure-test-status" role="status">No definition captured.</p><div id="measure-responses"></div><button id="measure-clear-responses" type="button" disabled>Clear all synthetic responses</button><button id="measure-score" type="button" disabled>Score this synthetic response</button><pre id="measure-score-output" class="paper" aria-label="Raw scoring result and provenance">No response scored.</pre><p class="small">No Word assessment insertion, response persistence or collection is included. Reviewed blank respondent and PRIVATE scoring-guide downloads are separate below. Keyboard and screen-reader behavior still need native qualification.</p>
+<section id="measure-export-section" aria-labelledby="measure-export-heading">
+<h2 id="measure-export-heading">Reviewed assessment copies</h2>
+<p>Download a new blank respondent assessment or a separate PRIVATE author scoring guide from the current captured definition. Neither route includes entered test responses or scores. These copies do not update Word or save your editable session draft. Export instructions and language are session-only and independent of definition version. Keep your original authoring material.</p>
+<p class="small">Authored prompts, labels and instructions are reproduced as written. Review them for private keys you may have typed into public text. Blank selection markers are printable text, not interactive Word form controls. Review output layout and accessibility before use; native qualification is pending.</p>
+<label for="measure-export-route">Copy to review</label><select id="measure-export-route"><option value="respondent">Blank respondent assessment</option><option value="author">PRIVATE author scoring guide</option></select>
+<label for="measure-export-instructions">Optional instructions for these exported copies</label><textarea id="measure-export-instructions" rows="3" maxlength="16000"></textarea>
+<label for="measure-export-language">Document base language</label><select id="measure-export-language"><option value="en-US">English United States</option><option value="en-GB">English United Kingdom</option><option value="en-CA">English Canada</option><option value="es-ES">Spanish Spain</option><option value="es-MX">Spanish Mexico</option><option value="fr-FR">French France</option><option value="fr-CA">French Canada</option><option value="de-DE">German Germany</option></select><p class="small">Base-language tagging only. This does not translate text or identify mixed-language spans.</p>
+<button id="measure-export-preview" type="button">Refresh exact assessment copy review</button>
+<pre id="measure-export-output" class="paper" aria-label="Exact assessment copy review">Capture a current definition and refresh this review.</pre>
+<label id="measure-export-review-label" for="measure-export-reviewed"><input id="measure-export-reviewed" type="checkbox" disabled> I reviewed this exact copy and its published text, version, instructions and omissions.</label>
+<label id="measure-export-private-label" for="measure-export-private" hidden><input id="measure-export-private" type="checkbox" disabled> I understand this PRIVATE author guide contains scoring keys and will keep it separate from respondent material.</label>
+<button id="measure-export-download" type="button" disabled>Download new reviewed assessment copy</button>
+<p id="measure-export-status" role="status" aria-live="polite"></p><p id="measure-export-error" role="alert" hidden></p>
+</section>
+</section>
+<section id="view-pack" aria-labelledby="pack-heading" hidden>
+<div class="eyebrow">COORDINATED SELECTED PLAN</div><h1 id="pack-heading">Delivery packs</h1>
+<p>Choose one saved plan and review every file together. This creates a local ZIP of new structured copies. It does not distribute files or replace the Word master.</p>
+<label for="pack-plan">Saved delivery plan</label><select id="pack-plan"><option value="">Choose a saved plan</option></select>
+<label for="pack-start">Workshop start time</label><input id="pack-start" type="time" value="09:00" required>
+<label for="pack-route">Pack route</label><select id="pack-route"><option value="shareable">Shareable learner pack: agenda, participant workbook, materials</option><option value="private">PRIVATE facilitator pack: those three files plus private facilitator guide</option></select>
+<fieldset id="pack-private-options" hidden><legend>PRIVATE facilitator content — off by default</legend><label for="pack-answers"><input id="pack-answers" type="checkbox"> Also include answers/debrief in the PRIVATE facilitator guide</label><label for="pack-participant"><input id="pack-participant" type="checkbox"> Also include participant instructions in the PRIVATE facilitator guide (the workbook is always included)</label></fieldset>
+<button id="pack-preview" type="button">Refresh exact pack review</button><pre id="pack-output" class="paper" aria-label="Exact delivery pack review">Choose a saved plan and refresh all member-content previews.</pre>
+<label for="pack-reviewed"><input id="pack-reviewed" type="checkbox" disabled> I reviewed this exact plan, complete content preview of every member, member list, assumptions and omissions.</label>
+<label for="pack-private-consent" id="pack-private-consent-label" hidden><input id="pack-private-consent" type="checkbox" disabled> I affirm this PRIVATE pack contains facilitator-only content and will keep it with intended facilitators.</label>
+<button id="pack-download" type="button" disabled>Download new reviewed ZIP pack</button>
+<p class="small muted">The shareable route never includes a facilitator file. Private options and consent apply only to this pack and do not inherit another output's choices. Audience, prerequisites, required objectives and assessment policy are unavailable. These outputs omit manual Word additions, images, layout, attachments and full-master fidelity. Open and check each file before use.</p>
+</section><section id="view-agenda" aria-labelledby="agenda-heading" hidden><div class="eyebrow">PLAN YOUR TEACHING TIME</div><h1 id="agenda-heading">Timing and agenda</h1><fieldset id="plan-controls"><legend>Delivery plans</legend><p class="small">Full course is the default. A named plan selects and orders existing activities for separately reviewed agenda, workbook and materials copies. A named plan compares saved objective links from its selected activities with all current course objectives. This is an author-declared design check; audience, prerequisites and plan-required objectives remain unavailable.</p><label for="plan-select">Agenda scope</label><select id="plan-select"><option value="">Full course</option></select><p id="plan-state" role="status" class="small"></p><button id="plan-new" type="button">Start a new plan draft</button><button id="plan-load" type="button">Load selected plan for editing</button><button id="plan-discard" type="button">Discard plan draft</button><div id="plan-editor" hidden><label for="plan-name">Plan name</label><input id="plan-name" maxlength="200"><label for="plan-target">Optional target minutes</label><input id="plan-target" type="text" inputmode="decimal" maxlength="128"><label for="plan-module">Module for selected activity</label><select id="plan-module"></select><label for="plan-activity">Existing activity</label><select id="plan-activity"></select><button id="plan-add" type="button">Add selected activity to plan</button><p id="plan-draft-status" role="status" class="small"></p><ol id="plan-groups"></ol><label for="plan-reviewed"><input id="plan-reviewed" type="checkbox">I reviewed this exact plan name, target, selected activities, and order</label><button id="plan-save" type="button">Save reviewed plan</button></div></fieldset><p>Activities follow the course order. Include breaks as timed activities when needed.</p><form id="agenda-form"><label for="agenda-start">Workshop start time</label><input id="agenda-start" type="time" value="09:00" required><button id="agenda-refresh" type="submit">Refresh agenda</button></form><label for="agenda-reviewed"><input id="agenda-reviewed" type="checkbox">I reviewed this exact selected-plan schedule, full-course objective-link comparison and output scope</label><button id="agenda-download" type="button" disabled>Download new agenda</button><p id="agenda-summary" class="small" role="status"></p><h2 id="agenda-coverage-heading" hidden>Private objective-link review — not in the downloaded agenda</h2><ul id="agenda-coverage" class="small" aria-labelledby="agenda-coverage-heading" hidden></ul><p id="agenda-empty" class="muted">Add activities to build your agenda.</p><table id="agenda-table" class="agenda-table" hidden><caption>Planned workshop schedule</caption><thead><tr><th scope="col">Time</th><th scope="col">Activity</th><th scope="col">Min.</th></tr></thead><tbody id="agenda-body"></tbody></table><p class="small muted">Refresh and review the schedule before downloading a new Word agenda. Named delivery plans are available for separately reviewed agenda, workbook and materials copies; duration overrides remain future work. Selected-plan ZIP delivery packs are on the Delivery Packs tab. Existing outputs are never opened or replaced by this command. Regenerating an existing output requires a verified backup and remains unavailable.</p></section>
+<section id="view-review" aria-labelledby="review-heading" hidden><div class="eyebrow">PREPARE YOUR GUIDE FOR USE</div><h1 id="review-heading">Review guide</h1><p>Checks for missing text, missing objectives, incomplete prompts, empty modules, and timing issues. Select an item to find it in Word.</p><button id="review-refresh" class="primary">Refresh review</button><p id="review-summary" role="status" class="small"></p><ul id="review-list" class="review-list"></ul><h2>Full-course objective design coverage</h2><p>Author-declared practice/assessment links to each module’s current single objective. Missing, stale and unsupported mapping is guidance only and does not add export-blocking errors. No cue/title inference, learning proof or validity claim.</p><p id="coverage-review-summary" role="status"></p><div id="coverage-review-rows"></div><h2>Private objective gap notes</h2><p>An exception acknowledges a gap; it never counts as coverage. Changed/blank objective text retains old notes as stale. Preserve/discard a loaded note before choosing another.</p><label for="coverage-gap-target">Module objective for gap note</label><select id="coverage-gap-target"></select><label for="coverage-gap-role">Gap role</label><select id="coverage-gap-role"><option value="practice">Practice</option><option value="assessment">Assessment</option></select><button id="coverage-gap-load" type="button">Load private gap note</button><button id="coverage-gap-discard" type="button">Discard gap-note draft</button><pre id="coverage-gap-objective" class="paper" aria-label="Gap current and reviewed objective text"></pre><label for="coverage-gap-note">Private gap exception note</label><textarea id="coverage-gap-note" maxlength="50000" rows="3"></textarea><label for="coverage-gap-current"><input id="coverage-gap-current" type="checkbox"> I explicitly reviewed this exact current nonblank objective for this gap note.</label><button id="coverage-gap-save" type="button">Save private gap note</button><button id="coverage-gap-remove" type="button">Remove this gap note</button><p id="coverage-gap-status" role="status"></p><p class="small muted">These checks support your review. They do not assess teaching quality or provide a full accessibility audit. Use Word's Accessibility Checker before sharing.</p></section>
+<section id="view-checkpoints" aria-labelledby="checkpoints-heading" hidden><div class="eyebrow">KEEP A RECOVERABLE MASTER</div><h1 id="checkpoints-heading">Backups and restore</h1><p>Keep the full Word master, including formatting, manual additions, images, course records, and teaching assets. Backups contain facilitator instructions and answers.</p><h2>Save a checkpoint</h2><p>Finish the current operation first. A backup captures the checked Word master; it does not replace saving your working document.</p><button id="backup-save" class="primary">Prepare full backup</button><h2>Verify and restore</h2><p>Choose a saved OpenStage backup. After verification, download its preserved master as a newly named Word copy. Open that copy in Word and save it separately. Supporting assets remain in the backup package.</p><label for="backup-file">Saved OpenStage backup</label><input id="backup-file" type="file" accept=".osgbackup,.zip"><button id="backup-inspect">Verify saved backup</button><p id="backup-details" class="small backup-details" role="status"></p><button id="backup-restore" disabled>Download restored Word copy</button><p class="small muted">Verification checks package integrity; it does not certify who created a file. This prototype supports masters up to 64 MB and backup files up to 80 MB. Restore prepares a separate copy and leaves the current guide in place.</p></section>
+<details class="support"><summary>Prototype notes and recovery</summary><p>This first build covers modules, activities, your icon set, planning checks, participant workbooks, and full-master backup packages. Read-only PowerPoint review is available; applying reviewed slides to Word and delivery versions remain later milestones. Use a new test document and save copies before testing.</p><h2>Build and support information</h2><button id="build-download">Download diagnostic record</button><p id="build-diagnostic-summary" class="small" role="status"></p><p class="small muted">Check loaded build at the top of the pane to compare observed code identities with the local server snapshot. Unknown, stale or mixed code does not qualify a current build for acceptance. The download includes build hashes and capability flags; it excludes document text and paths, absolute filesystem paths, settings, private notes and user identity. It performs no repair or configuration changes. Keep your work before any later reload. Native Word and manifest checks remain separate.</p><button id="recover">Check and recover</button><p id="recovery-help" class="small">After an uncertain save or interrupted operation, course changes and previews pause. Preserve a copy first. Recovery checks every managed field and updates course records only when the insertion is complete. It never inserts the content again or deletes incomplete work. Missing, duplicated, or unexpected fields require preserving the file and returning to a previously saved copy. You can restore a previously verified backup from Backups. Save the Word document after successful recovery.</p><p class="small">Training icons by Jason Wrench. CC BY-NC-SA 4.0. Original artwork used without modification.</p><a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noopener">Icon license</a></details>
+</main>
+<aside class="legacy-foot" aria-label="Older tools" hidden>
+<details class="legacy"><summary>Legacy tools</summary>
+<nav aria-label="Guide workspace"><button data-view="course">Course</button><button data-view="outline">Outline</button><button data-view="module">Module</button><button data-view="activity">Activity</button><button data-view="output">Workbook</button></nav>
+<div class="workspace-tools" role="group" aria-label="Course tools"><button data-view="agenda">Timing &amp; Agenda</button><button data-view="pack">Delivery Packs</button><button data-view="review">Review Guide</button><button data-view="checkpoints">Backups</button><button data-view="library">Activity Library</button><button data-view="slides">PowerPoint Review</button><button data-view="materials">Materials</button><button data-view="assessments">Assessments</button></div>
+</details>
+</aside>
+<footer>OpenStage family <span>Guide · Prototype 0.1</span></footer>
+</body></html>

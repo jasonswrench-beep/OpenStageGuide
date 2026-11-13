@@ -1,0 +1,131 @@
+// The guide as it reads in the program (program/ui/preview.js): drawn from the project's paragraphs, with text and attributes only.
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {DOMParser} from '@xmldom/xmldom';
+import {describeGuide,renderGuide,drawNodes} from '../program/ui/preview.js';
+import {makeContext,para,run} from '../src/guide-ooxml.mjs';
+import {formTitleBlock,formText,writingLines,writingBox,fieldRow,checkList,formTable,ratingGrid,sourceLine,printLine,cardSet,citationControl} from '../src/guide-forms-ooxml.mjs';
+import {STYLE_IDS} from '../src/guide-styles.mjs';
+import {started,addModule,addLesson,addBlock} from './helpers/guide-harness.mjs';
+
+const parseXml=xml=>new DOMParser().parseFromString(xml,'application/xml');
+// A page's document as far as the preview needs one: it fails if anything writes markup.
+class Fake{
+  constructor(tag){this.tag=tag;this.children=[];this.attrs={};this.style={};this.className='';this._text=undefined;}
+  setAttribute(k,v){this.attrs[k]=String(v);}
+  append(...c){this.children.push(...c);}
+  replaceChildren(...c){this.children=[...c];this._text=undefined;}
+  set textContent(v){this._text=String(v);this.children=[];}
+  get textContent(){return (this._text??'')+this.children.map(c=>c.textContent).join('');}
+  set innerHTML(v){throw new Error('markup was written');}
+}
+const fakeDoc=()=>({createElement:tag=>new Fake(tag)});
+const find=(nodes,cls)=>{const out=[];const walk=n=>{if(n.cls&&n.cls.split(' ').includes(cls))out.push(n);(n.children||[]).forEach(walk);};nodes.forEach(walk);return out;};
+const text=n=>(n.text??'')+(n.children||[]).map(text).join('');
+const tags=(nodes,tag)=>{const out=[];const walk=n=>{if(n.tag===tag)out.push(n);(n.children||[]).forEach(walk);};nodes.forEach(walk);return out;};
+
+async function guide(){
+  const a=await started('Forms guide');
+  await addModule(a,'Naming it');await addLesson(a,'First','10');await addBlock(a,'ask','What makes it hard?',{notes:'Listen for blame.'});
+  const at=a.adapter.snapshot().findIndex(p=>p.text.includes('What makes it hard?'));
+  await a.adapter.insert(ctx=>
+    formTitleBlock({id:'f1',label:'Handout',number:'1.1',title:'Goals'})+printLine({copies:{n:1,per:'person'},orientation:'landscape'})+formText('Fill this in.')
+    +fieldRow([{label:'Name',width:'full'},{label:'Date',width:'short'}])+writingLines({count:2})+writingBox({lines:3})
+    +checkList({items:['Read it','Try it'],columns:['When'],ctx})+formTable({columns:[{name:'Goal',weight:3},{name:'Done',kind:'check'}],rows:[['Plan ahead']],ctx,caption:'Goals'})
+    +ratingGrid({statements:['I plan.'],evidence:true,ctx})+cardSet({cards:['Role A\nThe manager.']})+sourceLine('Credit.')
+    +formTitleBlock({id:'f2',label:'Checklist',number:'1.2',title:'Set-up',facilitator:true})+formText('Facilitator only.')
+    +para(STYLE_IDS.body,run('Give out ')+citationControl({id:'f1',text:'Handout 1.1: Goals'},ctx)+run(' now.')),{where:'after',after:at,spare:false});
+  return a.adapter.exportState().paragraphs;
+}
+
+test('a guide is drawn as its parts: title, module, lesson, time, block with its label, notes, standard pages',async()=>{
+  const nodes=describeGuide(await guide(),parseXml);
+  assert.equal(text(find(nodes,'g-title')[0]),'Forms guide');
+  assert.equal(text(find(nodes,'g-module')[0]),'Module 1: Naming it');
+  assert.equal(text(find(nodes,'g-lesson')[0]),'Lesson 1.1: First');
+  assert.match(text(find(nodes,'g-time')[0]),/^\s*Time: \d+ minutes?\. Cumulative time: 0 minutes\./);
+  const cue=find(nodes,'g-cue')[0];
+  assert.ok(find([cue],'g-label').length===1,'the label of a block is drawn as a label');
+  assert.match(text(cue),/What makes it hard\?/);
+  assert.match(text(find(nodes,'g-notes')[0]),/Listen for blame\./);
+  assert.ok(nodes.some(n=>n.tag==='h2'&&text(n)==='Acknowledgements'),'the standard pages are headings');
+});
+
+test('forms are drawn with their title, print line, lines, boxes, fields, cards, source and the facilitator\'s form marked',async()=>{
+  const nodes=describeGuide(await guide(),parseXml);
+  const forms=find(nodes,'g-form');
+  assert.deepEqual(forms.map(f=>text(f)),['Handout 1.1: Goals','Checklist 1.2: Set-up']);
+  assert.ok(forms[1].cls.includes('facilitator')&&!forms[0].cls.includes('facilitator'));
+  assert.equal(text(find(nodes,'g-print')[0]),'Print: 1 per person, landscape.');
+  assert.equal(find(nodes,'g-rule').length,2);
+  const box=find(nodes,'g-box')[0];assert.equal(box.height,54,'a box of three lines is 54 points tall');
+  const field=find(nodes,'g-field')[0];
+  assert.deepEqual(field.children.map(c=>[c.cls,c.text]),[['g-fieldlabel','Name'],['g-fieldline',undefined],['g-fieldlabel','Date'],['g-fieldline',undefined]]);
+  assert.match(text(find(nodes,'g-card')[0]),/Role A/);
+  assert.equal(text(find(nodes,'g-source')[0]),'Credit.');
+  assert.equal(text(find(nodes,'g-formtext')[0]),'Fill this in.');
+});
+
+test('a table is drawn as a table with header cells where Word marks a header row, a caption, and check boxes in their cells',async()=>{
+  const nodes=describeGuide(await guide(),parseXml);
+  const tables=find(nodes,'g-table');
+  assert.equal(tables.length,3,'a checklist, a table and a rating grid: each once, not once for each cell');
+  const goals=tables.find(t=>t.attrs?.['aria-label']==='Goals');
+  assert.ok(goals);
+  const header=goals.children[0];assert.deepEqual(header.children.map(c=>[c.tag,c.attrs?.scope,text(c)]),[['th','col','Goal'],['th','col','Done']]);
+  const body=goals.children[1];assert.deepEqual(body.children.map(c=>c.tag),['td','td']);
+  assert.equal(text(body.children[0]),'Plan ahead');
+  assert.equal(text(body.children[1]),'☐');
+  assert.equal(find(nodes,'g-check').length,2+1+5);
+  assert.ok(tags(nodes,'th').length>=6);
+});
+
+test('a citation is drawn as a citation with the form\'s name',async()=>{
+  const nodes=describeGuide(await guide(),parseXml);
+  assert.deepEqual(find(nodes,'g-cite').map(text),['Handout 1.1: Goals']);
+  assert.ok(nodes.some(n=>n.cls==='g-body'&&/^Give out Handout 1\.1: Goals now\./.test(text(n))));
+});
+
+test('what is not words is not drawn: empty paragraphs, a table\'s later cells, pictures; damaged XML is shown as the words it had',()=>{
+  const entries=[
+    {xml:'',text:'',style:'Normal'},
+    {xml:'<w:p xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"/>',text:'',style:'Normal'},
+    {xml:'<w:p xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"><w:r><w:drawing><wp:inline/></w:drawing></w:r></w:p>',text:'',style:'OSG Cue'},
+    {xml:'this is not xml',text:'Words that were in it',style:'Normal'}
+  ];
+  const nodes=describeGuide(entries,xml=>{if(!xml.startsWith('<'))throw new Error('damaged');return parseXml(xml);});
+  assert.deepEqual(nodes,[{tag:'p',cls:'g-other',text:'Words that were in it'}]);
+});
+
+test('markup in the guide\'s words is drawn as words: nothing is ever written as markup',()=>{
+  const evil='<img src=x onerror=alert(1)> & <script>alert(2)</script>';
+  const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const entry={xml:`<w:p xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:pPr><w:pStyle w:val="OSGModule"/></w:pPr><w:r><w:t>${esc(evil)}</w:t></w:r></w:p>`,text:evil,style:'OSG Module'};
+  const doc=fakeDoc(),container=new Fake('div');
+  renderGuide(doc,container,[entry],parseXml);
+  const page=container.children[0];
+  assert.equal(page.tag,'article');assert.equal(page.attrs['aria-label'],'The guide');
+  const h=page.children[0];
+  assert.equal(h.tag,'h2');assert.equal(h.textContent,evil,'the words are the words, tags and all');
+});
+
+test('an empty guide says how to start, and drawing again replaces what was there',()=>{
+  const doc=fakeDoc(),container=new Fake('div');
+  renderGuide(doc,container,[],parseXml);
+  assert.match(container.textContent,/This guide is empty\. Choose Guide overview/);
+  renderGuide(doc,container,[],parseXml);
+  assert.equal(container.children.length,1);
+  const entries=[{xml:'<w:p xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:r><w:t>One</w:t></w:r></w:p>',text:'One',style:'Normal'}];
+  renderGuide(doc,container,entries,parseXml);
+  assert.equal(container.children.length,1);
+  assert.equal(container.textContent,'One');
+});
+
+test('drawNodes draws a tree with the page\'s document: tags, classes, attributes, a height, text, children',()=>{
+  const doc=fakeDoc(),parent=new Fake('div');
+  drawNodes(doc,parent,[{tag:'div',cls:'g-box',height:30},{tag:'table',cls:'g-table',attrs:{'aria-label':'T'},children:[{tag:'tr',children:[{tag:'td',text:'x'}]}]}]);
+  assert.equal(parent.children[0].className,'g-box');
+  assert.equal(parent.children[0].style.height,'40px');
+  assert.equal(parent.children[1].attrs['aria-label'],'T');
+  assert.equal(parent.children[1].textContent,'x');
+});
