@@ -122,7 +122,7 @@ export function mountEditor(doc, host, guide, ui) {
     const sigs = entries.map(rowSignature);
     if (sameList(sigs, entrySigs)) return;
     entrySigs = sigs;
-    const nodes = describeGuide(entries, parseXml, { blank: true });
+    const nodes = describeGuide(entries, parseXml, { blank: true, media: (id) => guide.mediaOf(id) });
     const rowSigs = nodes.map((n) => rowSignature(entries[n.index ?? 0]));
     const { prefix, oldEnd, newEnd } = reconcile(shown.map((r) => r.sig), rowSigs);
     // A row that is being replaced cannot go on being edited: the document changed under it (Undo, or the tools).
@@ -171,7 +171,7 @@ export function mountEditor(doc, host, guide, ui) {
   /** Draw a row's own words again, after they were being changed. @param {Row} row */
   function redrawRow(row) {
     const entry = entryOf(row);
-    const [node] = describeGuide([entry], parseXml, { blank: true });
+    const [node] = describeGuide([entry], parseXml, { blank: true, media: (id) => guide.mediaOf(id) });
     row.el.classList.remove("g-editing");
     if (!node) {
       row.el.replaceChildren();

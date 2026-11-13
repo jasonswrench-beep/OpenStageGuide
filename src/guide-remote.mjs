@@ -50,11 +50,13 @@ export function createRemoteAdapter({post,listen,onStatus=()=>{},download=browse
   });
   const adapter={kind:'demo'};
   for(const name of REMOTE_METHODS)if(!['insert','ready','status'].includes(name))adapter[name]=(...args)=>call(name,...args);
-  // The content is built here, where the tool's own code is, and only the finished Word-format text is sent.
+  // The content is built here, where the tool's own code is, and only the finished Word-format text is sent, with the author's pictures
+  // that it names (the document keeps them: the text alone would name pictures it never got).
   adapter.insert=(make,opts)=>{
-    const body=make(build());
+    const ctx=build();
+    const body=make(ctx);
     if(typeof body!=='string')throw new Error('The block could not be made.');
-    return call('insert',body,opts);
+    return call('insert',body,opts,Array.isArray(ctx.pictures)?ctx.pictures:[]);
   };
   adapter.ready=call('ready');
   adapter.ready.catch(()=>{});
@@ -85,7 +87,8 @@ export function serveAdapter(guide,{post,listen,methods=REMOTE_METHODS}){
       else if(data.method==='status')value=guide.status();
       else if(data.method==='insert'){
         if(typeof args[0]!=='string')throw new Error('The block could not be made.');
-        value=await guide.insert(()=>args[0],args[1]);
+        const opts=args[1]&&typeof args[1]==='object'&&!Array.isArray(args[1])?args[1]:{};
+        value=await guide.insert(()=>args[0],{...opts,pictures:Array.isArray(args[2])&&args[2].length?args[2]:null});
       }else value=await guide[data.method](...args);
       reply({ok:true,value});
     }catch(e){reply({ok:false,message:String(e?.message||e)});}

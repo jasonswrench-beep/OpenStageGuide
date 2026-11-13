@@ -135,15 +135,15 @@ test('the Insert menu: a form from a template, then the elements a form is made 
   const {menus}=buildMenus(ctx);
   const insert=menus.find(m=>m.id==='insert');
   const labels=insert.items.filter(i=>i!=='-').map(i=>i.label);
-  assert.deepEqual(labels,['Form...','Lines to write on...','Writing box...','Row of fields...','Check list...','Table to fill in...','Rating grid...','Cards to cut apart...','Source line...']);
-  assert.equal(insert.items.filter(i=>i==='-').length,1,'the form is set apart from the elements');
+  assert.deepEqual(labels,['Picture...','Form...','Lines to write on...','Writing box...','Row of fields...','Check list...','Table to fill in...','Rating grid...','Cards to cut apart...','Source line...']);
+  assert.equal(insert.items.filter(i=>i==='-').length,1,'the picture and the form are set apart from the elements of a form');
   for(const i of insert.items.filter(i=>i!=='-')){
     assert.ok(i.icon&&UI_ICONS[i.icon],`${i.label} has an icon the program has`);
     assert.ok(i.title&&i.title.length>10,`${i.label} says what it makes`);
     assert.equal(i.enabled(),true);
   }
   for(const i of insert.items.filter(i=>i!=='-'))i.run();
-  assert.deepEqual(made,['form','lines','box','fields','checklist','table','rating','cards','source']);
+  assert.deepEqual(made,['picture','form','lines','box','fields','checklist','table','rating','cards','source']);
   guide=false;
   assert.ok(insert.items.filter(i=>i!=='-').every(i=>i.enabled()===false),'no guide, nothing to insert into');
   const bare=buildMenus({hasGuide:()=>true,openTool(){},updateGuide(){},newGuide(){},openGuide(){},closeGuide(){},search(){},keys(){},about(){}}).menus.find(m=>m.id==='insert');

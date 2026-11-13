@@ -79,6 +79,7 @@ const NO_EDIT = { command: () => {}, state: () => ({ canUndo: false, canRedo: fa
 
 /** The Insert menu: each item is a command of `ctx.insert` (see forms.js), after its name. */
 const INSERT_ITEMS = /** @type {{ name: string, label: string, icon: UiIconName, title: string }[]} */ ([
+  { name: "picture", label: "Picture...", icon: "image", title: "A picture from a file, with a description for people who cannot see it" },
   { name: "form", label: "Form...", icon: "file-text", title: "Start a handout, worksheet, checklist or other form from a template" },
   { name: "lines", label: "Lines to write on...", icon: "pencil-line", title: "Ruled lines for a written answer" },
   { name: "box", label: "Writing box...", icon: "square", title: "An empty box for a drawing or a longer answer" },
@@ -147,7 +148,7 @@ export function buildMenus(ctx) {
     id: "insert",
     label: "Insert",
     items: INSERT_ITEMS.flatMap((i, n) => [
-      ...(n === 1 ? /** @type {MenuEntry[]} */ (["-"]) : []),
+      ...(n === 2 ? /** @type {MenuEntry[]} */ (["-"]) : []),
       /** @type {MenuCommand} */ ({ label: i.label, icon: i.icon, title: i.title, run: () => void ctx.insert?.(i.name), enabled: ctx.hasGuide }),
     ]),
   };

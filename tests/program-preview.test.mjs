@@ -3,7 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {DOMParser} from '@xmldom/xmldom';
 import {describeGuide,renderGuide,drawNodes} from '../program/ui/preview.js';
-import {makeContext,para,run} from '../src/guide-ooxml.mjs';
+import {makeContext,para,run,pictureRun} from '../src/guide-ooxml.mjs';
 import {formTitleBlock,formText,writingLines,writingBox,fieldRow,checkList,formTable,ratingGrid,sourceLine,printLine,cardSet,citationControl} from '../src/guide-forms-ooxml.mjs';
 import {STYLE_IDS} from '../src/guide-styles.mjs';
 import {started,addModule,addLesson,addBlock} from './helpers/guide-harness.mjs';
@@ -146,4 +146,29 @@ test('every drawn row says which paragraph it comes from; the editor\'s view als
   assert.equal(blank.cls,'g-body g-blank','an empty paragraph keeps the look of its style');
   assert.equal(text(blank),'Empty paragraph','and has words for a screen reader');
   assert.deepEqual(describeGuide([{xml:`<w:p ${W}/>`,text:'',style:'Normal'}],parseXml,{blank:true}).map(n=>n.cls),['g-para g-blank']);
+});
+
+test('the author\'s own picture is drawn from the guide\'s copy with its description as alt text; a picture that is not there says so; a cue\'s icon is not drawn',async()=>{
+  const a=await started('Pictures');
+  await a.adapter.insert(ctx=>para('OSGCueBody',pictureRun({base64:'iVBORw0KGgo=',type:'png',mime:'image/png',size:{cx:1905000,cy:952500},alt:'A cat on a mat',name:'cat'},ctx)),{where:'start',spare:false});
+  const entries=a.adapter.exportState().paragraphs;
+  const at=entries.findIndex(p=>/r:embed="rIdPic/.test(p.xml));
+  assert.ok(at>=0);
+  const media=id=>a.adapter.mediaOf(id);
+  const nodes=describeGuide(entries,parseXml,{media});
+  const row=nodes.find(n=>n.index===at);
+  assert.ok(row,'a paragraph that holds only a picture is a row');
+  const img=row.children[0];
+  assert.equal(img.tag,'img');assert.equal(img.cls,'g-picture');
+  assert.match(img.attrs.src,/^data:image\/png;base64,iVBORw0KGgo=$/,'a data address: nothing is fetched');
+  assert.equal(img.attrs.alt,'A cat on a mat');
+  assert.equal(img.attrs.width,'200','the size the paragraph gives it, in pixels');
+  const gone=describeGuide(entries,parseXml,{media:()=>null}).find(n=>n.index===at);
+  assert.equal(gone.children[0].cls,'g-picture-missing');assert.equal(text(gone),'[Picture: A cat on a mat]');
+  assert.equal(describeGuide(entries,parseXml).find(n=>n.index===at).children[0].cls,'g-picture-missing','with no way to find pictures it still says there is one');
+  const icon=started&&await started('Icons');
+  await addModule(icon,'M');await addLesson(icon,'L','5');await addBlock(icon,'ask','What?');
+  const cue=describeGuide(icon.adapter.exportState().paragraphs,parseXml).find(n=>n.cls==='g-cue');
+  assert.ok(cue.children.length>=2&&cue.children.every(c=>c.tag==='span'),'the cue\'s name, a space and its words: no picture of its icon');
+  assert.equal(describeGuide([{xml:`<w:p xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"/>`,text:'',style:'Normal'}],parseXml,{blank:true})[0].cls,'g-para g-blank','an empty paragraph is still blank');
 });

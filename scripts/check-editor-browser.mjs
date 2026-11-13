@@ -423,6 +423,34 @@ try{
   await page.keyboard.press('Escape');
   void checklist;
 
+  // ---- a picture, with its description
+  const TINY_PNG='iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+  await row(/^Say where this program fits/).focus();
+  await insertMenu(/^Picture/);
+  await page.setInputFiles('dialog[open] #dlg-f-file',{name:'tiny.png',mimeType:'image/png',buffer:Buffer.from(TINY_PNG,'base64')});
+  await page.getByRole('button',{name:'Insert'}).click();
+  await page.locator('dialog[open] .problem:not([hidden])').waitFor({timeout:5000});
+  ok(/Describe the picture/.test(await page.locator('dialog[open] .problem').innerText()),'a picture with no description is refused in the dialog, which stays open');
+  await page.locator('dialog[open] #dlg-f-alt').fill('A tiny test picture');
+  await page.locator('dialog[open] #dlg-f-caption').fill('Figure 1. A tiny test picture.');
+  await page.getByRole('button',{name:'Insert'}).click();
+  await saved();
+  ok(await page.locator('#work-guide img.g-picture').count()===1,'the picture is drawn in the guide');
+  ok(await page.locator('#work-guide img.g-picture').getAttribute('alt')==='A tiny test picture','with its description as its alt text');
+  const pictureParas=onDisk().filter(p=>/r:embed="rIdPic/.test(p.xml));
+  ok(pictureParas.length===1&&/descr="A tiny test picture"/.test(pictureParas[0].xml),'on disk the paragraph names the picture and holds its description');
+  ok(order().includes('Figure 1. A tiny test picture.'),'and the caption is a paragraph under it');
+  const projectText=fs.readFileSync(path.join(GUIDES,fs.readdirSync(GUIDES).find(n=>n.endsWith('.guide-project.json'))),'utf8');
+  ok(/"media"/.test(projectText)&&projectText.includes(TINY_PNG),'the picture itself is in the project file');
+  await page.getByRole('menuitem',{name:/^File/}).click();
+  await page.getByRole('menuitem',{name:/Close guide/}).click();
+  await page.waitForSelector('#welcome-new');
+  await page.locator('.recent li button').click();
+  await page.waitForSelector('#work-guide img.g-picture',{timeout:10000});
+  ok(await page.locator('#work-guide img.g-picture').count()===1,'closed and opened again, the picture is still there');
+  ok(await page.locator('#work-guide img.g-picture').evaluate(i=>i.complete&&i.naturalWidth>0),'and is a real picture, not a broken one');
+  await shot('10-picture.png');
+
   // ---- what cannot be changed is read, not rewritten
   await row(/Time: 10 minutes/).focus();
   await page.keyboard.press('Enter');

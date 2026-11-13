@@ -5,7 +5,9 @@
  * with the same builders the rest of the program uses (src/guide-forms-ooxml.mjs). The element is checked once, as the dialog's main button
  * is chosen, so a problem is explained in the dialog and the dialog stays open.
  */
-import { makeContext } from "../../src/guide-ooxml.mjs";
+import { makeContext, para, pictureRun, run } from "../../src/guide-ooxml.mjs";
+import { PICTURE_HELP, PICTURE_WIDTHS, pictureSize, prepareImage, toBase64 } from "../../src/image-prepare.mjs";
+import { STYLE_IDS } from "../../src/guide-styles.mjs";
 import { writingLines, writingBox, fieldRow, checkList, formTable, ratingGrid, cardSet, sourceLine } from "../../src/guide-forms-ooxml.mjs";
 import { FORM_TEMPLATES, buildForm } from "../../src/guide-forms-templates.mjs";
 import { LABELS, newFormId } from "../../src/guide-forms.mjs";
@@ -153,6 +155,26 @@ export const INSERTS = {
             }),
           "Cards",
         ),
+    }),
+  picture: (doc) =>
+    askFields(doc, {
+      title: "Picture",
+      intro: `${PICTURE_HELP} A picture needs a description for people who cannot see it, or a tick to say it is only decoration.`,
+      confirm: "Insert",
+      fields: [
+        { id: "file", label: "Picture file", type: "file", accept: "image/png,image/jpeg,image/gif" },
+        { id: "alt", label: "Describe the picture in a few words", type: "text", hint: "For example: A facilitator at a flip chart, pointing to three columns." },
+        { id: "decorative", label: "This picture is only decoration", type: "check", value: false },
+        { id: "width", label: "Width", type: "select", value: "large", options: PICTURE_WIDTHS.map((w) => ({ value: w.id, label: w.label })) },
+        { id: "caption", label: "Caption under the picture (optional)", type: "text" },
+      ],
+      finish: async (v) => {
+        if (!(v.file instanceof File)) throw new Error(`Choose a picture file first. ${PICTURE_HELP}`);
+        const info = await prepareImage(v.file);
+        const picture = { base64: toBase64(info.bytes), type: info.type, mime: info.mime, size: pictureSize(info, String(v.width)), alt: String(v.alt), decorative: v.decorative === true, name: info.name };
+        const caption = String(v.caption).trim();
+        return checked((ctx) => para(STYLE_IDS.body, pictureRun(picture, ctx)) + (caption ? para(null, run(caption)) : ""), "Picture");
+      },
     }),
   source: (doc) =>
     askFields(doc, {

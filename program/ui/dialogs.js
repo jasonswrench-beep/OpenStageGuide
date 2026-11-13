@@ -134,11 +134,11 @@ export function chooseOne(doc, opts) {
 
 /**
  * A dialog of fields to fill in. Each field has an id and a label, and a type: "text", "number", "lines" (a box for several lines), "select"
- * (with options) or "check". `finish` gets the values by id (text or true/false) and returns the result, or throws a message to show in the
- * dialog and keep it open. Resolves to the result, or null when the dialog was closed.
+ * (with options), "check" or "file" (a file to choose; its value is the File, or null). `finish` gets the values by id and returns the result
+ * (it may be a promise), or throws a message to show in the dialog and keep it open. Resolves to the result, or null when the dialog was closed.
  * @template T
  * @param {Document} doc
- * @param {{ title: string, intro?: string, confirm: string, fields: { id: string, label: string, type: "text" | "number" | "lines" | "select" | "check", value?: string | boolean, hint?: string, rows?: number, options?: { value: string, label: string }[] }[], finish: (values: Record<string, string | boolean>) => T }} opts
+ * @param {{ title: string, intro?: string, confirm: string, fields: { id: string, label: string, type: "text" | "number" | "lines" | "select" | "check" | "file", value?: string | boolean, hint?: string, rows?: number, accept?: string, options?: { value: string, label: string }[] }[], finish: (values: Record<string, string | boolean | File | null>) => T | Promise<T> }} opts
  */
 export function askFields(doc, opts) {
   /** @type {Map<string, HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>} */
@@ -155,6 +155,8 @@ export function askFields(doc, opts) {
     } else if (f.type === "select") {
       input = el(doc, "select", { id }, ...(f.options ?? []).map((o) => el(doc, "option", { value: o.value, text: o.label })));
       input.value = String(f.value ?? f.options?.[0]?.value ?? "");
+    } else if (f.type === "file") {
+      input = el(doc, "input", { type: "file", id, ...(f.accept ? { accept: f.accept } : {}) });
     } else if (f.type === "check") {
       input = el(doc, "input", { type: "checkbox", id });
       /** @type {HTMLInputElement} */ (input).checked = f.value === true;
@@ -177,9 +179,13 @@ export function askFields(doc, opts) {
     confirm: opts.confirm,
     first: () => inputs.values().next().value ?? null,
     finish: () => {
-      /** @type {Record<string, string | boolean>} */
+      /** @type {Record<string, string | boolean | File | null>} */
       const values = {};
-      for (const [id, input] of inputs) values[id] = input instanceof HTMLInputElement && input.type === "checkbox" ? input.checked : input.value;
+      for (const [id, input] of inputs) {
+        if (input instanceof HTMLInputElement && input.type === "checkbox") values[id] = input.checked;
+        else if (input instanceof HTMLInputElement && input.type === "file") values[id] = input.files?.[0] ?? null;
+        else values[id] = input.value;
+      }
       return opts.finish(values);
     },
   });

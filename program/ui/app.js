@@ -8,7 +8,7 @@
 import { createProjectAdapter } from "../../src/guide-project-adapter.mjs";
 import { webProjectStore } from "../../src/guide-project-web.mjs";
 import { serveAdapter } from "../../src/guide-remote.mjs";
-import { createDemoAdapter } from "../../src/guide-word.mjs";
+import { createDemoAdapter, loadIcons } from "../../src/guide-word.mjs";
 import { aboutDialog, askName, chooseGuide, chooseOne } from "./dialogs.js";
 import { get, post } from "./api.js";
 import { startFrame } from "./frame.js";
@@ -127,7 +127,8 @@ function scheduleDraw() {
 /** Make the open guide's document, read from its project file, and let go of the one before. */
 function openDocument() {
   closeDocument();
-  const made = createProjectAdapter(createDemoAdapter(), {
+  // The cue icons are the real pictures when a Word document is made from the guide; the program's own server has them.
+  const made = createProjectAdapter(createDemoAdapter({ icons: (names) => loadIcons(names) }), {
     ...webProjectStore(),
     onStatus: (s) => {
       if (guideDoc !== made) return;

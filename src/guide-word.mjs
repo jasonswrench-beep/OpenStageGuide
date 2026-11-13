@@ -12,7 +12,7 @@
 import {makeContext,buildPackage,timeText,esc,SPARE_PARAGRAPH} from './guide-ooxml.mjs';
 import {REF_TAG_PREFIX} from './guide-forms.mjs';
 import {NS,STYLE_IDS,STYLE_NAMES,stylesPart,numberingPart} from './guide-styles.mjs';
-import {iconUrl} from './guide-cues.mjs';
+import {iconUrl,ICON_FILES} from './guide-cues.mjs';
 import {readStyles,textOf} from './guide-check.mjs';
 import {explainWordError} from './word-errors.mjs';
 import {pickFilesWithDialog,pickWithBrowserInputs} from './file-pick.mjs';
@@ -567,10 +567,17 @@ export function createWordAdapter({Word:WordApi,Office:OfficeApi,fetchFn,DOMPars
 // An in-memory document with the same interface, for the browser preview and for tests.
 // quirks.lastParagraphLosesStyle reproduces what real Word did in the first native test: the last paragraph an insert
 // brings in keeps its words but loses its style, and joins the paragraph that follows.
-export function createDemoAdapter({DOMParserClass=globalThis.DOMParser,SerializerClass=globalThis.XMLSerializer,quirks={}}={}){
+// The author's pictures in the in-memory document: id -> {mime, base64}. What a picture is is checked here, once, however it got here.
+const PICTURE_MIMES={'image/png':'png','image/jpeg':'jpg','image/gif':'gif'};
+const PICTURE_B64=/^[A-Za-z0-9+/]*={0,2}$/;
+const iconRid=icon=>`rIdIcon_${icon.replace(/[^a-z0-9]/gi,'_')}`;
+
+// `icons(names)` gives the real pictures of the cue icons the guide uses (base64 by name), for the file a Word document is made from;
+// without it (the tests) a one-pixel stand-in is used.
+export function createDemoAdapter({DOMParserClass=globalThis.DOMParser,SerializerClass=globalThis.XMLSerializer,quirks={},icons=null}={}){
   const parseXml=text=>new DOMParserClass().parseFromString(text,'application/xml');
   const styles=readStyles(parseXml(stylesPart()));
-  let paras=[],cursor=-1,docTitle='',autoShow=false,selectionHandler=null,ownCues=[],activeTheme,lookText=null,slideMemory=null,versionMemory=null,formsText=null,demoRefusals=null,picker=null;
+  let media=Object.create(null),paras=[],cursor=-1,docTitle='',autoShow=false,selectionHandler=null,ownCues=[],activeTheme,lookText=null,slideMemory=null,versionMemory=null,formsText=null,demoRefusals=null,picker=null;
   const applied=[],headerFooter=[];
   const history=[],future=[],opened=[],downloaded=[];
   let capturedFile=null;
@@ -635,6 +642,28 @@ export function createDemoAdapter({DOMParserClass=globalThis.DOMParser,Serialize
     return cells;
   });
   const retext=(xml,text)=>xml.replace(/(<w:t[^>]*>)[^<]*(<\/w:t>)/,`$1${esc(text)}$2`);
+  // The pictures a block was made with (each with the id its XML names) are kept under ids that no other block's pictures have, so two
+  // blocks that each had "their first picture" do not share one. What is not a picture of a kind Word holds is refused before anything changes.
+  const keepPictures=(body,pics)=>{
+    if(!pics.length)return body;
+    const renamed=[];
+    for(const p of pics){
+      if(!p||typeof p.rid!=='string'||!/^rIdPic[A-Za-z0-9_-]{1,60}$/.test(p.rid)||!PICTURE_MIMES[p.mime]||typeof p.base64!=='string'||!p.base64||!PICTURE_B64.test(p.base64)||p.base64.length%4!==0)throw new Error('A picture could not be added: it is not a PNG, JPG or GIF.');
+      let id;
+      do id=`rIdPic${Math.random().toString(36).slice(2,10)}`;while(media[id]||renamed.some(r=>r.id===id));
+      renamed.push({id,from:p.rid,mime:p.mime,base64:p.base64});
+    }
+    let out=body;
+    for(const r of renamed)out=out.split(`r:embed="${r.from}"`).join(`r:embed="${r.id}"`);
+    for(const r of renamed)media[r.id]={mime:r.mime,base64:r.base64};
+    return out;
+  };
+  // The pictures the paragraphs still use (a picture whose paragraph was deleted is dropped when the document is saved).
+  const usedMedia=()=>{
+    const used=new Set();
+    for(const p of paras)for(const m of String(p.xml||'').matchAll(/r:embed="(rIdPic[A-Za-z0-9_-]+)"/g))used.add(m[1]);
+    return Object.fromEntries([...used].filter(id=>media[id]).map(id=>[id,{...media[id]}]));
+  };
   return {
     kind:'demo',
     async paragraphs(){return paras.map(({text,style,builtIn,marks})=>({text,style,builtIn,...(marks?{marks}:{})}));},
@@ -665,8 +694,10 @@ export function createDemoAdapter({DOMParserClass=globalThis.DOMParser,Serialize
     },
     async setHeaderFooter(hf){headerFooter.push(hf);return {done:['header','footer'].filter(k=>hf[k]!==undefined),failed:[]};},
     async cursorIndex(){return cursor<0?paras.length-1:cursor;},
-    async insert(build,{where='after',after,select='last',spare=true,remove=null}={}){
-      const body=build(makeContext());
+    async insert(build,{where='after',after,select='last',spare=true,remove=null,pictures=null}={}){
+      const made=makeContext();
+      let body=build(made);
+      body=keepPictures(body,pictures||made.pictures||[]);
       if(remove&&norm(paras[remove.start]?.text)!==norm(remove.guard))throw new Error('That block has changed since you chose it. Select it again, then choose Edit this block.');
       const at=where==='start'||!paras.length?0:after+1;
       if(where!=='start'&&paras.length&&!paras[after])throw new Error('That part of the document is no longer there. Choose Refresh and try again.');
@@ -749,12 +780,22 @@ export function createDemoAdapter({DOMParserClass=globalThis.DOMParser,Serialize
     // uses and a small picture for every icon it refers to.
     async sourcePackage(){
       const body=paras.map(p=>p.xml).join('');
-      const icons=[...new Set([...body.matchAll(/r:embed="([^"]+)"/g)].map(m=>m[1]))];
+      const ids=[...new Set([...body.matchAll(/r:embed="([^"]+)"/g)].map(m=>m[1]))];
       const lists=Math.max(0,...[...body.matchAll(/<w:numId w:val="(\d+)"/g)].map(m=>Number(m[1])));
       const part=(name,type,inner)=>`<pkg:part pkg:name="${name}" pkg:contentType="${type}"><pkg:xmlData>${inner}</pkg:xmlData></pkg:part>`;
-      const rels=`<Relationship Id="rIdStyles" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>${lists?'<Relationship Id="rIdNumbering" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/numbering" Target="numbering.xml"/>':''}${icons.map((id,i)=>`<Relationship Id="${id}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/image${i+1}.png"/>`).join('')}`;
       const png='iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
-      return `<pkg:package xmlns:pkg="${PKG}">${part('/word/document.xml','application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml',`<w:document ${NS}><w:body>${body}</w:body></w:document>`)}${part('/word/_rels/document.xml.rels','application/vnd.openxmlformats-package.relationships+xml',`<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${rels}</Relationships>`)}${part('/word/styles.xml','application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml',stylesPart())}${lists?part('/word/numbering.xml','application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml',numberingPart(lists)):''}${icons.map((id,i)=>`<pkg:part pkg:name="/word/media/image${i+1}.png" pkg:contentType="image/png" pkg:compression="store"><pkg:binaryData>${png}</pkg:binaryData></pkg:part>`).join('')}</pkg:package>`;
+      // The cue icons the guide uses are the real pictures when the program can load them; the author's own pictures are always the real ones.
+      const iconNames=ICON_FILES.filter(n=>ids.includes(iconRid(n)));
+      let real={};
+      if(icons&&iconNames.length){try{real=await icons(iconNames);}catch{real={};}}
+      const files=ids.map((id,i)=>{
+        const pic=media[id];
+        if(pic)return {id,name:`image${i+1}.${PICTURE_MIMES[pic.mime]}`,type:pic.mime,data:pic.base64};
+        const icon=iconNames.find(n=>iconRid(n)===id);
+        return {id,name:`image${i+1}.png`,type:'image/png',data:(icon&&real[icon])||png};
+      });
+      const rels=`<Relationship Id="rIdStyles" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>${lists?'<Relationship Id="rIdNumbering" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/numbering" Target="numbering.xml"/>':''}${files.map(f=>`<Relationship Id="${f.id}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/${f.name}"/>`).join('')}`;
+      return `<pkg:package xmlns:pkg="${PKG}">${part('/word/document.xml','application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml',`<w:document ${NS}><w:body>${body}</w:body></w:document>`)}${part('/word/_rels/document.xml.rels','application/vnd.openxmlformats-package.relationships+xml',`<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${rels}</Relationships>`)}${part('/word/styles.xml','application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml',stylesPart())}${lists?part('/word/numbering.xml','application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml',numberingPart(lists)):''}${files.map(f=>`<pkg:part pkg:name="/word/media/${f.name}" pkg:contentType="${f.type}" pkg:compression="store"><pkg:binaryData>${f.data}</pkg:binaryData></pkg:part>`).join('')}</pkg:package>`;
     },
     // The preview has no second window: it keeps what it was asked to open, for the tests to look at.
     async openDocument(base64,fileName){
@@ -794,9 +835,11 @@ export function createDemoAdapter({DOMParserClass=globalThis.DOMParser,Serialize
     // For the program's project file (guide-project.mjs): everything this document holds as plain data, and a way to put it back.
     // importState takes what cleanGuide returned. The Word-format XML of every paragraph is checked first, so a damaged project
     // is refused whole and the document is left as it was.
+    // A picture the guide holds, by the id its paragraphs name, or null.
+    mediaOf(id){return media[id]||null;},
     exportState(){
       const copy=v=>JSON.parse(JSON.stringify(v));
-      return {title:docTitle,paragraphs:paras.map(({xml,text,style,builtIn})=>({xml,text,style,...(builtIn?{builtIn}:{})})),cursor,ownCues:[...ownCues],look:lookText,slideMemory,versionMemory,forms:formsText,applied:copy(applied),headerFooter:copy(headerFooter)};
+      return {title:docTitle,paragraphs:paras.map(({xml,text,style,builtIn})=>({xml,text,style,...(builtIn?{builtIn}:{})})),cursor,ownCues:[...ownCues],look:lookText,slideMemory,versionMemory,forms:formsText,applied:copy(applied),headerFooter:copy(headerFooter),media:usedMedia()};
     },
     importState(guide){
       const marksList=guide.paragraphs.map((p,i)=>{
@@ -808,7 +851,7 @@ export function createDemoAdapter({DOMParserClass=globalThis.DOMParser,Serialize
         return d.documentElement.localName==='p'?marksOf(d.documentElement):undefined;
       });
       paras=guide.paragraphs.map((p,i)=>({...p,...(marksList[i]?{marks:marksList[i]}:{})}));cursor=guide.cursor;docTitle=guide.title;ownCues=[...guide.ownCues];
-      lookText=guide.look;slideMemory=guide.slideMemory;versionMemory=guide.versionMemory;formsText=guide.forms??null;
+      lookText=guide.look;slideMemory=guide.slideMemory;versionMemory=guide.versionMemory;formsText=guide.forms??null;media=Object.create(null);Object.assign(media,guide.media||{});
       applied.length=0;applied.push(...guide.applied);headerFooter.length=0;headerFooter.push(...guide.headerFooter);history.length=0;future.length=0;lastGroup=null;
     },
     autoShow(){return autoShow;},

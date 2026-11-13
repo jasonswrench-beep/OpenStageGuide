@@ -321,3 +321,5 @@ dialog h2 { margin: 0 0 10px; }
 .page td[data-row] { cursor: text; }
 .page table.g-table textarea.g-edit { width: 100%; }
 .page table.g-table td, .page table.g-table th { height: 30px; }
+.page img.g-picture { display: block; max-width: 100%; height: auto; margin: 6px 0; }
+.page .g-picture-missing { color: var(--muted); font-style: italic; }

@@ -19,7 +19,9 @@ export const LIMITS=Object.freeze({
   title:2000,
   cues:50,
   cueName:200,
-  looseItems:10000
+  looseItems:10000,
+  pictures:200,
+  pictureBase64:16*1024*1024
 });
 
 export class ProjectError extends Error{
@@ -53,6 +55,27 @@ const list=(v,what)=>{
   return plain(v);
 };
 
+// The author's pictures: id -> {mime, base64}. The id is the one the paragraphs' XML names (r:embed="..."). Only the kinds of picture a Word
+// document can hold safely, as base64 text of a sane size.
+export const PICTURE_MIME=Object.freeze(['image/png','image/jpeg','image/gif']);
+const PICTURE_ID=/^rIdPic[A-Za-z0-9_-]{1,60}$/;
+const BASE64=/^[A-Za-z0-9+/]*={0,2}$/;
+const cleanMedia=m=>{
+  if(m===undefined||m===null)return {};
+  if(!isObject(m))throw new ProjectError('The project\'s pictures are not in the right form, so it was not opened.');
+  const entries=Object.entries(m);
+  if(entries.length>LIMITS.pictures)throw new ProjectError('The project has more pictures than this program can hold, so it was not opened.');
+  const out=Object.create(null);
+  let total=0;
+  for(const [id,v] of entries){
+    if(!PICTURE_ID.test(id)||!isObject(v)||!PICTURE_MIME.includes(v.mime)||typeof v.base64!=='string'||!v.base64||!BASE64.test(v.base64)||v.base64.length%4!==0)
+      throw new ProjectError('A picture in the project is not in the right form, so it was not opened.');
+    if(v.base64.length>LIMITS.pictureBase64||(total+=v.base64.length)>LIMITS.fileCharacters)throw new ProjectError('A picture in the project is too large, so it was not opened.');
+    out[id]={mime:v.mime,base64:v.base64};
+  }
+  return {...out};
+};
+
 // Checks the guide part of a project and returns a clean copy of it. Unknown fields are dropped; a missing optional field takes its empty value.
 export function cleanGuide(g){
   if(!isObject(g))throw new ProjectError('The project does not hold a guide, so it was not opened.');
@@ -76,7 +99,8 @@ export function cleanGuide(g){
     versionMemory:orNull(g.versionMemory,LIMITS.words,'delivery versions'),
     forms:orNull(g.forms,LIMITS.words,'form settings'),
     applied:list(g.applied,'look settings'),
-    headerFooter:list(g.headerFooter,'header and footer settings')
+    headerFooter:list(g.headerFooter,'header and footer settings'),
+    media:cleanMedia(g.media)
   };
 }
 

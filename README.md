@@ -15,7 +15,7 @@ npm ci --ignore-scripts
 node scripts/project-server.mjs --folder "C:\path\to\guides" --port 3850
 ```
 
-Open <http://127.0.0.1:3850/>. With no `--folder`, guides go in `Documents\OpenStage Guides`. A guide is one file ending in `.guide-project.json` (plain JSON, so it can be opened, kept and backed up like any file). The server answers only on this computer, never takes a path from the page, and keeps the previous copy of a guide as `.bak` the first time it saves after the guide is opened.
+On Windows, double-clicking `Start OpenStage Guide.cmd` does both steps (it installs what is needed the first time, starts the server in a minimized window, and opens the program in your browser). Otherwise open <http://127.0.0.1:3850/>. With no `--folder`, guides go in `Documents\OpenStage Guides`. A guide is one file ending in `.guide-project.json` (plain JSON, so it can be opened, kept and backed up like any file). The server answers only on this computer, never takes a path from the page, and keeps the previous copy of a guide as `.bak` the first time it saves after the guide is opened.
 
 ## Tests
 

@@ -8,6 +8,9 @@
 const W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
 const W14 = "http://schemas.microsoft.com/office/word/2010/wordml";
 const REF = "osg-ref:";
+const WP = "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing";
+const A = "http://schemas.openxmlformats.org/drawingml/2006/main";
+const R = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
 
 /**
  * @typedef {{ tag: string, cls?: string, text?: string, attrs?: Record<string, string>, height?: number, index?: number, span?: number, children?: Node_[] }} Node_
@@ -20,12 +23,13 @@ const kids = (el, name) => Array.from(el.childNodes).filter((n) => n.nodeType ==
 const first = (el, ns, name) => Array.from(el.getElementsByTagNameNS(ns, name))[0];
 
 /**
- * The inline parts of a paragraph, in order: {t:'text',text,label}, {t:'tab'}, {t:'br'}, {t:'check'}, {t:'cite',text}.
+ * The inline parts of a paragraph, in order: {t:'text',text,label}, {t:'tab'}, {t:'br'}, {t:'check'}, {t:'cite',text}, {t:'picture',rid,alt,width}
+ * (the author's own picture; the cue's icon, named "Icon n", is not drawn).
  * @param {Element} el
- * @returns {{ t: string, text?: string, label?: boolean }[]}
+ * @returns {{ t: string, text?: string, label?: boolean, rid?: string, alt?: string, width?: number }[]}
  */
 function inlineParts(el) {
-  /** @type {{ t: string, text?: string, label?: boolean }[]} */
+  /** @type {{ t: string, text?: string, label?: boolean, rid?: string, alt?: string, width?: number }[]} */
   const out = [];
   const walk = (/** @type {Element} */ node) => {
     for (const c of Array.from(node.childNodes)) {
@@ -41,6 +45,13 @@ function inlineParts(el) {
           if (r.localName === "t") out.push({ t: "text", text: r.textContent ?? "", label: rstyle === "OSGCueLabel" });
           else if (r.localName === "tab") out.push({ t: "tab" });
           else if (r.localName === "br") out.push({ t: "br" });
+          else if (r.localName === "drawing") {
+            const docPr = Array.from(r.getElementsByTagNameNS(WP, "docPr"))[0];
+            const blip = Array.from(r.getElementsByTagNameNS(A, "blip"))[0];
+            const extent = Array.from(r.getElementsByTagNameNS(WP, "extent"))[0];
+            const rid = blip?.getAttributeNS(R, "embed") ?? "";
+            if (/^Picture\b/.test(docPr?.getAttribute("name") ?? "") && rid) out.push({ t: "picture", rid, alt: docPr?.getAttribute("descr") ?? "", width: Math.round(Number(extent?.getAttribute("cx") ?? 0) / 9525) });
+          }
         }
       } else if (name === "sdt") {
         const pr = kids(e, "sdtPr")[0];
@@ -61,8 +72,13 @@ function textOfContent(el) {
   return Array.from(el.getElementsByTagNameNS(W, "t")).map((t) => t.textContent ?? "").join("");
 }
 
-/** @param {{ t: string, text?: string, label?: boolean }[]} parts @returns {Node_[]} */
-function inlineNodes(parts) {
+/**
+ * `media(id)` gives the author's picture an id names ({ mime, base64 }), or null.
+ * @param {{ t: string, text?: string, label?: boolean, rid?: string, alt?: string, width?: number }[]} parts
+ * @param {((id: string) => { mime: string, base64: string } | null) | undefined} [media]
+ * @returns {Node_[]}
+ */
+function inlineNodes(parts, media) {
   /** @type {Node_[]} */
   const out = [];
   for (const p of parts) {
@@ -71,6 +87,12 @@ function inlineNodes(parts) {
     else if (p.t === "check") out.push({ tag: "span", cls: "g-check", text: "☐" });
     else if (p.t === "br") out.push({ tag: "br" });
     else if (p.t === "tab") out.push({ tag: "span", text: " " });
+    else if (p.t === "picture") {
+      const have = media?.(p.rid ?? "");
+      // The picture is drawn from the guide's own copy, as a data address: nothing is fetched, and the description is the picture's alt text.
+      if (have) out.push({ tag: "img", cls: "g-picture", attrs: { src: `data:${have.mime};base64,${have.base64}`, alt: p.alt ?? "", ...(p.width ? { width: String(Math.min(640, p.width)) } : {}) } });
+      else out.push({ tag: "span", cls: "g-picture-missing", text: p.alt ? `[Picture: ${p.alt}]` : "[Picture]" });
+    }
   }
   return out;
 }
@@ -135,26 +157,26 @@ function blankNode(style) {
 
 /**
  * The tree for one paragraph (a w:p element and its style's name).
- * @param {Element} p @param {string} style @returns {Node_ | null}
+ * @param {Element} p @param {string} style @param {((id: string) => { mime: string, base64: string } | null) | undefined} [media] @returns {Node_ | null}
  */
-function paragraphNode(p, style) {
+function paragraphNode(p, style, media) {
   const parts = inlineParts(p);
   const words = parts.filter((x) => x.t === "text").map((x) => x.text).join("").trim();
   if (style === "OSG Form Line" || style === "OSG Answer Line") return { tag: "div", cls: "g-rule" };
   if (style === "OSG Form Box") return { tag: "div", cls: "g-box", height: exactHeight(p) || 60 };
   if (style === "OSG Form Field") return { tag: "div", cls: "g-field", children: fieldNodes(parts) };
-  if (!words && !parts.some((x) => x.t === "check" || x.t === "cite")) return null;
+  if (!words && !parts.some((x) => x.t === "check" || x.t === "cite" || x.t === "picture")) return null;
   const known = BY_STYLE[style];
-  if (known) return { tag: known.tag, cls: known.cls, children: inlineNodes(parts) };
-  if (/^toc \d$/i.test(style)) return { tag: "p", cls: "g-toc", children: inlineNodes(parts) };
-  return { tag: "p", cls: /^OSG /.test(style) ? "g-para" : "g-para", children: inlineNodes(parts) };
+  if (known) return { tag: known.tag, cls: known.cls, children: inlineNodes(parts, media) };
+  if (/^toc \d$/i.test(style)) return { tag: "p", cls: "g-toc", children: inlineNodes(parts, media) };
+  return { tag: "p", cls: /^OSG /.test(style) ? "g-para" : "g-para", children: inlineNodes(parts, media) };
 }
 
 /**
  * A table: a header row where Word's header-row mark says so, cells with the words of their paragraphs.
- * @param {Element} tbl @returns {Node_}
+ * @param {Element} tbl @param {((id: string) => { mime: string, base64: string } | null) | undefined} [media] @returns {Node_}
  */
-function tableNode(tbl) {
+function tableNode(tbl, media) {
   const caption = first(tbl, W, "tblCaption")?.getAttributeNS(W, "val") ?? "";
   /** @type {Node_[]} */
   const rows = [];
@@ -170,7 +192,7 @@ function tableNode(tbl) {
         const parts = inlineParts(para);
         if (!parts.length) continue;
         if (content.length) content.push({ tag: "br" });
-        content.push(...inlineNodes(parts));
+        content.push(...inlineNodes(parts, media));
       }
       // The row and column are on the cell, so the editor knows which cell of the table the author is in.
       cells.push({ tag: header ? "th" : "td", attrs: { ...(header ? { scope: "col" } : {}), "data-row": String(r), "data-col": String(cells.length) }, children: content });
@@ -186,7 +208,7 @@ function tableNode(tbl) {
  * With `blank`, a paragraph with nothing in it is drawn as an empty row (the editor needs somewhere to type); without it, it is left out.
  * @param {Entry[]} entries
  * @param {(xml: string) => Document} parseXml
- * @param {{ blank?: boolean }} [options]
+ * @param {{ blank?: boolean, media?: (id: string) => { mime: string, base64: string } | null }} [options]
  * @returns {Node_[]}
  */
 export function describeGuide(entries, parseXml, options = {}) {
@@ -210,10 +232,10 @@ export function describeGuide(entries, parseXml, options = {}) {
       // The other cells of the table are the entries after it that carry no XML.
       let span = 1;
       while (entries[index + span] && !(entries[index + span].xml ?? "").trim()) span++;
-      out.push({ ...tableNode(root), index, span });
+      out.push({ ...tableNode(root, options.media), index, span });
     }
     else if (root.localName === "p") {
-      const node = paragraphNode(root, entry.style ?? "Normal");
+      const node = paragraphNode(root, entry.style ?? "Normal", options.media);
       if (node) out.push({ ...node, index });
       else if (options.blank && isBlank(root)) out.push({ ...blankNode(entry.style ?? "Normal"), index });
     }

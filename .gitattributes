@@ -1,4 +1,4 @@
 # Keep every file byte-for-byte as committed, on every platform.
-# The build identity and the manifest hash are computed from file bytes, so
-# automatic CRLF conversion on Windows changes them (see docs/WORD-LOAD-DIAGNOSIS-2026-10-30.md).
+# The build identity the program shows is computed from file bytes, so
+# automatic CRLF conversion on Windows would change it.
 * -text

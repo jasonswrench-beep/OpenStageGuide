@@ -7,6 +7,7 @@
 import {createRequire} from 'node:module';
 import {spawn} from 'node:child_process';
 import fs from 'node:fs';
+import JSZip from 'jszip';
 import os from 'node:os';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -119,6 +120,10 @@ try{
   const downloaded=await download.path();
   ok(!!downloaded&&fs.statSync(downloaded).size>2000,'the downloaded workbook is a real file');
   ok(/downloaded/i.test(await fr.locator('#guide-workbook-ok').innerText().catch(()=>'')),'the tools say it was downloaded');
+  const zip=await JSZip.loadAsync(fs.readFileSync(downloaded));
+  const media=Object.keys(zip.files).filter(n=>/^word\/media\//.test(n));
+  const sizes=await Promise.all(media.map(async n=>(await zip.file(n).async('uint8array')).length));
+  ok(media.length>=1&&sizes.every(n=>n>200),'the workbook\'s cue icons are the real pictures, not one-pixel stand-ins: '+JSON.stringify(sizes));
   await shot('5b-workbook.png');
 
   // ---- the command search and the keys window
