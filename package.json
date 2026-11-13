@@ -11,6 +11,7 @@
     "assets": "node scripts/prepare.mjs",
     "icons": "node scripts/make-ui-icons.mjs",
     "check:program": "node scripts/check-program-browser.mjs",
+    "check:editor": "node scripts/check-editor-browser.mjs",
     "check:project": "node scripts/check-project-browser.mjs"
   },
   "dependencies": { "acorn": "8.19.0", "jszip": "3.10.1" },

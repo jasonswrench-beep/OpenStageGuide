@@ -18,7 +18,7 @@ import {parseProject,serializeProject} from './guide-project.mjs';
 const READ_ONLY=new Set([
   'kind','paragraphs','title','customCues','getLook','slideMemory','versionMemory','cursorIndex','reviewParts','sourcePackage','captureFile',
   'exportPdf','pickFiles','keepPaneOpen','onSelectionChanged','cursor','snapshot','lookState','autoShow','openedDocuments','downloads','exportState','formSettings',
-  'setTheme','setPicker','refuse','setAutoShow','fireSelection','offerDownload','setCapturedFile'
+  'setTheme','setPicker','refuse','setAutoShow','fireSelection','offerDownload','setCapturedFile','place','historyState'
 ]);
 
 // onChange() is called after every change to the guide, before it is saved, so what shows the guide can draw it again at once.

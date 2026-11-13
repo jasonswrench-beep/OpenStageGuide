@@ -37,8 +37,21 @@ export const KEY_GROUPS = [
     id: "guide",
     title: "The guide and its tools",
     rows: [
-      { keys: "Tab", does: "From the guide to the tools beside it, and on" },
-      { keys: "Up, Down, Page Up, Page Down", does: "Read the guide: scroll it when it has the keyboard" },
+      { keys: "Tab", does: "Into the guide, from it to the tools beside it, and on" },
+      { keys: "Up, Down, Home, End", does: "Move between the paragraphs of the guide" },
+      { keys: "Enter, F2, or a click", does: "Change the words of a paragraph (the time line, tables, pictures and check boxes are changed with the tools)" },
+      { keys: "Escape", does: "Stop changing the words" },
+      { keys: "Page Up, Page Down", does: "Scroll the guide" },
+    ],
+  },
+  {
+    id: "words",
+    title: "Changing the words of a paragraph",
+    rows: [
+      { keys: "Enter", does: "Start the next paragraph with the words after the caret (in a heading: go to the next row)" },
+      { keys: "Backspace at the start", does: "Join the paragraph to the one before; an empty paragraph is taken away" },
+      { keys: "Up or Left at the start, Down or Right at the end", does: "Go to the paragraph before or after" },
+      { keys: "Ctrl+Z, Ctrl+Y (or Ctrl+Shift+Z)", does: "Undo and Redo: one history for typing and for what the tools add" },
     ],
   },
   {

@@ -140,7 +140,9 @@ try{
 
   // ---- the keyboard reaches the menus
   await page.keyboard.press('F10');
-  ok(await page.evaluate(()=>document.activeElement?.classList.contains('menubar-item')),'F10 goes to the menus');
+  // (when the keyboard is in the tools' frame, F10 reaches the menus by a message to this page, so it is waited for, not read at once)
+  const menus=await page.waitForFunction(()=>document.activeElement?.classList.contains('menubar-item'),null,{timeout:3000}).then(()=>true,()=>false);
+  ok(menus,'F10 goes to the menus');
   await page.keyboard.press('Escape');
 
   // ---- close, and the guide is on the welcome page; open it again

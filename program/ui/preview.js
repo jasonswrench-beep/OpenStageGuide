@@ -10,7 +10,7 @@ const W14 = "http://schemas.microsoft.com/office/word/2010/wordml";
 const REF = "osg-ref:";
 
 /**
- * @typedef {{ tag: string, cls?: string, text?: string, attrs?: Record<string, string>, height?: number, children?: Node_[] }} Node_
+ * @typedef {{ tag: string, cls?: string, text?: string, attrs?: Record<string, string>, height?: number, index?: number, children?: Node_[] }} Node_
  * @typedef {{ xml?: string, text?: string, style?: string, builtIn?: string }} Entry
  */
 
@@ -122,6 +122,17 @@ const BY_STYLE = {
   Title: { tag: "h1", cls: "g-title" },
 };
 
+/** A paragraph with nothing in it: no words, no tab, no check box, no picture. @param {Element} p */
+function isBlank(p) {
+  return inlineParts(p).length === 0 && p.getElementsByTagNameNS(W, "drawing").length === 0;
+}
+
+/** The row for a paragraph with nothing in it, in the look of its style, with words for a screen reader. @param {string} style @returns {Node_} */
+function blankNode(style) {
+  const known = BY_STYLE[style];
+  return { tag: known?.tag ?? "p", cls: `${known?.cls ?? "g-para"} g-blank`, children: [{ tag: "span", cls: "sr-only", text: "Empty paragraph" }] };
+}
+
 /**
  * The tree for one paragraph (a w:p element and its style's name).
  * @param {Element} p @param {string} style @returns {Node_ | null}
@@ -168,16 +179,19 @@ function tableNode(tbl) {
 }
 
 /**
- * The guide's paragraphs as a tree of plain objects. A table's XML rides on its first cell's entry and the others carry none, so an entry with
- * no XML that follows a table is part of it.
+ * The guide's paragraphs as a tree of plain objects, each top-level node carrying the index of the paragraph it is drawn from. A table's XML
+ * rides on its first cell's entry and the others carry none, so an entry with no XML that follows a table is part of it.
+ * With `blank`, a paragraph with nothing in it is drawn as an empty row (the editor needs somewhere to type); without it, it is left out.
  * @param {Entry[]} entries
  * @param {(xml: string) => Document} parseXml
+ * @param {{ blank?: boolean }} [options]
  * @returns {Node_[]}
  */
-export function describeGuide(entries, parseXml) {
+export function describeGuide(entries, parseXml, options = {}) {
   /** @type {Node_[]} */
   const out = [];
-  for (const entry of entries) {
+  for (let index = 0; index < entries.length; index++) {
+    const entry = entries[index];
     const xml = entry.xml ?? "";
     if (!xml.trim()) continue;
     let root = null;
@@ -187,13 +201,14 @@ export function describeGuide(entries, parseXml) {
       root = null;
     }
     if (!root) {
-      out.push({ tag: "p", cls: "g-other", text: entry.text ?? "" });
+      out.push({ tag: "p", cls: "g-other", text: entry.text ?? "", index });
       continue;
     }
-    if (root.localName === "tbl") out.push(tableNode(root));
+    if (root.localName === "tbl") out.push({ ...tableNode(root), index });
     else if (root.localName === "p") {
       const node = paragraphNode(root, entry.style ?? "Normal");
-      if (node) out.push(node);
+      if (node) out.push({ ...node, index });
+      else if (options.blank && isBlank(root)) out.push({ ...blankNode(entry.style ?? "Normal"), index });
     }
   }
   return out;

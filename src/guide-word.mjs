@@ -572,9 +572,21 @@ export function createDemoAdapter({DOMParserClass=globalThis.DOMParser,Serialize
   const styles=readStyles(parseXml(stylesPart()));
   let paras=[],cursor=-1,docTitle='',autoShow=false,selectionHandler=null,ownCues=[],activeTheme,lookText=null,slideMemory=null,versionMemory=null,formsText=null,demoRefusals=null,picker=null;
   const applied=[],headerFooter=[];
-  const history=[],opened=[],downloaded=[];
+  const history=[],future=[],opened=[],downloaded=[];
   let capturedFile=null;
-  const remember=()=>history.push({paras:paras.map(p=>({...p})),cursor,docTitle});
+  // The steps Undo goes back through, each a copy of the paragraphs as they were. A change made in a group (typing in one paragraph) is one
+  // step for as long as it goes on in the same group; any other change starts a new step. A new step ends what Redo could bring back.
+  const HISTORY_LIMIT=300,GROUP_MS=2000;
+  let lastGroup=null,lastAt=0;
+  const copyState=()=>({paras:paras.map(p=>({...p})),cursor,docTitle});
+  const remember=group=>{
+    const now=Date.now();
+    future.length=0;
+    if(group&&group===lastGroup&&now-lastAt<GROUP_MS&&history.length){lastAt=now;return;}
+    history.push(copyState());
+    if(history.length>HISTORY_LIMIT)history.shift();
+    lastGroup=group||null;lastAt=now;
+  };
   // What a paragraph carries that its words and style do not say: the names of its bookmarks, and the form citations in it (a content
   // control tagged osg-ref:<id> and the words it holds). Forms and citations are read from these (guide-forms.mjs).
   const marksOf=el=>{
@@ -797,7 +809,7 @@ export function createDemoAdapter({DOMParserClass=globalThis.DOMParser,Serialize
       });
       paras=guide.paragraphs.map((p,i)=>({...p,...(marksList[i]?{marks:marksList[i]}:{})}));cursor=guide.cursor;docTitle=guide.title;ownCues=[...guide.ownCues];
       lookText=guide.look;slideMemory=guide.slideMemory;versionMemory=guide.versionMemory;formsText=guide.forms??null;
-      applied.length=0;applied.push(...guide.applied);headerFooter.length=0;headerFooter.push(...guide.headerFooter);history.length=0;
+      applied.length=0;applied.push(...guide.applied);headerFooter.length=0;headerFooter.push(...guide.headerFooter);history.length=0;future.length=0;lastGroup=null;
     },
     autoShow(){return autoShow;},
     setAutoShow(v){autoShow=!!v;},
@@ -807,7 +819,41 @@ export function createDemoAdapter({DOMParserClass=globalThis.DOMParser,Serialize
     // What the author does in Word itself: click somewhere, type over a paragraph's words, press Ctrl+Z.
     place(index){cursor=index;},
     typeOver(index,text){remember();paras[index].text=text;paras[index].xml=retext(paras[index].xml,text);},
-    undo(){const was=history.pop();if(was){paras=was.paras;cursor=was.cursor;docTitle=was.docTitle;}return !!was;},
+    undo(){
+      const was=history.pop();
+      if(was){future.push(copyState());paras=was.paras;cursor=was.cursor;docTitle=was.docTitle;}
+      lastGroup=null;
+      return !!was;
+    },
+    redo(){
+      const next=future.pop();
+      if(next){history.push(copyState());paras=next.paras;cursor=next.cursor;docTitle=next.docTitle;}
+      lastGroup=null;
+      return !!next;
+    },
+    historyState(){return {undo:history.length,redo:future.length};},
+    // The editor's one way to change paragraphs: replace `count` paragraphs from `start` by the paragraphs the given Word-format XML makes.
+    // One edit is count 1 with one paragraph; Enter is 1 with 2; Backspace joining is 2 with 1; a new line is 0 with 1. `guard` is the words the
+    // first replaced paragraph had when the editor last looked, so a stale row is refused and never applied to the wrong paragraph. Tables are
+    // not touched (their cells carry no XML of their own). `group` makes a run of edits one step of Undo. `select` is where the cursor goes.
+    async replaceParagraphs({start,count,guard,xmls,select,group}){
+      if(!Number.isInteger(start)||!Number.isInteger(count)||start<0||count<0||start+count>paras.length||!Array.isArray(xmls))throw new Error(CHANGED);
+      const old=paras.slice(start,start+count);
+      if(count&&norm(old[0].text)!==norm(guard))throw new Error(CHANGED);
+      if(old.some(p=>!p.xml||/^<w:tbl[\s>]/.test(p.xml)))throw new Error('A table is changed with the tools beside the guide.');
+      for(const x of xmls){
+        let d=null;
+        try{d=parseXml(x);}catch{d=null;}
+        if(!d||!d.documentElement||d.getElementsByTagName('parsererror').length||d.documentElement.localName!=='p')throw new Error('That paragraph could not be made.');
+      }
+      const added=xmls.length?parseBody(xmls.join('')):[];
+      if(added.length!==xmls.length)throw new Error('That paragraph could not be made.');
+      remember(group);
+      paras.splice(start,count,...added);
+      const at=select===undefined?start:select;
+      cursor=Math.max(0,Math.min(at,paras.length-1));
+      return {at:cursor};
+    },
     fireSelection(){return selectionHandler?.();}
   };
 }

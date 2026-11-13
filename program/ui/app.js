@@ -12,7 +12,7 @@ import { createDemoAdapter } from "../../src/guide-word.mjs";
 import { aboutDialog, askName, chooseGuide } from "./dialogs.js";
 import { get, post } from "./api.js";
 import { startFrame } from "./frame.js";
-import { renderGuide } from "./preview.js";
+import { mountEditor } from "./editor.js";
 import { drawWelcome } from "./welcome.js";
 
 const doc = document;
@@ -32,6 +32,8 @@ let guideDoc = null;
 let link = null;
 /** @type {number | null} */
 let drawTimer = null;
+/** The guide as the author writes it, drawn in the page. @type {{ render: () => void, destroy: () => void, focusCursor: () => void } | null} */
+let editor = null;
 
 /** @param {string} message @param {boolean} [bad] */
 function say(message, bad = false) {
@@ -96,23 +98,12 @@ async function showWelcome() {
   drawWelcome(doc, main, { guides: state.guides, folder: state.folder, when, onNew: () => void newGuide(), onOpen: () => void openGuide(), onOpenNamed: (n) => void openNamed(n) });
 }
 
-/** Draw the guide from the document, as it is now. */
-function drawGuide() {
-  const host = doc.getElementById("work-guide");
-  if (!host || !guideDoc) return;
-  try {
-    renderGuide(doc, host, guideDoc.exportState().paragraphs, (xml) => new DOMParser().parseFromString(xml, "application/xml"));
-  } catch (e) {
-    say(`The guide could not be shown: ${/** @type {Error} */ (e).message}`, true);
-  }
-}
-
 /** Draw again soon: a burst of changes is drawn once. */
 function scheduleDraw() {
   if (drawTimer !== null) return;
   drawTimer = window.setTimeout(() => {
     drawTimer = null;
-    drawGuide();
+    editor?.render();
   }, 30);
 }
 
@@ -130,10 +121,19 @@ function openDocument() {
     onChange: scheduleDraw,
   });
   guideDoc = made;
-  made.ready.then(() => { if (guideDoc === made) drawGuide(); }, () => {});
+  made.ready.then(
+    () => {
+      const host = doc.getElementById("work-guide");
+      if (guideDoc !== made || !host) return;
+      editor = mountEditor(doc, host, made, { say });
+    },
+    () => {},
+  );
 }
 
 function closeDocument() {
+  editor?.destroy();
+  editor = null;
   link?.stop();
   link = null;
   guideDoc = null;
@@ -162,7 +162,6 @@ function showGuide() {
   const guide = doc.createElement("section");
   guide.id = "work-guide";
   guide.className = "work-guide";
-  guide.tabIndex = 0;
   guide.setAttribute("aria-label", "The guide");
   const tools = doc.createElement("section");
   tools.className = "work-tools";

@@ -4,7 +4,7 @@ A tool for helping training and development professionals create facilitator gui
 
 You write the facilitator guide once, in modules, lessons and blocks (what to say, ask, show and do, with timing and notes). The program checks it, keeps its tables and cross-references current, and makes the participant workbook from the same guide, with nothing meant for the facilitator in it. Handouts, forms and worksheets are written into the guide and used by the facilitator's script and by the workbook. The workbook is made as a Word file; taking the guide itself out as a Word file, when the author chooses to, is planned and is not built yet.
 
-**Status: prototype 0.1.** This is the first form of the program: a local web server and a page that run in a browser on your own computer. It is not yet a program you install, it has no editing surface of its own (the guide is read in the page and written through the tools beside it), and nothing has been tried yet with a screen reader or in Word. [docs/PROGRAM-SHELL-2026-11-13.md](docs/PROGRAM-SHELL-2026-11-13.md) says exactly what exists and what does not.
+**Status: prototype 0.1.** This is the first form of the program: a local web server and a page that run in a browser on your own computer. It is not yet a program you install, its editing surface is only begun (the words of a paragraph can be changed on the page; whole blocks, tables and pictures are still added and changed with the tools beside it), and nothing has been tried yet with a screen reader or in Word. [docs/PROGRAM-SHELL-2026-11-13.md](docs/PROGRAM-SHELL-2026-11-13.md) says exactly what exists and what does not.
 
 ## Run it
 

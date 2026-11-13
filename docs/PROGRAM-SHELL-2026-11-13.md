@@ -24,7 +24,7 @@ The page writes text and attributes only (never markup); it reaches nothing but 
 
 ## What it does not have yet
 
-- **No editing surface.** The guide is read-only in the program; it is still written through the tools' forms.
+- **A first editing surface (E1)**: the words of a paragraph can be changed on the page (see `EDITING-SURFACE-DESIGN-2026-11-13.md`). Not yet: deleting, moving or inserting whole paragraphs and blocks, changing a paragraph's kind, copy and paste of blocks, tables, pictures, the time line's minutes (these are E2 to E4); until then they are done with the tools beside the guide.
 - **The tools beside it keep the add-in's look inside** (green boxes, small type). Restyling them in the suite's look, and moving each tool's buttons into the menus, comes with the editing surface and the Forms tool.
 - **No Forms tool** (F3): adding it to the add-in's tool list would change the add-in's ribbon, so the program needs a tool list of its own.
 - **No export menu**, no welcome-page sample guide, no Save as, no recent-list controls, no About page beyond a short dialog.

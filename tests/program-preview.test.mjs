@@ -94,7 +94,7 @@ test('what is not words is not drawn: empty paragraphs, a table\'s later cells, 
     {xml:'this is not xml',text:'Words that were in it',style:'Normal'}
   ];
   const nodes=describeGuide(entries,xml=>{if(!xml.startsWith('<'))throw new Error('damaged');return parseXml(xml);});
-  assert.deepEqual(nodes,[{tag:'p',cls:'g-other',text:'Words that were in it'}]);
+  assert.deepEqual(nodes,[{tag:'p',cls:'g-other',text:'Words that were in it',index:3}]);
 });
 
 test('markup in the guide\'s words is drawn as words: nothing is ever written as markup',()=>{
@@ -128,4 +128,22 @@ test('drawNodes draws a tree with the page\'s document: tags, classes, attribute
   assert.equal(parent.children[0].style.height,'40px');
   assert.equal(parent.children[1].attrs['aria-label'],'T');
   assert.equal(parent.children[1].textContent,'x');
+});
+
+test('every drawn row says which paragraph it comes from; the editor\'s view also draws paragraphs with nothing in them, and the read view does not',()=>{
+  const W='xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"';
+  const entries=[
+    {xml:'',text:'',style:'TOC 1'},
+    {xml:`<w:p ${W}><w:r><w:t>One</w:t></w:r></w:p>`,text:'One',style:'Normal'},
+    {xml:`<w:p ${W}/>`,text:'',style:'OSG Cue Body'},
+    {xml:`<w:p ${W}><w:pPr><w:pStyle w:val="OSGModule"/></w:pPr><w:r><w:t>Module 1: A</w:t></w:r></w:p>`,text:'Module 1: A',style:'OSG Module'},
+  ];
+  const read=describeGuide(entries,parseXml);
+  assert.deepEqual(read.map(n=>n.index),[1,3],'the contents line has no XML and no row; an empty paragraph is left out of the read view');
+  const edit=describeGuide(entries,parseXml,{blank:true});
+  assert.deepEqual(edit.map(n=>n.index),[1,2,3]);
+  const blank=edit[1];
+  assert.equal(blank.cls,'g-body g-blank','an empty paragraph keeps the look of its style');
+  assert.equal(text(blank),'Empty paragraph','and has words for a screen reader');
+  assert.deepEqual(describeGuide([{xml:`<w:p ${W}/>`,text:'',style:'Normal'}],parseXml,{blank:true}).map(n=>n.cls),['g-para g-blank']);
 });
