@@ -1,0 +1,47 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "OpenStage Guide",
+  "version": "0.1.0",
+  "identifier": "org.openstage.guide",
+  "build": {
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "withGlobalTauri": false,
+    "windows": [
+      {
+        "label": "main",
+        "create": false,
+        "title": "OpenStage Guide",
+        "url": "index.html",
+        "width": 1360,
+        "height": 900,
+        "minWidth": 760,
+        "minHeight": 560,
+        "dragDropEnabled": false
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.ico"],
+    "resources": ["resources/**/*"],
+    "publisher": "OpenStage",
+    "copyright": "Licensed under the Apache License 2.0",
+    "category": "Education",
+    "shortDescription": "Write facilitator guides and participant workbooks.",
+    "longDescription": "OpenStage Guide helps training and development professionals write a facilitator guide once, with its handouts and forms, and make the participant workbook from it. Guides are kept as files on your own computer.",
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser",
+        "languages": ["English"],
+        "installerIcon": "icons/icon.ico",
+        "uninstallerIcon": "icons/icon.ico"
+      }
+    }
+  }
+}

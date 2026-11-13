@@ -53,3 +53,10 @@ desktop.ini
 /checkpoints/
 /.codex/
 /.agents/
+
+# The window (shell/): what it builds and what it gathers are made again each time
+shell/src-tauri/target/
+shell/src-tauri/resources/
+shell/src-tauri/gen/
+!shell/dist/
+!shell/dist/**

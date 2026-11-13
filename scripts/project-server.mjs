@@ -175,5 +175,13 @@ if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.ur
     const folder=arg('--folder'),file=arg('--file');
     const s=await startProjectServer({file,folder:folder||(file?undefined:path.join(os.homedir(),'Documents','OpenStage Guides')),port:Number(arg('--port')||3850)});
     console.log(`OpenStage Guide at http://127.0.0.1:${s.port}/  (guides folder: ${s.folder})`);
+    // The program's window (shell/) starts this server, reads this line to learn where it is listening, and stops it by closing its input:
+    // when the window goes, with it or without it, the server goes too.
+    if(process.argv.includes('--exit-when-stdin-closes')){
+      console.log(`OPENSTAGE_READY http://127.0.0.1:${s.port}/`);
+      process.stdin.resume();
+      process.stdin.on('end',()=>{s.close().finally(()=>process.exit(0));});
+      process.stdin.on('error',()=>process.exit(0));
+    }
   }catch(e){console.error(e.message);process.exitCode=1;}
 }

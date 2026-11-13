@@ -161,3 +161,26 @@ test('the tools\' page is the pane\'s page without Office.js, which sends a fram
     assert.equal((await call('POST','/program/tools')).status,405);
   });
 });
+
+import {spawn} from 'node:child_process';
+import {fileURLToPath as toPath} from 'node:url';
+
+test('started by the program\'s window: it names the address it listens on, on a line of its own, and stops when its input closes',async()=>{
+  const root=path.resolve(path.dirname(toPath(import.meta.url)),'..');
+  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'osg-window-'));
+  const child=spawn(process.execPath,['scripts/project-server.mjs','--folder',path.join(dir,'Guides'),'--port','0','--exit-when-stdin-closes'],{cwd:root,stdio:['pipe','pipe','pipe']});
+  try{
+    const url=await new Promise((resolve,reject)=>{
+      let text='';
+      child.stdout.on('data',d=>{text+=d;const m=/^OPENSTAGE_READY (http:\/\/127\.0\.0\.1:\d+\/)$/m.exec(text);if(m)resolve(m[1]);});
+      child.on('exit',()=>reject(new Error('it stopped before it was ready: '+text)));
+      setTimeout(()=>reject(new Error('it was not ready in time')),15000);
+    });
+    assert.notEqual(new URL(url).port,'0','a port that was chosen for it, not the 0 it was asked for');
+    const page=await fetch(url+'program/');
+    assert.equal(page.status,200,'and it answers there');
+    const exited=new Promise(resolve=>child.on('exit',(code)=>resolve(code)));
+    child.stdin.end();
+    assert.equal(await Promise.race([exited,new Promise(r=>setTimeout(()=>r('still running'),5000))]),0,'closing its input stops it');
+  }finally{child.kill();fs.rmSync(dir,{recursive:true,force:true});}
+});

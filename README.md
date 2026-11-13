@@ -42,6 +42,7 @@ One test is skipped unless `OPENSTAGE_AUTHOR_VALIDATOR` names the `validate.py` 
 | `src/` | The guide's core: the model, the Word-document XML it is made of, forms, the participant workbook and its leak check, review, e-learning screens, assessments, and the tools' pane. |
 | `scripts/` | The local server (`project-server.mjs`), the build snapshot it serves from, the icon builder, and the browser checks. |
 | `public/` | The tools' page (`taskpane.html`), its style, the training icons and the product icon. |
+| `shell/` | The program's window (Tauri): starts the server and shows it, and makes the Windows setup. Not needed to use the program in a browser. See `shell/README.md`. |
 | `tests/` | The automatic tests. |
 | `docs/` | The plan, the forms and handouts specification, the review of example guides, and the specifications the first screens were built from (`docs/background`, `docs/features`). |
 
