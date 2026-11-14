@@ -44,7 +44,8 @@ for updates). `OpenStage Guide_0.1.0_x64-setup.exe`, 29,100,176 bytes, SHA-256
 `021df4a19d5171bf334ad9b8eca11b30919f993ead07ea2f3f200cb57ab9009b`. The setup and every program of ours in it (the window, the uninstaller and the five
 installer plugins) are signed by Jason Wrench and timestamped; the Node that runs the server keeps the OpenJS Foundation's valid signature; the program
 holds no folder name of the computer that built it. Its uninstaller deletes only the files the setup put in the install folder, and never the guides in
-`Documents\OpenStage Guides`. The setup itself has not been run by anyone, and nothing has been published.
+`Documents\OpenStage Guides`. This setup was published on 2026-11-14 as the pre-release v0.1.0-alpha.1 (on GitHub the file is named
+`OpenStage-Guide-0.1.0-alpha.1-Setup.exe`, the same bytes) and was installed and opened by the author.
 
 The setup built from a08348d (SHA-256 `263e8c60...7bc0`) is superseded and must not be used: its file list left out `scripts/updates.mjs`, which the server
 loads, so an installed copy would not have started. 80a6eda adds it, and `tests/shell-prepare.test.mjs` fails if the server ever loads a script, source folder

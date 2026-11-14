@@ -27,6 +27,7 @@ import {guideAgenda,agendaSummary,agendaFiles,agendaFileName,START_TIME} from '.
 import {alignment,alignmentSummary} from './guide-alignment.mjs';
 import {readVersions,writeVersions,lessonList,lessonKey,newVersion,toggleLesson,moveLesson,versionAgenda,versionSummary,parseTarget} from './guide-versions.mjs';
 import {STARTER_ACTIVITIES,STORE_KEY as LIBRARY_KEY,blockFromEntry,entryFromBlock,cleanMine,addMine,removeMine,matches as libraryMatches} from './activity-library.mjs';
+import {AGENDA_START_KEY,LOOK_KEY} from './program-settings.mjs';
 import {fingerprint,notesPrint,readMemory,writeMemory,recordFor,remember,slideBlocksIn,labelOf,planSlideUpdate,planSummary,operations,entriesAfter} from './slides-sync.mjs';
 
 const BUSY_IDS=['guide-leave-block','guide-bk-save','guide-bk-file','guide-bk-open','guide-upd-choose','guide-upd-which','guide-upd-all','guide-upd-none','guide-upd-go','guide-help-sample','guide-tab-guide','guide-tab-assess','guide-tab-workbook','guide-workbook-go','guide-sec-level-one','guide-sec-level-two','guide-sec-level-three','guide-item-go','guide-paste-go','guide-bank-go','guide-item-cancel','guide-item-start-two','guide-assess-edit','guide-retry','guide-start-go','guide-sample','guide-add-module','guide-add-lesson','guide-lib-save','guide-agenda-refresh','guide-agenda-download','guide-align-refresh','guide-ver-new','guide-ver-make','guide-block-go','guide-block-cancel','guide-update','guide-build-glance','guide-build-cues','guide-build-overview','guide-open-review','guide-refresh','guide-review-run','guide-review-back','guide-review-pdf','guide-edit-selected','guide-edit-save','guide-edit-cancel','guide-move-up','guide-move-down','guide-delete','guide-delete-yes','guide-delete-no','guide-add-standard','guide-add-appendix','guide-own-save','guide-pic-choose','guide-slides-choose','guide-slides-all','guide-slides-none','guide-slides-go','guide-look-apply','guide-el-add','guide-el-script','guide-el-text','guide-el-author'];
@@ -626,7 +627,6 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
 
   // ---- the planning tools, each read from the guide as it is (nothing here needs the older course record): timing and agenda,
   // learning alignment and delivery versions
-  const AGENDA_START_KEY='osg.agendaStart.v1';
   let agendaShown='',versions=[],chosenVersion='',confirmingDelete=false;
   const cellOf=(tag,text,scope)=>{const c=doc.createElement(tag);c.textContent=text;if(scope)c.setAttribute('scope',scope);return c;};
   const listItem=text=>{const li=doc.createElement('li');li.textContent=text;return li;};
@@ -1825,7 +1825,6 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
   }
   // The look and the brand: what the author chose is read from the screen, and remembered in this browser (a convenience only;
   // the pane keeps no record of the guide).
-  const LOOK_KEY='openstage-guide.workbook-look';
   const lookInputs=new Map();
   const chosenLook=()=>WORKBOOK_LOOKS.find(l=>lookInputs.get(l.id)?.checked)?.id||'clearline';
   function buildLooks(){

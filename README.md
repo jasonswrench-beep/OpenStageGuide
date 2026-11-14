@@ -15,7 +15,7 @@ npm ci --ignore-scripts
 node scripts/project-server.mjs --folder "C:\path\to\guides" --port 3850
 ```
 
-On Windows, double-clicking `Start OpenStage Guide.cmd` does both steps (it installs what is needed the first time, starts the server in a minimized window, and opens the program in your browser once it answers; if it does not start, what it said is shown). Otherwise open <http://127.0.0.1:3850/>. With no `--folder`, guides go in `Documents\OpenStage Guides`. A guide is one file ending in `.guide-project.json` (plain JSON, so it can be opened, kept and backed up like any file). The server answers only on this computer, never takes a path from the page, checks that a save comes from the page that has the guide open (a page left over from another tab is refused, so it can never write its guide over another), saves one at a time, and keeps a dated copy of the guide (`.<date>.bak`, the newest three) the first time it saves after the guide is opened. **Help > Check for updates...** asks GitHub whether a newer release is published, only when you choose it, and installs nothing ([docs/UPDATE-CHECK.md](docs/UPDATE-CHECK.md)).
+On Windows, double-clicking `Start OpenStage Guide.cmd` does both steps (it installs what is needed the first time, starts the server in a minimized window, and opens the program in your browser once it answers; if it does not start, what it said is shown). Otherwise open <http://127.0.0.1:3850/>. With no `--folder`, guides go in `OpenStage Guides` inside your Documents folder, wherever Windows has put it (in OneDrive, when OneDrive holds Documents): the same folder the program's window uses, so a guide made in a browser is there in the window too. Beside the guides the program keeps one small file, `OpenStage Guide settings.json`, with the activities you saved in the activity library, the look you chose for the workbook and the agenda's start time, so they are there the next time. A guide is one file ending in `.guide-project.json` (plain JSON, so it can be opened, kept and backed up like any file). The server answers only on this computer, never takes a path from the page, checks that a save comes from the page that has the guide open (a page left over from another tab is refused, so it can never write its guide over another), saves one at a time, and keeps a dated copy of the guide (`.<date>.bak`, the newest three) the first time it saves after the guide is opened. **Help > Check for updates...** asks GitHub whether a newer release is published, only when you choose it, and installs nothing ([docs/UPDATE-CHECK.md](docs/UPDATE-CHECK.md)).
 
 ## Tests
 
@@ -23,11 +23,12 @@ On Windows, double-clicking `Start OpenStage Guide.cmd` does both steps (it inst
 npm test
 ```
 
-Two checks drive a real browser and need [Playwright](https://playwright.dev/) installed somewhere (this repository does not depend on it). Set `PLAYWRIGHT_DIR` to the `playwright` package folder, then:
+Three checks drive a real browser and need [Playwright](https://playwright.dev/) installed somewhere (this repository does not depend on it). Set `PLAYWRIGHT_DIR` to the `playwright` package folder, then:
 
 ```
 npm run check:program
 npm run check:project
+npm run check:settings
 ```
 
 After changing the list of icons in `program/icons.json`, rebuild `program/ui/ui-icons.js` with `npm run icons -- --lucide <path to OpenStage Author's editor/web/icons/lucide.json>`.

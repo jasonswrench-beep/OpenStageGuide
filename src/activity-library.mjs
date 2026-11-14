@@ -3,7 +3,8 @@
 // the guide makes the same block Add Activity makes, so everything that reads an Activity (Edit, the contents, the workbook) works on it.
 //
 // The ready-made ones are plain, general-purpose training activities, written for this tool. The author's own are kept in the browser's
-// local storage under STORE_KEY: they stay on this computer and are there in every guide.
+// local storage under STORE_KEY (in the program, in its settings file beside the guides: src/program-settings.mjs): they stay on this
+// computer and are there in every guide.
 import {ACTIVITY_PARTS} from './guide-cues.mjs';
 
 export const STORE_KEY='osg.activityLibrary.v1';

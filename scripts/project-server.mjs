@@ -2,6 +2,7 @@
 // kept in one folder on this computer.
 //
 //   node scripts/project-server.mjs --folder "C:\Users\me\Documents\OpenStage Guides" [--port 3850]    the program: http://127.0.0.1:3850/
+//                                   (with no --folder: OpenStage Guides in the person's Documents folder, as Windows has it, like the window)
 //   node scripts/project-server.mjs --file "C:\path\My guide.guide-project.json" [--port 3850]          the pane on one project: /taskpane.html?project=1
 //
 // The page asks this server to list, make, open and close guides (/api/...) and to read and store the one that is open (GET and PUT /project).
@@ -15,8 +16,10 @@ import {createHandler} from './http-handler.mjs';
 import {PROGRAM_CSP,PANE_CSP,pageHeaders,stripOfficeScript} from './security-headers.mjs';
 import {checkForUpdates,fetchReleases,versionKey} from './updates.mjs';
 import {parseProject,serializeProject,cleanGuide,LIMITS} from '../src/guide-project.mjs';
+import {parseSettings,serializeSettings,SETTINGS_FILE,SETTING_KEYS,SETTING_MAX_CHARS,SETTINGS_MAX_CHARS} from '../src/program-settings.mjs';
 import http from 'node:http';
 import crypto from 'node:crypto';
+import {execFileSync} from 'node:child_process';
 import fs from 'node:fs/promises';
 import {constants as fsConstants} from 'node:fs';
 import os from 'node:os';
@@ -37,6 +40,28 @@ export const reservedName=name=>RESERVED.test(String(name??'').split('.')[0].tri
 const API_MAX_BYTES=16*1024;
 // How many dated copies of a guide are kept from before its first save in a session.
 const BACKUPS_KEPT=3;
+
+// The person's Documents folder as Windows has it: where the program's window keeps the guides (it asks Windows for the known folder, which is
+// the one in OneDrive when OneDrive holds Documents). With no --folder this server uses the same one, so a guide made in a browser and a guide
+// made in the window are in the same place. Windows says where it is in the registry (the resolved path in "Shell Folders"); anything that
+// is not an absolute path, or no answer, gives the Documents folder inside the home folder.
+const SHELL_FOLDERS='HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders';
+function readDocumentsFromRegistry(env){
+  const reg=path.win32.join(env.SystemRoot||env.windir||'C:\\Windows','System32','reg.exe');
+  const out=execFileSync(reg,['query',SHELL_FOLDERS,'/v','Personal'],{encoding:'utf8',windowsHide:true,timeout:5000,stdio:['ignore','pipe','ignore']});
+  const m=/^\s*Personal\s+REG_SZ\s+(.+?)\s*$/im.exec(out);
+  return m?m[1]:null;
+}
+export function documentsFolder({platform=process.platform,env=process.env,home=os.homedir(),readRegistry=readDocumentsFromRegistry}={}){
+  const fallback=path.join(home,'Documents');
+  if(platform!=='win32')return fallback;
+  try{
+    const found=readRegistry(env);
+    if(typeof found==='string'&&path.win32.isAbsolute(found)&&!/[%\u0000-\u001f]/.test(found))return path.win32.normalize(found);
+  }catch{/* no answer: the usual place */}
+  return fallback;
+}
+export const defaultGuidesFolder=options=>path.join(documentsFolder(options),'OpenStage Guides');
 
 // A guide's name made into a file name: what Windows does not allow is taken out, and a name that is nothing but that is refused.
 export function fileNameFor(raw){
@@ -123,19 +148,42 @@ export async function startProjectServer({file,folder,port=3850,snapshot,maxByte
     for(const old of copies.slice(BACKUPS_KEPT))await fs.rm(path.join(folder,`${base}.${old}`),{force:true});
   }
 
-  async function store(file,body){
-    await fs.mkdir(path.dirname(file),{recursive:true});
-    if(!backedUp)await backUp(file);
-    // A temporary name nobody can guess, opened only if new (a link left at the name is not followed), then moved into place.
+  // A temporary name nobody can guess, opened only if new (a link left at the name is not followed), then moved into place.
+  async function replaceFile(file,body){
     const temp=path.join(path.dirname(file),`.${path.basename(file)}.${crypto.randomBytes(6).toString('hex')}.tmp`);
     try{
       await fs.writeFile(temp,body,{encoding:'utf8',flag:'wx'});
       await fs.rename(temp,file);
     }catch(e){
-      // A failed move leaves the old project whole; do not leave the half-way copy lying about.
+      // A failed move leaves the old file whole; do not leave the half-way copy lying about.
       await fs.rm(temp,{force:true});
       throw e;
     }
+  }
+  async function store(file,body){
+    await fs.mkdir(path.dirname(file),{recursive:true});
+    if(!backedUp)await backUp(file);
+    await replaceFile(file,body);
+  }
+
+  // The settings the program keeps besides the guides (src/program-settings.mjs), in one small file in the guides folder. They are read and
+  // written whole, one write at a time (in turn with the guides' saves), and only the names that file allows are ever kept.
+  const settingsFile=()=>path.join(dir,SETTINGS_FILE);
+  async function readSettings(){
+    let text;
+    try{text=await fs.readFile(settingsFile(),'utf8');}catch(e){if(e.code==='ENOENT')return {};throw e;}
+    return parseSettings(text);
+  }
+  async function changeSetting(key,value){
+    return inTurn(async()=>{
+      const values=await readSettings();
+      if(value===null)delete values[key];else values[key]=value;
+      const total=Object.values(values).reduce((sum,v)=>sum+v.length,0);
+      if(total>SETTINGS_MAX_CHARS)return false;
+      await fs.mkdir(dir,{recursive:true});
+      await replaceFile(settingsFile(),serializeSettings(values));
+      return true;
+    });
   }
 
   async function project(req,res){
@@ -167,9 +215,11 @@ export async function startProjectServer({file,folder,port=3850,snapshot,maxByte
 
   async function api(req,res,name){
     if(req.method==='GET'&&name==='state'){json(res,200,await stateNow());return;}
+    if(req.method==='GET'&&name==='settings'){json(res,200,{values:await readSettings()});return;}
     if(req.method!=='POST'){send(res,405,'Method not allowed');return;}
     if(!allowed(req,res,/^application\/json\b/i))return;
-    const raw=await readBody(req,API_MAX_BYTES);
+    // Only a setting may weigh more than a name does (the saved activities).
+    const raw=await readBody(req,name==='settings'?SETTING_MAX_CHARS*4+1024:API_MAX_BYTES);
     if(raw===null){json(res,413,{error:'That request is larger than this program takes.'});return;}
     let body={};
     try{body=raw?JSON.parse(raw):{};}catch{json(res,400,{error:'That request was not readable.'});return;}
@@ -190,6 +240,15 @@ export async function startProjectServer({file,folder,port=3850,snapshot,maxByte
       json(res,200,await stateNow());return;
     }
     if(name==='close'){current=null;token=null;json(res,200,await stateNow());return;}
+    // A setting of the program (the saved activities, the workbook's look, the agenda's start time): one of the names it keeps, and text or null.
+    if(name==='settings'){
+      const key=body?.key,value=body?.value;
+      if(typeof key!=='string'||!SETTING_KEYS.includes(key)){json(res,400,{error:'The program does not keep that setting.'});return;}
+      if(value!==null&&typeof value!=='string'){json(res,400,{error:'A setting is text.'});return;}
+      if(typeof value==='string'&&value.length>SETTING_MAX_CHARS){json(res,413,{error:'That is larger than the program can keep.'});return;}
+      if(!await changeSetting(key,value)){json(res,413,{error:'The program has no room for more of its settings.'});return;}
+      json(res,200,{ok:true});return;
+    }
     // Check for updates: only when the page asks (a POST, in the form the program sends, like every action), and it asks GitHub for nothing about the person.
     if(name==='updates'){json(res,200,await checkForUpdates({current:versionKey(release||'')?release:undefined,enabled:updateCheck!==false,fetchReleases:releases}));return;}
     json(res,404,{error:'Not found.'});
@@ -242,7 +301,7 @@ if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.ur
   try{
     const folder=arg('--folder'),file=arg('--file');
     const updateOff=process.argv.includes('--no-update-check')||String(process.env.OPENSTAGE_UPDATE_CHECK||'').trim().toLowerCase()==='off';
-    const s=await startProjectServer({file,folder:folder||(file?undefined:path.join(os.homedir(),'Documents','OpenStage Guides')),port:Number(arg('--port')||3850),release:arg('--release'),updateCheck:!updateOff});
+    const s=await startProjectServer({file,folder:folder||(file?undefined:defaultGuidesFolder()),port:Number(arg('--port')||3850),release:arg('--release'),updateCheck:!updateOff});
     console.log(`OpenStage Guide at http://127.0.0.1:${s.port}/  (guides folder: ${s.folder})`);
     // The program's window (shell/) starts this server, reads this line to learn where it is listening, and stops it by closing its input:
     // when the window goes, with it or without it, the server goes too.

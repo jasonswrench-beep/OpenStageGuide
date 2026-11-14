@@ -8,7 +8,7 @@
 node scripts/project-server.mjs --folder "C:\path\to\guides" --port 3850
 ```
 
-Open `http://127.0.0.1:3850/`. With no `--folder` the guides go in `Documents\OpenStage Guides`. The server listens on this computer only, answers only to its own address, and never takes a path from the page: a guide is named by its file name in the folder. `--file` still opens the bare pane on one project, as the spike did (`/taskpane.html?project=1`).
+Open `http://127.0.0.1:3850/`. With no `--folder` the guides go in `OpenStage Guides` inside the person's Documents folder as Windows has it (read from the registry; the folder in OneDrive when OneDrive holds Documents), which is the folder the window uses. (Until 2026-11-14 this was the Documents folder inside the home folder, which is a different folder on a computer where OneDrive holds Documents.) The activities the person saved in the activity library, the workbook's look and the agenda's start time are kept in `OpenStage Guide settings.json` in that folder, by the server (`src/program-settings.mjs`); they used to be kept in the page's local storage, which the window's page does not keep from one start to the next, because its address has a new port every time. The server listens on this computer only, answers only to its own address, and never takes a path from the page: a guide is named by its file name in the folder. `--file` still opens the bare pane on one project, as the spike did (`/taskpane.html?project=1`).
 
 ## What it has
 

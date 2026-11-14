@@ -52,6 +52,7 @@ import {activityMaterials,editActivityMaterials} from './model.mjs';
 import {normalizeMaterials} from './materials.mjs';
 import {planMaterials} from './planning.mjs';
 import {serializeMaterialsDraft,restoreMaterialsDraft,MAX_MATERIAL_DRAFT_BYTES} from './materials-draft.mjs';
+import {createProgramStorage} from './program-settings.mjs';
 const $=id=>document.getElementById(id);
 // ?project=1 is the program-of-its-own spike: the same pane and the same in-memory document as the preview, but the guide is read from
 // and saved to one project file by the program's own server (scripts/project-server.mjs). It is a preview in every other way.
@@ -1426,7 +1427,9 @@ if(projectMode&&!programMode){
 // A file box does nothing inside Word's pane, so in Word every one of them opens the pane's file window instead (file-input-bridge.mjs).
 installFileInputBridge({document,pick:opts=>guideAdapter.pickFiles(opts),onError:error,enabled:!demo});
 let toolStrip;
-const guidePane=mountGuidePane(document,{adapter:guideAdapter,onTool:id=>toolStrip?.show(id)});
+// In the program the saved activities, the workbook's look and the agenda's start time are kept by the program's server, in a file beside the guides
+// (src/program-settings.mjs): the window's page has a new address every time it starts, so the page's own local storage would not be there next time.
+const guidePane=mountGuidePane(document,{adapter:guideAdapter,onTool:id=>toolStrip?.show(id),...(programMode?{storage:createProgramStorage()}:{})});
 toolStrip=mountToolStrip(document,{open:openTool});
 // The pane starts on one tool, the guide itself, not on the whole guide page.
 guidePane.useTool('openDesigner');
