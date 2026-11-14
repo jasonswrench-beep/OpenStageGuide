@@ -52,7 +52,14 @@ The icons in `src-tauri/icons` are made from the product icon (`public/assets/ri
 
 ## State (2026-11-14)
 
-**Latest: v0.1.0-alpha.2**, published the same day as a pre-release (tag on 8463662; on GitHub `OpenStage-Guide-0.1.0-alpha.2-Setup.exe`, 29,093,272 bytes,
+**Latest: v0.1.0-alpha.3**, published the same day as a pre-release (tag on 7120c09; on GitHub `OpenStage-Guide-0.1.0-alpha.3-Setup.exe`, 29,088,176 bytes,
+SHA-256 `e59eda6e05d07c7625c37087ef31ca87de2bd27734778a97cc483f72e366ff2f`), built with `python -I tools/build_installer.py --sign`. It adds zoom for the guide's page (View menu,
+the formatting bar, Ctrl+Alt+= - 0, Ctrl and the wheel over the guide) and the fix for the empty space below a long guide. Signed and timestamped as below (8 of our files by
+Jason Wrench; Node keeps its makers' signature), unpacked: 259 files of the program identical to the commit, `release.txt` says `v0.1.0-alpha.3`, and the server in its own
+files, with its own Node, answered, kept a setting and told the window the page had saved. Downloaded again from GitHub without signing in, the file has the same hash and a
+valid signature, and copies of alpha 1 and 2 asked Check for updates and were told alpha 3 is out. Not yet seen installed by the author.
+
+**v0.1.0-alpha.2**, published the same day as a pre-release (tag on 8463662; on GitHub `OpenStage-Guide-0.1.0-alpha.2-Setup.exe`, 29,093,272 bytes,
 SHA-256 `0ce8a60f71db498246ca5ee782fc46babe96f684ad35944552b19d7441dc2e3b`), built with `python -I tools/build_installer.py --sign`. It adds what the
 program remembers in a file beside the guides, one guides folder for the window and the browser, saving before the window closes, and no "prototype"
 in what the program shows. Signed and timestamped as below (8 of our files by Jason Wrench; Node keeps its makers' signature), unpacked: 258 files of
