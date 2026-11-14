@@ -52,6 +52,16 @@ The icons in `src-tauri/icons` are made from the product icon (`public/assets/ri
 
 ## State (2026-11-14)
 
+**Latest: v0.1.0-alpha.2**, published the same day as a pre-release (tag on 8463662; on GitHub `OpenStage-Guide-0.1.0-alpha.2-Setup.exe`, 29,093,272 bytes,
+SHA-256 `0ce8a60f71db498246ca5ee782fc46babe96f684ad35944552b19d7441dc2e3b`), built with `python -I tools/build_installer.py --sign`. It adds what the
+program remembers in a file beside the guides, one guides folder for the window and the browser, saving before the window closes, and no "prototype"
+in what the program shows. Signed and timestamped as below (8 of our files by Jason Wrench; Node keeps its makers' signature), unpacked: 258 files of
+the program identical to the commit, `release.txt` says `v0.1.0-alpha.2`, and the server in its own files, with its own Node, answered, kept a setting and told the
+window the page had saved. Downloaded again from GitHub without signing in, the file has the same hash and a valid signature, and a copy of alpha 1
+asked Check for updates and was told alpha 2 is out. Not yet installed or opened by anyone.
+
+The first signed setup, v0.1.0-alpha.1:
+
 The signed setup is built: `python -I tools/build_installer.py --sign`, from commit 80a6eda, release `v0.1.0-alpha.1` (recorded in `release.txt` for Check
 for updates). `OpenStage Guide_0.1.0_x64-setup.exe`, 29,100,176 bytes, SHA-256
 `021df4a19d5171bf334ad9b8eca11b30919f993ead07ea2f3f200cb57ab9009b`. The setup and every program of ours in it (the window, the uninstaller and the five
