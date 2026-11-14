@@ -71,12 +71,23 @@ export async function saveWordFile(doc, guide, { name, template, say }) {
     const title = String(state.title || name);
     /** @type {{ family: string }[]} */
     let carried = [];
-    const options = { ...(template ? { template: true } : { entries: state.paragraphs }), title, fonts: loadPackFonts, onEmbedded: (/** @type {{ family: string }[]} */ list) => (carried = list) };
+    /** @type {{ family: string }[]} */
+    let named = [];
+    const options = {
+      ...(template ? { template: true } : { entries: state.paragraphs }),
+      title,
+      fonts: loadPackFonts,
+      onEmbedded: (/** @type {{ family: string }[]} */ list) => (carried = list),
+      onNamed: (/** @type {{ family: string }[]} */ list) => (named = list),
+    };
     const bytes = await docxFromPackage(pkg, zipLibrary(), io, options);
     const file = `${safeFileName(name)}${template ? " styles.dotx" : ".docx"}`;
     downloadFile(doc, bytes, file, template ? DOTX : DOCX);
     const names = carried.map((f) => f.family);
-    const fonts = names.length ? ` ${names.length === 1 ? `The font ${names[0]} is` : `The fonts ${names.slice(0, -1).join(", ")} and ${names[names.length - 1]} are`} inside the file, so it looks right on a computer that does not have ${names.length === 1 ? "it" : "them"}.` : "";
+    const onlyNamed = named.map((f) => f.family);
+    const fonts =
+      (names.length ? ` ${names.length === 1 ? `The font ${names[0]} is` : `The fonts ${names.slice(0, -1).join(", ")} and ${names[names.length - 1]} are`} inside the file, so it looks right on a computer that does not have ${names.length === 1 ? "it" : "them"}.` : "") +
+      (onlyNamed.length ? ` ${onlyNamed.length === 1 ? `The font ${onlyNamed[0]} is` : `The fonts ${onlyNamed.slice(0, -1).join(", ")} and ${onlyNamed[onlyNamed.length - 1]} are`} only named in the file, not carried inside it, so a computer that opens the file needs ${onlyNamed.length === 1 ? "it" : "them"} installed, or Word shows another font.` : "");
     say(
       template
         ? `${file} has the guide's styles. In Word, start a document from it, or copy it to your templates folder. The styles are real Word styles, so they appear in Word's Styles gallery.${fonts}`

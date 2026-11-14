@@ -3,7 +3,7 @@
 //
 // The guide is held as a flat Word package (the form Word's own getOoxml gives): the document, its relationships, the styles, the lists and
 // the pictures, each as a part. A Word file is the same parts in a zip with a content types list and the package's own relationships.
-import {STYLES as FONT_STYLES,obfuscateFont,newGuid,packFontsUsed} from './guide-fonts.mjs';
+import {STYLES as FONT_STYLES,obfuscateFont,newGuid,packFontsUsed,namedOnlyUsed} from './guide-fonts.mjs';
 const W='http://schemas.openxmlformats.org/wordprocessingml/2006/main';
 const REL='http://schemas.openxmlformats.org/officeDocument/2006/relationships';
 const CT={main:'application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml',template:'application/vnd.openxmlformats-officedocument.wordprocessingml.template.main+xml',settings:'application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml',fontTable:'application/vnd.openxmlformats-officedocument.wordprocessingml.fontTable+xml',font:'application/vnd.openxmlformats-officedocument.obfuscatedFont'};
@@ -79,13 +79,15 @@ const partsOf=(pkgXml,io)=>{
  * A Word file from the flat package: a document (.docx), or, with `template`, a Word template (.dotx) that holds the styles and one empty
  * paragraph. Returns the bytes of the zip. `entries` (the guide's paragraphs) give the body, with the contents lines made into a contents field;
  * without them the body is the package's own.
- * @param {string} pkgXml @param {any} JSZipClass @param {{parse:(x:string)=>Document, serialize:(e:Element)=>string}} io @param {{template?:boolean, entries?:{xml?:string,text?:string,style?:string}[], title?:string, fonts?:(families:string[])=>Promise<Record<string,Partial<Record<'regular'|'bold'|'italic'|'boldItalic',Uint8Array>>>>, onEmbedded?:(list:{family:string,styles:string[],bytes:number}[])=>void}} [options]
- *   `fonts` gives the files of the program's own fonts (src/guide-fonts.mjs) by family; the ones the guide uses are carried inside the file
+ * @param {string} pkgXml @param {any} JSZipClass @param {{parse:(x:string)=>Document, serialize:(e:Element)=>string}} io @param {{template?:boolean, entries?:{xml?:string,text?:string,style?:string}[], title?:string, fonts?:(families:string[])=>Promise<Record<string,Partial<Record<'regular'|'bold'|'italic'|'boldItalic',Uint8Array>>>>, onEmbedded?:(list:{family:string,styles:string[],bytes:number}[])=>void, onNamed?:(list:{family:string}[])=>void}} [options]
+ *   `fonts` gives the files of the program's own fonts (src/guide-fonts.mjs) by family; the ones the guide uses are carried inside the file.
+ *   `onNamed` is told which of the fonts that are only named (no file comes with the program) the guide uses; the file only names them.
  */
-export async function docxFromPackage(pkgXml,JSZipClass,io,{template=false,entries,title,fonts,onEmbedded}={}){
+export async function docxFromPackage(pkgXml,JSZipClass,io,{template=false,entries,title,fonts,onEmbedded,onNamed}={}){
   const parts=partsOf(pkgXml,io);
   const docPart=parts.find(p=>p.name==='/word/document.xml')?.xml??'';
   const bodyOf=template?'':withSection(entries?bodyWithContents(entries):/<w:body>([\s\S]*)<\/w:body>/.exec(docPart)?.[1]??'');
+  onNamed?.(namedOnlyUsed(parts.find(p=>p.name==='/word/styles.xml')?.xml,bodyOf).map(f=>({family:f.family})));
   const zip=new JSZipClass();
   // No entries for folders: some services that open Word files refuse a file that has them.
   const put=(name,data,options)=>zip.file(name,data,{createFolders:false,...options});

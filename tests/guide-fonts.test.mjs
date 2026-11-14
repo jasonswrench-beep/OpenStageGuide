@@ -9,7 +9,7 @@ import os from 'node:os';
 import {fileURLToPath} from 'node:url';
 import JSZip from 'jszip';
 import {DOMParser,XMLSerializer} from '@xmldom/xmldom';
-import {FONT_PACK,STYLES,packFont,fontNamesIn,packFontsUsed,fontChoices,obfuscateFont,newGuid} from '../src/guide-fonts.mjs';
+import {FONT_PACK,NAMED_ONLY,COMMON_FONTS,STYLES,packFont,namedOnly,namedOnlyUsed,fontNamesIn,packFontsUsed,fontChoices,obfuscateFont,newGuid} from '../src/guide-fonts.mjs';
 import {docxFromPackage,EMBED_LIMITS} from '../src/guide-docx.mjs';
 import {createDemoAdapter} from '../src/guide-word.mjs';
 import {startProjectServer} from '../scripts/project-server.mjs';
@@ -104,6 +104,77 @@ test('a font name is asked for in any of Word\'s four places, and only the progr
   assert.deepEqual(choices.slice(0,FONT_PACK.length).map(c=>c.value),FONT_PACK.map(f=>f.family),'the pack comes first');
   assert.ok(choices.slice(0,FONT_PACK.length).every(c=>/comes with the program/.test(c.label)));
   assert.ok(choices.some(c=>c.value==='Calibri'));
+});
+
+// ---- the fonts that are only named
+
+test('OpenDyslexic is offered by name only: after the pack, before the usual Word fonts, saying it is not included and where to get it',()=>{
+  assert.deepEqual(NAMED_ONLY.map(f=>f.family),['OpenDyslexic']);
+  const choices=fontChoices();
+  assert.deepEqual(choices.map(c=>c.value),[...FONT_PACK.map(f=>f.family),'OpenDyslexic',...COMMON_FONTS],'the pack, then the name-only fonts, then the usual ones');
+  const label=choices.find(c=>c.value==='OpenDyslexic').label;
+  assert.match(label,/not included/);
+  assert.match(label,/opendyslexic\.org/);
+  assert.match(label,/only names it/);
+  assert.doesNotMatch(label,/comes with the program/,'it must not say what is not true');
+  assert.ok(NAMED_ONLY.every(f=>f.note&&f.source.startsWith('https://')));
+  assert.equal(namedOnly('OpenDyslexic').family,'OpenDyslexic');
+  assert.equal(namedOnly('Lexend'),null);
+  assert.equal(packFont('OpenDyslexic'),null,'it is not in the pack');
+  assert.ok(!NAMED_ONLY.some(f=>packFont(f.family)||COMMON_FONTS.includes(f.family)),'no font is on two lists');
+});
+
+test('nothing of a name-only font is shipped: no file, no stylesheet rule, no credit that implies one',()=>{
+  const css=fs.readFileSync(path.join(ROOT,'program','style.css'),'utf8');
+  const files=fs.readdirSync(DIR).join('\n');
+  for(const f of NAMED_ONLY){
+    assert.ok(!new RegExp(f.family.replace(/\s/g,''),'i').test(files),`no file of ${f.family} is in program/fonts`);
+    assert.ok(!css.includes(`font-family:"${f.family}"`)&&!/@font-face[^}]*OpenDyslexic/i.test(css),`the stylesheet loads no ${f.family}`);
+  }
+});
+
+test('the name-only fonts a piece of Word XML uses are found by their exact name, and never as the program\'s own',()=>{
+  const xml='<w:rFonts w:ascii="OpenDyslexic" w:hAnsi="OpenDyslexic"/><w:rFonts w:ascii="Lexend"/>';
+  assert.deepEqual(namedOnlyUsed(xml).map(f=>f.family),['OpenDyslexic']);
+  assert.deepEqual(packFontsUsed(xml).map(f=>f.family),['Lexend'],'the pack still finds only its own');
+  assert.deepEqual(namedOnlyUsed('<w:rFonts w:ascii="opendyslexic"/>'),[]);
+  assert.deepEqual(namedOnlyUsed('<w:rFonts w:ascii="Calibri"/>',undefined,null),[]);
+});
+
+test('a Word file that uses OpenDyslexic only names it: no font table, no files, and the loader is never asked for it',async()=>{
+  const a=await guideUsing('OpenDyslexic');
+  const asked=[],named=[],embedded=[];
+  const zip=await JSZip.loadAsync(await docxFromPackage(await a.sourcePackage(),JSZip,io,{entries:a.exportState().paragraphs,fonts:async families=>{asked.push(...families);return {};},onEmbedded:l=>embedded.push(...l),onNamed:l=>named.push(...l)}));
+  assert.deepEqual(asked,[],'no file is asked for');
+  assert.deepEqual(embedded,[]);
+  assert.deepEqual(named,[{family:'OpenDyslexic'}],'and the caller is told which font is only named');
+  assert.equal(zip.file('word/fontTable.xml'),null);
+  assert.equal(Object.keys(zip.files).filter(n=>/^word\/fonts\//.test(n)).length,0);
+  assert.doesNotMatch(await text(zip,'word/settings.xml'),/embedTrueTypeFonts/);
+  assert.doesNotMatch(await text(zip,'[Content_Types].xml'),/odttf/);
+  const styles=await text(zip,'word/styles.xml');
+  assert.match(styles,/w:ascii="OpenDyslexic"/,'the name is in the file');
+  assert.equal(io.parse(styles).getElementsByTagName('parsererror').length,0);
+});
+
+test('a guide with both kinds carries the pack\'s font and only names the other; the template does the same',async()=>{
+  const a=await guideUsing('Lexend','OpenDyslexic');
+  const named=[],embedded=[];
+  const zip=await JSZip.loadAsync(await docxFromPackage(await a.sourcePackage(),JSZip,io,{entries:a.exportState().paragraphs,fonts:loader,onEmbedded:l=>embedded.push(...l),onNamed:l=>named.push(...l)}));
+  assert.deepEqual([...(await text(zip,'word/fontTable.xml')).matchAll(/<w:font w:name="([^"]+)">/g)].map(m=>m[1]),['Lexend']);
+  assert.deepEqual(embedded.map(e=>e.family),['Lexend']);
+  assert.deepEqual(named,[{family:'OpenDyslexic'}]);
+  const tNamed=[];
+  const t=await JSZip.loadAsync(await docxFromPackage(await a.sourcePackage(),JSZip,io,{template:true,fonts:loader,onNamed:l=>tNamed.push(...l)}));
+  assert.deepEqual(tNamed,[{family:'OpenDyslexic'}],'a styles template says it too, from its styles');
+  assert.match(await text(t,'word/styles.xml'),/w:ascii="OpenDyslexic"/);
+  assert.deepEqual([...(await text(t,'word/fontTable.xml')).matchAll(/<w:font w:name="([^"]+)">/g)].map(m=>m[1]),['Lexend']);
+});
+
+test('a file that uses no name-only font is told so with an empty list',async()=>{
+  const named=[];
+  await docxFromPackage(await demo().sourcePackage(),JSZip,io,{fonts:loader,onNamed:l=>named.push(l)});
+  assert.deepEqual(named,[[]]);
 });
 
 test('a font is mixed with its key as Word keeps embedded fonts, and the same call gives it back',()=>{

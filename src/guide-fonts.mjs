@@ -26,8 +26,23 @@ export const FONT_PACK=Object.freeze([
     license:'LICENSE-SourceSerif4.md',credit:'Copyright 2014-2024 Adobe, with Reserved Font Name Source',source:'https://github.com/adobe-fonts/source-serif'},
 ]);
 
+/**
+ * Fonts the font boxes offer by name only: no file comes with the program, so the page draws them only on a computer that has them, and a
+ * Word file made from a guide that uses one only names it (Word shows another font where it is not installed). OpenDyslexic is here because
+ * its only published files are PostScript-outlined OpenType, which Word cannot carry inside a file; it is free under the SIL Open Font License
+ * 1.1 (https://opendyslexic.org), so a person can install it themselves.
+ * @typedef {{family:string, kind:'sans'|'serif', note:string, source:string}} NamedFont
+ * @type {readonly NamedFont[]}
+ */
+export const NAMED_ONLY=Object.freeze([
+  {family:'OpenDyslexic',kind:'sans',note:'Letters weighted at the bottom, which some readers prefer; studies have not shown that it makes reading faster.',source:'https://opendyslexic.org'},
+]);
+
 /** The pack's entry for a font name, or null. */
 export const packFont=name=>FONT_PACK.find(f=>f.family===name)||null;
+
+/** The name-only entry for a font name, or null. */
+export const namedOnly=name=>NAMED_ONLY.find(f=>f.family===name)||null;
 
 /** The font names a piece of Word XML asks for (w:ascii, w:hAnsi, w:cs, w:eastAsia), once each. @param {...string} texts */
 export function fontNamesIn(...texts){
@@ -42,10 +57,23 @@ export function packFontsUsed(...texts){
   return FONT_PACK.filter(f=>names.has(f.family));
 }
 
-/** Fonts for a font box to offer: the pack first (with what each is for), then the fonts Word documents usually have. */
+/** The name-only fonts that some Word XML uses, in their order. @param {...string} texts @returns {NamedFont[]} */
+export function namedOnlyUsed(...texts){
+  const names=new Set(fontNamesIn(...texts));
+  return NAMED_ONLY.filter(f=>names.has(f.family));
+}
+
+/**
+ * Fonts for a font box to offer: the pack first (with what each is for), then the name-only fonts (saying that they are not included and have to
+ * be installed), then the fonts Word documents usually have.
+ */
 export const COMMON_FONTS=Object.freeze(['Aptos','Calibri','Cambria','Arial','Verdana','Tahoma','Segoe UI','Georgia','Times New Roman','Trebuchet MS']);
 export function fontChoices(){
-  return [...FONT_PACK.map(f=>({value:f.family,label:`${f.family}: ${f.note} (comes with the program)`})),...COMMON_FONTS.map(f=>({value:f,label:f}))];
+  return [
+    ...FONT_PACK.map(f=>({value:f.family,label:`${f.family}: ${f.note} (comes with the program)`})),
+    ...NAMED_ONLY.map(f=>({value:f.family,label:`${f.family}: ${f.note} (not included: install it from ${f.source.replace(/^https:\/\//,'')}; a Word file only names it)`})),
+    ...COMMON_FONTS.map(f=>({value:f,label:f})),
+  ];
 }
 
 /**
