@@ -39,7 +39,7 @@ SIGN_SCRIPT = HERE / "sign_windows.py"
 SEVEN_ZIP = Path(os.environ.get("PROGRAMFILES", r"C:\Program Files")) / "7-Zip" / "7z.exe"
 
 # The release this build is. Raise it for every release: the installed copy compares it with the published ones (docs/UPDATE-CHECK.md).
-RELEASE = "v0.1.0-alpha.3"
+RELEASE = "v0.1.0-alpha.4"
 
 # Programs in the setup that their makers sign, which are never signed here: the Node that runs the server (the OpenJS Foundation's).
 MAKERS = {"node.exe": "OpenJS Foundation"}
