@@ -73,7 +73,8 @@ try{
 
   // Keep working on it.
   await goAddModule();
-  await page.fill('#guide-new-title','Say it plainly');
+  await moreTool('addLesson');
+  await page.fill('#guide-lesson-title','Say it plainly');
   await page.fill('#guide-new-minutes','10');
   await page.click('#guide-add-lesson');
   await page.waitForFunction(()=>/Project file · (saving|changes not saved yet|saved)/.test(document.getElementById('connection').textContent));

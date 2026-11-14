@@ -3,7 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {dom} from './helpers/app-dom.mjs';
 import {mountToolStrip,namesItself} from '../src/tool-strip.mjs';
-import {TOOLS,TOOL_IDS,relatedTools} from '../src/guide-tools.mjs';
+import {TOOLS,TOOL_IDS,PROGRAM_TOOLS,toolFor,relatedTools} from '../src/guide-tools.mjs';
 
 const make=()=>{const ui=dom(),opened=[],strip=mountToolStrip(ui.document,{open:id=>opened.push(id)});return {ui,strip,opened,n:id=>ui.nodes.get(id)};};
 const labels=n=>n('tool-more-list').children.map(li=>li.children[0].textContent);
@@ -32,14 +32,14 @@ test('a tool whose screen names itself leaves the naming to the screen, but keep
 
 test('More tools lists only the tools named for the open tool, as buttons that open them, with what each is for',()=>{
   const {strip,n,opened}=make();
-  for(const id of TOOL_IDS){
+  for(const id of [...TOOL_IDS,...Object.keys(PROGRAM_TOOLS)]){
     strip.show(id);
     const buttons=n('tool-more-list').children.map(li=>li.children[0]);
     assert.deepEqual(buttons.map(b=>b.dataset.tool),relatedTools(id).map(t=>t.id),id);
     assert.ok(buttons.length<TOOL_IDS.length-10,`${id} does not list the whole ribbon`);
     for(const b of buttons){
       assert.equal(b.type,'button');
-      assert.match(b.getAttribute('aria-label'),new RegExp(`^${TOOLS[b.dataset.tool].label}: `));
+      assert.match(b.getAttribute('aria-label'),new RegExp(`^${toolFor(b.dataset.tool).label}: `));
     }
   }
   strip.show('assessments');

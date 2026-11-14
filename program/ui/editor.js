@@ -265,6 +265,9 @@ export function mountEditor(doc, host, guide, ui) {
       s.textContent = part.text.trim();
       lead.push(s);
     }
+    // The picture of a block's kind stays at the front while its words are changed.
+    const icon = row.el.querySelector(":scope > img.g-icon");
+    if (icon) lead.unshift(/** @type {HTMLElement} */ (icon.cloneNode(true)));
     row.el.replaceChildren(...lead, ta.el);
     row.el.classList.add("g-editing");
     setTabStop(row);

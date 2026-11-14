@@ -23,9 +23,24 @@ export const GROUPS=Object.freeze([
   {id:'protect',label:'Protect',tools:['saveBackup','restoreBackup','help']}
 ]);
 
+// The menus of the standalone program (program/ui/commands.js). The ribbon above had to be seven groups of three because of Word, and the program is not
+// bound by that: its menus are grouped by the work they are for, from the author's list of 2026-11-14, and a tool may be in a menu of its own
+// (Slides, Assessment). Four of the tools below exist only in the program (PROGRAM_TOOLS): they open an existing panel set up for one job, or the Add module
+// form's lesson half, or half of Review guide. Save and Restore a backup are in File and Help is in Help, as before.
+export const PROGRAM_MENUS=Object.freeze([
+  {id:'start',label:'Start',tools:['openDesigner','courseSettings','courseOutline']},
+  {id:'sections',label:'Sections',tools:['addModule','learningOutcomes','addLesson']},
+  {id:'activities',label:'Activities',tools:['addActivity','instructionalCues','activityLibrary']},
+  {id:'slides',label:'Slides',tools:['importSlides','updateFromSlides']},
+  {id:'assessment',label:'Assessment',tools:['assessments','learningAlignment']},
+  {id:'elearning',label:'eLearning',tools:['eLearningScreens','eLearningCues']},
+  {id:'check',label:'Check & Plan',tools:['reviewGuide','timingAndAgenda','accessibility']},
+  {id:'make',label:'Make',tools:['deliveryVersions','appearance','generateMaterials','participantWorkbook']}
+]);
+
 // The pieces of the Guide screen that a tool can show on its own. Anything not listed for a tool is hidden while it is open.
 export const GUIDE_SECTIONS=Object.freeze([
-  'guide-sec-module','guide-sec-block','guide-sec-owncues',
+  'guide-sec-module','guide-sec-lesson','guide-sec-block','guide-sec-owncues',
   'guide-sec-import','guide-sec-update',
   'guide-sec-look','guide-sec-standard','guide-sec-built',
   'guide-sec-move','guide-sec-keeptidy','guide-sec-contents','guide-sec-library','guide-sec-agenda','guide-sec-align','guide-sec-versions',
@@ -42,8 +57,8 @@ export const TOOLS=Object.freeze(Object.fromEntries([
     title:'Course settings',note:'The standard pages, and where a guide starts.',
     tip:'Add the standard pages a guide opens with, and the Appendix.',related:['openDesigner','appearance','generateMaterials']}),
   tool('addModule',{label:'Add Module',icon:'AddModule',group:'write',kind:'guide',part:'add',sections:['guide-sec-module'],selected:true,
-    title:'Add a module or lesson',note:'A module goes after the module your cursor is in; a lesson after the lesson.',
-    tip:'Create a module with a learning objective.',related:['addActivity','instructionalCues','courseOutline']}),
+    title:'Add a module',note:'A module goes after the module your cursor is in.',
+    tip:'Add a module with its title; the program numbers it and gives it a Transition block.',related:['addLesson','learningOutcomes','courseOutline']}),
   tool('addActivity',{label:'Add Activity',icon:'AddActivity',group:'write',kind:'guide',part:'add',sections:['guide-sec-block'],selected:true,preset:{cue:'activity',parts:true},
     title:'Add an activity',note:'An activity written as labelled parts.',
     tip:'Add a teaching activity with a Wrench instructional icon.',related:['addModule','instructionalCues','activityLibrary']}),
@@ -64,7 +79,7 @@ export const TOOLS=Object.freeze(Object.fromEntries([
     tip:'Bring changes from a presentation into slides already in the guide.',related:['importSlides','reviewGuide']}),
   tool('eLearningScreens',{label:'E-Learning Screens',icon:'ELearningScreens',group:'elearning',kind:'guide',part:'elearning',sections:[],
     title:'E-Learning screens',note:'Add a screen with its usual blocks, then make the narration script.',
-    tip:'Design E-Learning screen by screen, with narration counted and timed.',related:['importSlides','assessments']}),
+    tip:'Design E-Learning screen by screen, with narration counted and timed.',related:['eLearningCues','importSlides','assessments']}),
   tool('assessments',{label:'Assessments',icon:'Assessments',group:'elearning',kind:'screen',screen:'assess',ownHeading:true,
     title:'Assessments',note:'Start a section, then add items to it.',
     tip:'Write survey and quiz items, paste questions, or take them from a question bank.',related:['learningAlignment','reviewGuide']}),
@@ -73,7 +88,7 @@ export const TOOLS=Object.freeze(Object.fromEntries([
     tip:'See which objectives have an activity and an assessment.',related:['assessments','addActivity']}),
   tool('reviewGuide',{label:'Review Guide',icon:'ReviewGuide',group:'check',kind:'screen',screen:'review',ownHeading:true,
     title:'Review guide',note:'Checks for missing text, unfinished prompts and timing.',
-    tip:'Find missing text, objectives, unfinished prompts and timing issues.',related:['learningAlignment','timingAndAgenda','openDesigner']}),
+    tip:'Find missing text, objectives, unfinished prompts and timing issues.',related:['accessibility','learningAlignment','timingAndAgenda','openDesigner']}),
   tool('timingAndAgenda',{label:'Timing & Agenda',icon:'TimingAndAgenda',group:'check',kind:'guide',part:'organize',sections:['guide-sec-agenda'],
     title:'Timing and agenda',note:'Times for each lesson, from a start time you choose.',
     tip:'Calculate activity start and end times for your workshop.',related:['deliveryVersions','reviewGuide']}),
@@ -100,10 +115,26 @@ export const TOOLS=Object.freeze(Object.fromEntries([
     tip:'Try the sample guide, see the keyboard shortcuts, and read the instructions.',related:['openDesigner','saveBackup']})
 ]));
 
+// The tools only the program has. They are not in the ribbon's list (TOOLS, TOOL_IDS and GROUPS stay the add-in's twenty-one in seven groups of three).
+export const PROGRAM_TOOLS=Object.freeze(Object.fromEntries([
+  tool('addLesson',{label:'Add Lesson',icon:'AddLesson',group:'sections',kind:'guide',part:'add',sections:['guide-sec-lesson'],selected:true,
+    title:'Add a lesson',note:'A lesson goes after the lesson your cursor is in.',
+    tip:'Add a lesson with its title and minutes; the program numbers it and gives it a time line.',related:['addModule','learningOutcomes','instructionalCues']}),
+  tool('learningOutcomes',{label:'Learning Outcomes',icon:'LearningOutcomes',group:'sections',kind:'guide',part:'add',sections:['guide-sec-block'],selected:true,preset:{cue:'objective',parts:false},
+    title:'Learning outcomes',note:'What learners will be able to do, written as an Objective block.',
+    tip:'Write what learners will be able to do after a lesson, as an Objective block.',related:['learningAlignment','addLesson','instructionalCues']}),
+  tool('eLearningCues',{label:'E-Learning Cues',icon:'ELearningCues',group:'elearning',kind:'guide',part:'add',sections:['guide-sec-block','guide-sec-owncues'],selected:true,preset:{cue:'screen-title',parts:false},
+    title:'E-learning cues',note:'The kinds of block for designing a course screen by screen.',
+    tip:'Insert a screen title, visual direction, on-screen text, narration or another e-learning block.',related:['eLearningScreens','instructionalCues','assessments']}),
+  tool('accessibility',{label:'Accessibility',icon:'Accessibility',group:'check',kind:'screen',screen:'review',ownHeading:true,
+    title:'Accessibility',note:'The document checks: title, language, headings, pictures, tables, color and size of text.',
+    tip:'Check the guide for what a screen reader and a reader with low vision need: heading levels, picture descriptions, table headers, color contrast and text size.',related:['reviewGuide','appearance','timingAndAgenda']})
+]));
+
 export const TOOL_IDS=Object.freeze(Object.keys(TOOLS));
-export const toolFor=id=>TOOLS[id]||null;
-export const isTool=id=>Object.hasOwn(TOOLS,id);
+export const toolFor=id=>TOOLS[id]||PROGRAM_TOOLS[id]||null;
+export const isTool=id=>Object.hasOwn(TOOLS,id)||Object.hasOwn(PROGRAM_TOOLS,id);
 export const groupOf=id=>GROUPS.find(g=>g.tools.includes(id))||null;
 
 // The tools listed under "More tools" for one tool: the few that belong with it, in the order they are listed here.
-export const relatedTools=id=>(TOOLS[id]?.related||[]).map(r=>TOOLS[r]).filter(Boolean);
+export const relatedTools=id=>(toolFor(id)?.related||[]).map(r=>toolFor(r)).filter(Boolean);

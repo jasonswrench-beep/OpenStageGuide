@@ -46,13 +46,13 @@ try{
   ok(page.url().endsWith('/program/'),'the address / goes to the program');
   ok((await page.locator('h1').innerText())==='OpenStage Guide','the welcome page has its heading');
   ok(await page.locator('main#main').count()===1&&await page.locator('a.skip').count()===1,'a main region and a skip link');
-  ok((await page.locator('[role=menubar] > .menubar-slot').count())===12,'twelve menus: File, Edit, Insert, Format, View, Guide, Write, Bring in, E-learning, Check, Make, Help');
+  ok((await page.locator('[role=menubar] > .menubar-slot').count())===14,'fourteen menus: File, Edit, Insert, Format, View, Start, Sections, Activities, Slides, Assessment, eLearning, Check & Plan, Make, Help');
   ok(await page.locator('#bar-buttons button').count()===0,'no guide buttons on the navy bar before a guide is open');
   ok(/no guides yet/i.test(await page.locator('.recent').innerText()),'it says there are no guides yet');
   await shot('1-welcome.png');
 
   // ---- a tool cannot be used with no guide
-  await page.getByRole('menuitem',{name:/^Write/}).click();
+  await page.getByRole('menuitem',{name:/^Sections/}).click();
   const addModule=page.getByRole('menuitem',{name:/Add module/});
   ok((await addModule.getAttribute('aria-disabled'))==='true','Add module is dimmed with no guide open');
   await page.keyboard.press('Escape');
@@ -101,7 +101,7 @@ try{
   ok(/Acknowledgements/.test(await page.locator('#work-guide').innerText()),'the standard pages are drawn');
 
   // ---- a tool from a menu
-  await page.getByRole('menuitem',{name:/^Write/}).click();
+  await page.getByRole('menuitem',{name:/^Sections/}).click();
   ok((await page.getByRole('menuitem',{name:/Add module/}).getAttribute('aria-disabled'))!=='true','Add module can be used now');
   await shot('4-write-menu.png');
   await page.getByRole('menuitem',{name:/Add module/}).click();
@@ -130,14 +130,53 @@ try{
   ok(toc.some(([c,t])=>c==='g-toc g-toc-1'&&t==='Module 1: Naming the feeling')&&toc.some(([c,t])=>c==='g-toc g-toc-2'&&t==='About This Guide')&&toc.every(([,t])=>!t.includes('	')),'Update guide fills the Contents list in, drawn in the guide at its levels, with no page numbers: '+JSON.stringify(toc.slice(0,3)));
 
   // ---- the workbook reaches the author: there is no Word to open it in, so it is a real download
-  // (a workbook needs something for learners in the guide: a highlight block, added from the Write menu)
-  await page.getByRole('menuitem',{name:/^Write/}).click();
+  // (a workbook needs something for learners in the guide: a highlight block, added from the Activities menu)
+  await page.getByRole('menuitem',{name:/^Activities/}).click();
   await page.getByRole('menuitem',{name:/Instructional cues/i}).click();
   await fr.locator('#guide-cue-highlight').evaluate(e=>{e.checked=true;e.dispatchEvent(new Event('change',{bubbles:true}));});
   await fr.locator('#guide-block-text').fill('Name the feeling first.');
   await fr.locator('#guide-block-form').evaluate(f=>f.requestSubmit());
   await page.waitForFunction(()=>/Name the feeling first\./.test(document.querySelector('#work-guide')?.innerText||''),null,{timeout:10000});
   ok(true,'a block added in the tools appears in the guide');
+  // its kind's picture is drawn in front of its name, from the program's own icon file, and it stays while the block's words are changed
+  const iconOf=()=>page.evaluate(()=>{const row=[...document.querySelectorAll('#work-guide .g-cue')].find(r=>/Name the feeling first/.test(r.textContent||''));const img=row?.querySelector('img.g-icon');return img?{src:img.getAttribute('src'),alt:img.getAttribute('alt'),loaded:img.complete&&img.naturalWidth>0,w:Math.round(img.getBoundingClientRect().width),first:row.firstElementChild===img}:null;});
+  let blockIcon=await iconOf();
+  ok(!!blockIcon&&/^\/assets\/icons-doc\/highlight\.png$/.test(blockIcon.src)&&blockIcon.first,'the block has its kind\'s picture at the front: '+JSON.stringify(blockIcon));
+  ok(!!blockIcon&&blockIcon.loaded&&blockIcon.w>16&&blockIcon.alt==='','and the picture is really there (it loads), a little bigger than the words, with no description of its own because the name beside it says it');
+  await page.locator('#work-guide .g-cue',{hasText:'Name the feeling first'}).locator('.g-label').click();
+  await page.waitForFunction(()=>document.activeElement?.isContentEditable===true,null,{timeout:5000});
+  ok(await page.evaluate(()=>!!document.querySelector('#work-guide .g-editing > img.g-icon')),'while its words are changed the picture stays at the front');
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(300);
+  ok(!!(await iconOf()),'and is there again afterwards');
+
+  // ---- the menus of the tools, as the author listed them (2026-11-14), and the tools that are new
+  const MENUS={Start:['Guide overview','Course settings','Course outline'],Sections:['Add module','Learning outcomes','Add lesson'],Activities:['Add activity','Instructional cues','Activity library'],Slides:['Import slides','Update from slides'],Assessment:['Assessments','Learning alignment'],eLearning:['E-learning screens','E-learning cues'],'Check & Plan':['Review guide','Timing and agenda','Accessibility'],Make:['Delivery versions','Appearance','Generate materials','Participant workbook']};
+  for(const [menu,names] of Object.entries(MENUS)){
+    await page.getByRole('menuitem',{name:new RegExp('^'+menu.replace(/[&]/g,'\\$&'))}).click();
+    const got=(await page.locator('[role=menu]:visible [role=menuitem]').allInnerTexts()).map(t=>t.replace(/\s+/g,' ').trim());
+    ok(JSON.stringify(got)===JSON.stringify(names),menu+' menu: '+got.join(', '));
+    await page.keyboard.press('Escape');
+  }
+  const openFromMenu=async(menu,item)=>{await page.getByRole('menuitem',{name:new RegExp('^'+menu)}).click();await page.getByRole('menuitem',{name:item}).click();await page.waitForTimeout(300);};
+  await openFromMenu('Sections',/Add lesson/);
+  await fr.locator('#guide-lesson-title').waitFor({state:'visible',timeout:10000});
+  ok(await fr.locator('#guide-new-title').isHidden(),'Add lesson shows the lesson\'s title and minutes and not the module\'s title');
+  await openFromMenu('Sections',/Add module/);
+  await fr.locator('#guide-new-title').waitFor({state:'visible',timeout:10000});
+  ok(await fr.locator('#guide-lesson-title').isHidden(),'and Add module the module\'s title and not the lesson\'s');
+  await openFromMenu('Sections',/Learning outcomes/);
+  await fr.locator('#guide-cue-current',{hasText:/^Objective$/}).waitFor({timeout:10000});
+  ok((await fr.locator('#guide-cue-current').innerText())==='Objective','Learning outcomes opens the block form on the Objective kind');
+  await openFromMenu('eLearning',/E-learning cues/);
+  await fr.locator('#guide-cue-current',{hasText:/^Screen title$/}).waitFor({timeout:10000});
+  ok((await fr.locator('#guide-cue-current').innerText())==='Screen title','E-learning cues opens it on the e-learning kinds, at Screen title');
+  await openFromMenu('Check',/Accessibility/);
+  await fr.locator('#guide-review-heading',{hasText:/^Accessibility$/}).waitFor({timeout:15000});
+  ok((await fr.locator('#guide-review-heading').innerText())==='Accessibility'&&await fr.locator('#guide-review-pdf-part').isHidden(),'Accessibility opens the document checks, without Save as PDF');
+  await openFromMenu('Check',/Review guide/);
+  await fr.locator('#guide-review-heading',{hasText:/^Review this guide$/}).waitFor({timeout:15000});
+  ok((await fr.locator('#guide-review-heading').innerText())==='Review this guide','and Review guide the guide\'s own');
   await page.getByRole('button',{name:'Make workbook'}).click();
   await fr.locator('#guide-workbook-go').waitFor({state:'visible',timeout:10000});
   const [download]=await Promise.all([page.waitForEvent('download',{timeout:20000}),fr.locator('#guide-workbook-go').click()]);
@@ -255,7 +294,7 @@ try{
   ok(made===200,'a second tab makes and opens another guide');
   const second=path.join(GUIDES,'Opened in another tab.guide-project.json');
   const secondBefore=fs.readFileSync(second,'utf8');
-  await page.getByRole('menuitem',{name:/^Write/}).click();
+  await page.getByRole('menuitem',{name:/^Sections/}).click();
   await page.getByRole('menuitem',{name:/Add module/}).click();
   await fr.locator('#guide-new-title').waitFor({state:'visible',timeout:10000});
   await fr.locator('#guide-new-title').fill('Written by a page that is out of date');

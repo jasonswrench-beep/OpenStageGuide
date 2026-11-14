@@ -1,5 +1,6 @@
 {
   "icons": [
+    "accessibility",
     "archive",
     "archive-restore",
     "arrow-down",
@@ -28,6 +29,7 @@
     "folder-open",
     "folder-plus",
     "folders",
+    "goal",
     "grid-3x3",
     "house",
     "id-card",
@@ -39,10 +41,12 @@
     "layout-dashboard",
     "library",
     "list-checks",
+    "list-plus",
     "list-todo",
     "list-tree",
     "message-square",
     "monitor-play",
+    "mouse-pointer-click",
     "palette",
     "pencil",
     "pencil-line",

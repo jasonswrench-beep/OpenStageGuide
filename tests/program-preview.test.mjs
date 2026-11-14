@@ -1,6 +1,7 @@
 // The guide as it reads in the program (program/ui/preview.js): drawn from the project's paragraphs, with text and attributes only.
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readdirSync} from 'node:fs';
 import {DOMParser,XMLSerializer} from '@xmldom/xmldom';
 import {describeGuide,renderGuide,drawNodes} from '../program/ui/preview.js';
 import {previewStyles} from '../src/guide-styles-edit.mjs';
@@ -175,7 +176,7 @@ test('every drawn row says which paragraph it comes from; the editor\'s view als
   assert.deepEqual(describeGuide([{xml:`<w:p ${W}/>`,text:'',style:'Normal'}],parseXml,{blank:true}).map(n=>n.cls),['g-para g-blank']);
 });
 
-test('the author\'s own picture is drawn from the guide\'s copy with its description as alt text; a picture that is not there says so; a cue\'s icon is not drawn',async()=>{
+test('the author\'s own picture is drawn from the guide\'s copy with its description as alt text; a picture that is not there says so; a cue\'s icon is drawn from the program\'s own file',async()=>{
   const a=await started('Pictures');
   await a.adapter.insert(ctx=>para('OSGCueBody',pictureRun({base64:'iVBORw0KGgo=',type:'png',mime:'image/png',size:{cx:1905000,cy:952500},alt:'A cat on a mat',name:'cat'},ctx)),{where:'start',spare:false});
   const entries=a.adapter.exportState().paragraphs;
@@ -196,7 +197,16 @@ test('the author\'s own picture is drawn from the guide\'s copy with its descrip
   const icon=started&&await started('Icons');
   await addModule(icon,'M');await addLesson(icon,'L','5');await addBlock(icon,'ask','What?');
   const cue=describeGuide(icon.adapter.exportState().paragraphs,parseXml).find(n=>n.cls==='g-cue');
-  assert.ok(cue.children.length>=2&&cue.children.every(c=>c.tag==='span'),'the cue\'s name, a space and its words: no picture of its icon');
+  const [first,...rest]=cue.children;
+  assert.equal(first.tag,'img');assert.equal(first.cls,'g-icon');
+  assert.match(first.attrs.src,/^\/assets\/icons-doc\/[a-z0-9-]+\.png$/,'the program\'s own icon file, never a picture from the guide');
+  assert.deepEqual([first.attrs.alt,first.attrs['aria-hidden']],['','true'],'the word beside it says the kind, so the picture is not read out');
+  assert.ok(rest.length>=2&&rest.every(c=>c.tag==='span')&&rest[0].cls==='g-label','then the cue\'s name, a space and its words');
+  const knownIcons=new Set(readdirSync(new URL('../public/assets/icons-doc/',import.meta.url)).filter(f=>f.endsWith('.png')).map(f=>f.slice(0,-4)));
+  assert.ok(knownIcons.has(first.attrs.src.split('/').pop().slice(0,-4)),'and the file is one that is carried');
+  // a block whose picture is named for a file that is not one of the program\'s icons gets none
+  const changed=icon.adapter.exportState().paragraphs.map(p=>/OSG Cue/.test(p.style)?{...p,xml:p.xml.replace(/name="[a-z0-9-]+\.png"/,'name="../../x.png"')}:p);
+  assert.ok(!describeGuide(changed,parseXml).find(n=>n.cls==='g-cue').children.some(c=>c.tag==='img'),'a name that is not one of the icons is never drawn');
   assert.equal(describeGuide([{xml:`<w:p xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"/>`,text:'',style:'Normal'}],parseXml,{blank:true})[0].cls,'g-para g-blank','an empty paragraph is still blank');
 });
 

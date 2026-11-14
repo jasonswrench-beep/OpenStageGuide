@@ -37,6 +37,6 @@ export const click=(a,id)=>a.n(id).onclick();
 export const startsWith=prefix=>r=>r.startsWith(prefix);
 export const moveTo=async(a,matcher)=>{a.adapter.place(a.rows().findIndex(matcher));await a.p.quietRefresh();};
 export async function addModule(a,title){a.type('guide-new-title',title);await click(a,'guide-add-module');assert.equal(a.err(),'');}
-export async function addLesson(a,title,minutes='10'){a.type('guide-new-title',title);a.type('guide-new-minutes',minutes);await click(a,'guide-add-lesson');assert.equal(a.err(),'');}
+export async function addLesson(a,title,minutes='10'){a.type('guide-lesson-title',title);a.type('guide-new-minutes',minutes);await click(a,'guide-add-lesson');assert.equal(a.err(),'');}
 export async function addBlock(a,cue,text,{notes='',minutes=''}={}){a.pick(cue);a.type('guide-block-text',text);a.type('guide-block-notes',notes);a.type('guide-block-minutes',minutes);await submit(a,'guide-block-form');assert.equal(a.err(),'');}
 export const guideRows=a=>a.rows().slice(a.rows().findIndex(startsWith('OSG Module')));

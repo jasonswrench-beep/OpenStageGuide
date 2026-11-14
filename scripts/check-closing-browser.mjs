@@ -43,7 +43,7 @@ try{
   ok(await page.evaluate(()=>{try{window.osgClosing=()=>1;}catch{/* strict mode would throw */}return window.osgClosing.toString().includes('post');}),'and nothing can replace it');
 
   // a change, and the page asked at once
-  await page.getByRole('menuitem',{name:/^Write/}).click();
+  await page.getByRole('menuitem',{name:/^Sections/}).click();
   await page.getByRole('menuitem',{name:/Add module/}).click();
   await fr.locator('#guide-new-title').waitFor({state:'visible',timeout:10000});
   await fr.locator('#guide-new-title').fill('The last change before closing');

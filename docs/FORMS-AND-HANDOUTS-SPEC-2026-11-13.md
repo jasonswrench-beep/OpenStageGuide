@@ -74,7 +74,7 @@ Header rows are marked as header rows. Check boxes are real controls with names 
 
 ## How it looks in the program
 
-A **Forms** tool in the Write menu, like Add module and Add activity: a list of the guide's forms with numbers, a **New form** choice that offers the templates below, and an editor for a form that uses the editing surface's table support. Citation is the Handout cue's new "Which form" choice. In the suite look: one main button and a "..." menu, sections that open and close, each element a card.
+A **Forms** tool in the Sections menu (called Write until 2026-11-14), like Add module and Add activity: a list of the guide's forms with numbers, a **New form** choice that offers the templates below, and an editor for a form that uses the editing surface's table support. Citation is the Handout cue's new "Which form" choice. In the suite look: one main button and a "..." menu, sections that open and close, each element a card.
 
 First templates: Reading handout; Blank worksheet; Note-taking grid; Checklist (who, when); Rating form with evidence; Self-scored instrument; Observer form (met, not met, comments, signature, date); Evaluation form; Action plan table (the existing action-plan item, reused); Commitment card; Role cards; Match-up cards; Two-by-two; Force-field; Planning checklist.
 

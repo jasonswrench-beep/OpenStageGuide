@@ -7,6 +7,7 @@
 
 import { formatOf } from "../../src/guide-format.mjs";
 import { fmtOfEl, runCss } from "../../src/guide-runs.mjs";
+import { ICON_FILES, iconUrl } from "../../src/guide-cues.mjs";
 
 const W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
 const W14 = "http://schemas.microsoft.com/office/word/2010/wordml";
@@ -14,6 +15,7 @@ const REF = "osg-ref:";
 const WP = "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing";
 const A = "http://schemas.openxmlformats.org/drawingml/2006/main";
 const R = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
+const PIC = "http://schemas.openxmlformats.org/drawingml/2006/picture";
 
 /**
  * @typedef {{ tag: string, cls?: string, text?: string, attrs?: Record<string, string>, height?: number, index?: number, span?: number, format?: ReturnType<typeof formatOf>, css?: Record<string, string>, children?: Node_[] }} Node_
@@ -28,7 +30,7 @@ const first = (el, ns, name) => Array.from(el.getElementsByTagNameNS(ns, name))[
 
 /**
  * The inline parts of a paragraph, in order: {t:'text',text,label,css}, {t:'tab'}, {t:'br'}, {t:'check'}, {t:'cite',text}, {t:'picture',rid,alt,width}
- * (the author's own picture; the cue's icon, named "Icon n", is not drawn).
+ * and {t:'icon',icon} (the picture at the front of a block's cue, named "Icon n": one of the program's own icons, whose file is drawn, never a picture from the guide).
  * @param {Element} el @param {StyleView | undefined} [styles]
  * @returns {{ t: string, text?: string, label?: boolean, css?: Record<string, string>, rid?: string, alt?: string, width?: number }[]}
  */
@@ -57,6 +59,12 @@ function inlineParts(el, styles) {
             const extent = Array.from(r.getElementsByTagNameNS(WP, "extent"))[0];
             const rid = blip?.getAttributeNS(R, "embed") ?? "";
             if (/^Picture\b/.test(docPr?.getAttribute("name") ?? "") && rid) out.push({ t: "picture", rid, alt: docPr?.getAttribute("descr") ?? "", width: Math.round(Number(extent?.getAttribute("cx") ?? 0) / 9525) });
+            else if (/^Icon\b/.test(docPr?.getAttribute("name") ?? "")) {
+              // The icon of a block's kind: the picture's file name says which of the program's icons it is (objective.png, say.png...). Only those are drawn.
+              const file = Array.from(r.getElementsByTagNameNS(PIC, "cNvPr"))[0]?.getAttribute("name") ?? "";
+              const icon = file.replace(/\.png$/i, "");
+              if (ICON_FILES.includes(icon)) out.push({ t: "icon", icon });
+            }
           }
         }
       } else if (name === "sdt") {
@@ -89,6 +97,7 @@ function inlineNodes(parts, media) {
   const out = [];
   for (const p of parts) {
     if (p.t === "text" && p.text) out.push({ tag: "span", cls: p.label ? "g-label" : undefined, text: p.text, ...(p.css ? { css: p.css } : {}) });
+    else if (p.t === "icon" && p.icon) out.push({ tag: "img", cls: "g-icon", attrs: { src: iconUrl(p.icon), alt: "", "aria-hidden": "true" } });
     else if (p.t === "cite") out.push({ tag: "span", cls: "g-cite", text: p.text });
     else if (p.t === "check") out.push({ tag: "span", cls: "g-check", text: "☐" });
     else if (p.t === "br") out.push({ tag: "br" });

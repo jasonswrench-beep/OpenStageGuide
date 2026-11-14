@@ -111,9 +111,12 @@ test('with anything to fix no PDF is made, and the review is shown again',async(
   await click(a,'guide-open-review');
   await click(a,'guide-review-pdf');
   assert.equal(a.adapter.downloads().length,0);
-  assert.match(a.n('guide-review-pdf-problem').textContent,/^No PDF was made: 1 thing to fix first, listed above\./);
-  assert.ok(a.n('guide-review-fix').children.some(li=>/no title/.test(li.textContent)),'the title is on the list');
+  assert.match(a.n('guide-review-pdf-problem').textContent,/^No PDF was made: 1 thing to fix first, in Accessibility\./);
+  assert.ok(!a.n('guide-review-fix').children.some(li=>/no title/.test(li.textContent)),'the title is a check of the document, so it is not on the Review list');
+  await a.p.openTool('accessibility');
+  assert.ok(a.n('guide-review-fix').children.some(li=>/no title/.test(li.textContent)),'it is on the Accessibility list');
   await a.adapter.setTitle('Reframing conflict');
+  await a.p.openTool('reviewGuide');
   await click(a,'guide-review-pdf');
   assert.equal(a.adapter.downloads().length,1,'once it is fixed the PDF is made');
 });

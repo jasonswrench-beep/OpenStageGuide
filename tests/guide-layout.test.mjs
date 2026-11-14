@@ -56,7 +56,7 @@ test('every control of the Guide screen sits in one of its five parts, and the o
   const at=id=>{const i=html.indexOf(`id="${id}"`);assert.ok(i>0,`${id} is in the page`);return i;};
   const range=id=>{const start=html.indexOf(`<div id="guide-part-${id}"`);assert.ok(start>0,id);const next=PARTS.map(x=>html.indexOf(`<div id="guide-part-${x}"`)).filter(i=>i>start).sort((x,y)=>x-y)[0]??html.indexOf('<div id="guide-assess"');return [start,next];};
   const within=(id,part)=>{const [s,e]=range(part),i=at(id);assert.ok(i>s&&i<e,`${id} is in the ${part} part`);};
-  for(const id of ['guide-edit-form','guide-new-title','guide-add-module','guide-add-lesson','guide-cue-toggle','guide-cue-panel','guide-cues','guide-block-text','guide-block-notes','guide-block-minutes','guide-block-go','guide-pic-choose','guide-own-save'])within(id,'add');
+  for(const id of ['guide-edit-form','guide-new-title','guide-add-module','guide-lesson-title','guide-add-lesson','guide-cue-toggle','guide-cue-panel','guide-cues','guide-block-text','guide-block-notes','guide-block-minutes','guide-block-go','guide-pic-choose','guide-own-save'])within(id,'add');
   for(const id of ['guide-slides-choose','guide-slides-go','guide-slides-list'])within(id,'slides');
   for(const id of ['guide-el-add','guide-el-script','guide-el-text','guide-el-author'])within(id,'elearning');
   for(const id of ['guide-look-apply','guide-looks','guide-add-standard','guide-add-appendix','guide-build-glance','guide-build-cues','guide-build-overview'])within(id,'look');

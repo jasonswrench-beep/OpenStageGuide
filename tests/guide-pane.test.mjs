@@ -55,7 +55,7 @@ test('add module, lesson and block build a guide in order, leaving the cursor wh
   assert.deepEqual(a.rows().slice(-2).map(r=>r.split(':')[0]),['OSG Module','OSG Cue Facilitator']);
   assert.equal(a.rows().at(-2),'OSG Module: Module 1: Recognize the conflict');
 
-  a.type('guide-new-title','Reframe the conversation');a.type('guide-new-minutes','10');await a.n('guide-add-lesson').onclick();
+  a.type('guide-lesson-title','Reframe the conversation');a.type('guide-new-minutes','10');await a.n('guide-add-lesson').onclick();
   const lessonAt=a.rows().findIndex(r=>r.startsWith('OSG Lesson'));
   assert.equal(a.rows()[lessonAt],'OSG Lesson: Lesson 1.1: Reframe the conversation');
   assert.equal(a.rows()[lessonAt+1],'OSG Time: Time: 10 minutes. Cumulative time: 0 minutes.');
@@ -91,14 +91,14 @@ test('a block needs text, and minutes must be a whole number',async()=>{
 
 test('a lesson needs a module around the cursor',async()=>{
   const a=await started();
-  a.type('guide-new-title','Loose');await a.n('guide-add-lesson').onclick();
+  a.type('guide-lesson-title','Loose');await a.n('guide-add-lesson').onclick();
   assert.match(a.err(),/cursor inside a module/);
 });
 
 test('Update guide fixes cumulative times and numbers, once, and says how to undo',async()=>{
   const a=await started();
   a.type('guide-new-title','One');await a.n('guide-add-module').onclick();
-  a.type('guide-new-title','First lesson');a.type('guide-new-minutes','10');await a.n('guide-add-lesson').onclick();
+  a.type('guide-lesson-title','First lesson');a.type('guide-new-minutes','10');await a.n('guide-add-lesson').onclick();
   a.pick('ask');a.type('guide-block-text','Why?');a.type('guide-block-minutes','4');await submit(a,'guide-block-form');
   assert.equal(a.n('guide-update').disabled,false);
   assert.match(a.n('guide-update-note').textContent,/1 number or time is out of date\./);
@@ -106,7 +106,7 @@ test('Update guide fixes cumulative times and numbers, once, and says how to und
   assert.ok(a.rows().includes('OSG Time: Time: 4 minutes. Cumulative time: 0 minutes.'));
   assert.doesNotMatch(a.n('guide-update-note').textContent,/out of date/);
   assert.match(a.n('guide-status').textContent,/Ctrl\+Z/);
-  a.type('guide-new-title','Second lesson');a.type('guide-new-minutes','6');await a.n('guide-add-lesson').onclick();
+  a.type('guide-lesson-title','Second lesson');a.type('guide-new-minutes','6');await a.n('guide-add-lesson').onclick();
   assert.ok(a.rows().includes('OSG Time: Time: 6 minutes. Cumulative time: 4 minutes.'));
   assert.match(a.n('guide-total').textContent,/10 min/);
 });
@@ -114,7 +114,7 @@ test('Update guide fixes cumulative times and numbers, once, and says how to und
 test('Contents lists modules and lessons, and choosing one moves the cursor there',async()=>{
   const a=await started();
   a.type('guide-new-title','One');await a.n('guide-add-module').onclick();
-  a.type('guide-new-title','Lesson A');a.type('guide-new-minutes','10');await a.n('guide-add-lesson').onclick();
+  a.type('guide-lesson-title','Lesson A');a.type('guide-new-minutes','10');await a.n('guide-add-lesson').onclick();
   const list=a.n('guide-contents').children;
   assert.equal(list.length,2);
   assert.match(list[1].children[0].textContent,/Lesson 1\.1: Lesson A \(10 min\)/);
@@ -137,11 +137,11 @@ test('the cue list offers every cue, and the find box narrows it',async()=>{
 test('Review lists what to fix and look at, with a way to go to each, and never claims to be Word\'s checker',async()=>{
   const a=await started();
   a.type('guide-new-title','One');await a.n('guide-add-module').onclick();
-  a.type('guide-new-title','Empty lesson');a.type('guide-new-minutes','5');await a.n('guide-add-lesson').onclick();
+  a.type('guide-lesson-title','Empty lesson');a.type('guide-new-minutes','5');await a.n('guide-add-lesson').onclick();
   await a.n('guide-open-review').onclick();
   assert.equal(a.n('guide-review').hidden,false);
   assert.equal(a.n('guide-build').hidden,true);
-  assert.match(a.n('guide-review-summary').textContent,/0 to fix, 1 to look at, 3 to check yourself\. This is not Word's Accessibility Checker/);
+  assert.match(a.n('guide-review-summary').textContent,/0 to fix, 1 to look at, 1 to check yourself\. The checks of the document itself .* are in Accessibility\./);
   const look=a.n('guide-review-look').children;
   assert.match(look[0].children[0].textContent,/Lesson 1\.1: Empty lesson has no blocks yet/);
   await look[0].children[1].onclick();

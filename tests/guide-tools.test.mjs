@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {GROUPS,GUIDE_SECTIONS,TOOLS,TOOL_IDS,toolFor,isTool,groupOf,relatedTools} from '../src/guide-tools.mjs';
+import {GROUPS,GUIDE_SECTIONS,TOOLS,TOOL_IDS,PROGRAM_TOOLS,PROGRAM_MENUS,toolFor,isTool,groupOf,relatedTools} from '../src/guide-tools.mjs';
 
 const root=new URL('..',import.meta.url);
 const PARTS=['add','slides','elearning','look','organize'];
@@ -44,28 +44,31 @@ test('every tool has a label, a title, a note, a tip, an icon and a way to open 
 });
 
 test('More tools lists a few tools that belong with the open one, never all of them and never itself',()=>{
-  for(const id of TOOL_IDS){
+  for(const id of [...TOOL_IDS,...Object.keys(PROGRAM_TOOLS)]){
     const more=relatedTools(id);
     assert.ok(more.length>=1&&more.length<=5,`${id} offers ${more.length}`);
     assert.ok(!more.some(t=>t.id===id),`${id} does not list itself`);
     assert.equal(new Set(more.map(t=>t.id)).size,more.length,`${id} lists no tool twice`);
-    for(const r of TOOLS[id].related)assert.ok(isTool(r),`${id} -> ${r} exists`);
+    for(const r of toolFor(id).related)assert.ok(isTool(r),`${id} -> ${r} exists`);
   }
-  // Working on a module, the other module-level and writing tools are close by.
-  assert.ok(relatedTools('addModule').some(t=>t.id==='addActivity'));
+  // Working on a module, its lessons and outcomes are close by, and the module part stays reachable from the writing tools.
+  assert.ok(relatedTools('addModule').some(t=>t.id==='addLesson'));
+  assert.ok(relatedTools('addLesson').some(t=>t.id==='addModule'));
   assert.ok(relatedTools('addActivity').some(t=>t.id==='addModule'),'the module part stays reachable from the writing tools');
+  assert.ok(relatedTools('reviewGuide').some(t=>t.id==='accessibility')&&relatedTools('accessibility').some(t=>t.id==='reviewGuide'),'Review guide and Accessibility lead to each other');
   assert.ok(relatedTools('assessments').some(t=>t.id==='learningAlignment'));
   assert.ok(!relatedTools('assessments').some(t=>t.id==='addModule'),'Assessments does not offer the writing tools');
 });
 
 test('the tools that share a part of the Guide screen show different pieces of it',()=>{
   const seen=new Map();
-  for(const t of Object.values(TOOLS).filter(t=>t.kind==='guide'))for(const s of t.sections){
+  for(const t of Object.values({...TOOLS,...PROGRAM_TOOLS}).filter(t=>t.kind==='guide'))for(const s of t.sections){
     // A section belongs to the tools that show it; the two writing tools share the block form on purpose.
     seen.set(s,[...(seen.get(s)||[]),t.id]);
   }
   assert.deepEqual(seen.get('guide-sec-module'),['addModule']);
-  assert.deepEqual(seen.get('guide-sec-block').sort(),['addActivity','instructionalCues']);
+  assert.deepEqual(seen.get('guide-sec-lesson'),['addLesson']);
+  assert.deepEqual(seen.get('guide-sec-block').sort(),['addActivity','eLearningCues','instructionalCues','learningOutcomes'],'the cue form serves four tools, each opened on its own kind');
   assert.deepEqual(seen.get('guide-sec-look'),['appearance']);
   assert.deepEqual(seen.get('guide-sec-built'),['generateMaterials']);
   assert.deepEqual(seen.get('guide-sec-standard'),['courseSettings']);
@@ -77,6 +80,6 @@ test('the labels fit a crowded ribbon: none is longer than 20 characters',()=>{
 
 test('every tool can be reached from Open Designer through More tools, for the author who hides the ribbon',()=>{
   const seen=new Set(['openDesigner']),queue=['openDesigner'];
-  while(queue.length)for(const r of TOOLS[queue.shift()].related)if(!seen.has(r)){seen.add(r);queue.push(r);}
-  assert.deepEqual(TOOL_IDS.filter(id=>!seen.has(id)),[],'tools no list leads to');
+  while(queue.length)for(const r of toolFor(queue.shift()).related)if(!seen.has(r)){seen.add(r);queue.push(r);}
+  assert.deepEqual([...TOOL_IDS,...Object.keys(PROGRAM_TOOLS)].filter(id=>!seen.has(id)),[],'tools no list leads to');
 });

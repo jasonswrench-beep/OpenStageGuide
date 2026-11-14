@@ -4,7 +4,8 @@ import assert from 'node:assert/strict';
 import {buildMenus,menuEntries,TOOL_NAMES,TOOL_ICONS} from '../program/ui/commands.js';
 import {searchEntries} from '../program/ui/commandsearch.js';
 import {UI_ICONS} from '../program/ui/ui-icons.js';
-import {GROUPS,TOOLS,TOOL_IDS} from '../src/guide-tools.mjs';
+import {GROUPS,TOOLS,TOOL_IDS,PROGRAM_TOOLS,PROGRAM_MENUS} from '../src/guide-tools.mjs';
+const ALL_IDS=[...TOOL_IDS,...Object.keys(PROGRAM_TOOLS)];
 
 function make(){
   const calls=[];
@@ -15,47 +16,51 @@ function make(){
 }
 const items=menus=>menus.flatMap(m=>m.items.filter(i=>i!=='-'));
 
-test('the menus are File, Edit, Insert, Format, View, one for each group of the ribbon, and Help, in that order',()=>{
+test('the menus are File, Edit, Insert, Format, View, the program\'s own eight, and Help, in that order',()=>{
   const {menus}=make();
-  assert.deepEqual(menus.map(m=>[m.id,m.label]),[['file','File'],['edit','Edit'],['insert','Insert'],['format','Format'],['view','View'],['guide','Guide'],['write','Write'],['bring','Bring in'],['elearning','E-learning'],['check','Check'],['make','Make'],['help','Help']]);
-  assert.equal(GROUPS.length,7,'the ribbon has seven groups: six become menus and Protect is split between File and Help');
+  assert.deepEqual(menus.map(m=>[m.id,m.label]),[['file','File'],['edit','Edit'],['insert','Insert'],['format','Format'],['view','View'],['start','Start'],['sections','Sections'],['activities','Activities'],['slides','Slides'],['assessment','Assessment'],['elearning','eLearning'],['check','Check & Plan'],['make','Make'],['help','Help']]);
+  assert.deepEqual(PROGRAM_MENUS.map(m=>m.label),['Start','Sections','Activities','Slides','Assessment','eLearning','Check & Plan','Make']);
+  assert.equal(GROUPS.length,7,'the ribbon of the add-in is still seven groups of three; the program\'s menus are not bound by it');
 });
 
-test('every tool of the add-in is one item in one menu, with its own name, icon and description',()=>{
+test('every tool, the add-in\'s twenty-one and the program\'s four, is one item in one menu, with its own name, icon and description',()=>{
   const {menus}=make();
   const all=items(menus);
-  for(const id of TOOL_IDS){
+  for(const id of ALL_IDS){
     const label=TOOL_NAMES[id];
     assert.ok(label,`${id} has a name in the menus`);
     assert.ok(TOOL_ICONS[id],`${id} has an icon`);
     const found=all.filter(i=>i.label===label);
     assert.equal(found.length,1,`${label} is in exactly one menu`);
-    assert.equal(found[0].title,TOOLS[id].tip,'its description is the tool\'s own tip');
+    assert.equal(found[0].title,(TOOLS[id]??PROGRAM_TOOLS[id]).tip,'its description is the tool\'s own tip');
   }
-  assert.deepEqual(Object.keys(TOOL_NAMES).sort(),[...TOOL_IDS].sort(),'no name for a tool that does not exist');
-  assert.deepEqual(Object.keys(TOOL_ICONS).sort(),[...TOOL_IDS].sort());
-  assert.equal(new Set(Object.values(TOOL_NAMES)).size,TOOL_IDS.length,'no two tools share a name');
+  assert.deepEqual(Object.keys(TOOL_NAMES).sort(),[...ALL_IDS].sort(),'no name for a tool that does not exist');
+  assert.deepEqual(Object.keys(TOOL_ICONS).sort(),[...ALL_IDS].sort());
+  assert.equal(new Set(Object.values(TOOL_NAMES)).size,ALL_IDS.length,'no two tools share a name');
 });
 
-test('each group of the ribbon is the menu of the same tools in the same order; Protect goes to File and Help',()=>{
+test('each menu holds the tools the author listed (2026-11-14), in that order; Save and Restore a backup are in File and Help is in Help',()=>{
   const {menus}=make();
   const names=id=>menuEntries(menus,id).filter(i=>i!=='-').map(i=>i.label);
-  const group=id=>GROUPS.find(g=>g.id===id).tools.map(t=>TOOL_NAMES[t]);
-  assert.deepEqual(names('guide'),group('start'));
-  assert.deepEqual(names('write'),group('write'));
-  assert.deepEqual(names('bring'),group('bring'));
-  assert.deepEqual(names('elearning'),group('elearning'));
-  assert.deepEqual(names('check'),group('check'));
-  assert.deepEqual(names('make'),group('make'));
+  assert.deepEqual(names('start'),['Guide overview','Course settings','Course outline']);
+  assert.deepEqual(names('sections'),['Add module','Learning outcomes','Add lesson']);
+  assert.deepEqual(names('activities'),['Add activity','Instructional cues','Activity library']);
+  assert.deepEqual(names('slides'),['Import slides','Update from slides']);
+  assert.deepEqual(names('assessment'),['Assessments','Learning alignment']);
+  assert.deepEqual(names('elearning'),['E-learning screens','E-learning cues']);
+  assert.deepEqual(names('check'),['Review guide','Timing and agenda','Accessibility']);
+  assert.deepEqual(names('make'),['Delivery versions','Appearance','Generate materials','Participant workbook']);
+  for(const m of PROGRAM_MENUS)assert.deepEqual(names(m.id),m.tools.map(t=>TOOL_NAMES[t]),`${m.label} is the list in guide-tools.mjs`);
   const protect=GROUPS.find(g=>g.id==='protect').tools.map(t=>TOOL_NAMES[t]);
   assert.ok(protect.every(n=>names('file').includes(n)||names('help').includes(n)),'Save and Restore a backup are in File, Help is in Help');
   assert.deepEqual(names('file').slice(0,3),['New guide...','Open guide...','Close guide']);
+  assert.equal(PROGRAM_MENUS.flatMap(m=>m.tools).length+protect.length,ALL_IDS.length,'every tool is in a menu once');
 });
 
 test('a tool opens only when a guide is open; making, opening and closing know their own state',()=>{
   const m=make();
   const tools=items(m.menus).filter(i=>Object.values(TOOL_NAMES).includes(i.label));
-  assert.equal(tools.length,TOOL_IDS.length);
+  assert.equal(tools.length,ALL_IDS.length);
   assert.ok(tools.every(i=>i.enabled()===false),'no tool can be used with no guide open');
   const [newItem,openItem,closeItem]=menuEntries(m.menus,'file');
   assert.equal(newItem.enabled?.()??true,true);assert.equal(openItem.enabled?.()??true,true);
@@ -67,8 +72,8 @@ test('a tool opens only when a guide is open; making, opening and closing know t
 
 test('choosing a tool asks for that tool, and the other commands do their own things',()=>{
   const m=make();m.setGuide(true);
-  for(const id of TOOL_IDS)items(m.menus).find(i=>i.label===TOOL_NAMES[id]).run();
-  assert.deepEqual(m.calls.map(c=>c[1]),TOOL_IDS);
+  for(const id of ALL_IDS)items(m.menus).find(i=>i.label===TOOL_NAMES[id]).run();
+  assert.deepEqual(m.calls.map(c=>c[1]),ALL_IDS);
   m.calls.length=0;
   const byLabel=l=>items(m.menus).find(i=>i.label===l);
   byLabel('New guide...').run();byLabel('Open guide...').run();byLabel('Close guide').run();byLabel('Search for a command...').run();byLabel('Keyboard keys').run();byLabel('Check for updates...').run();byLabel('About OpenStage Guide').run();

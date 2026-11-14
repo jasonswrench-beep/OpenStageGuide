@@ -275,6 +275,7 @@ main:focus, main:focus-visible { outline: none; }
 .page h3.g-lesson, .page h3.g-heading2 { font: 700 1.1rem/1.3 "Segoe UI", system-ui, sans-serif; margin: 20px 0 6px; color: var(--os-shell); }
 .page .g-time { font: 0.88rem "Segoe UI", system-ui, sans-serif; color: var(--muted); margin: 0 0 10px; }
 .page .g-cue { margin: 8px 0 2px; padding-left: 0; }
+.page .g-icon { width: 1.6em; height: 1.6em; vertical-align: middle; margin-right: 6px; }
 .page .g-cue .g-label { font: 700 0.85rem "Segoe UI", system-ui, sans-serif; color: var(--accent); text-transform: none; margin-right: 6px; }
 .page .g-cue.facilitator { border-left: 4px solid var(--edge); padding-left: 10px; background: var(--subtle); }
 .page .g-body { margin: 0 0 4px 12px; }

@@ -52,6 +52,7 @@
 /** @typedef {{ tag: string } & Record<string, string | number>} Shape */
 
 export const UI_ICONS = /** @type {const} */ ({
+  "accessibility": [{"tag":"circle","cx":16,"cy":4,"r":1},{"tag":"path","d":"m18 19 1-7-6 1"},{"tag":"path","d":"m5 8 3-3 5.5 3-2.36 3.5"},{"tag":"path","d":"M4.24 14.5a5 5 0 0 0 6.88 6"},{"tag":"path","d":"M13.76 17.5a5 5 0 0 0-6.88-6"}],
   "archive": [{"tag":"rect","width":20,"height":5,"x":2,"y":3,"rx":1},{"tag":"path","d":"M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"},{"tag":"path","d":"M10 12h4"}],
   "archive-restore": [{"tag":"rect","width":20,"height":5,"x":2,"y":3,"rx":1},{"tag":"path","d":"M4 8v11a2 2 0 0 0 2 2h2"},{"tag":"path","d":"M20 8v11a2 2 0 0 1-2 2h-2"},{"tag":"path","d":"m9 15 3-3 3 3"},{"tag":"path","d":"M12 12v9"}],
   "arrow-down": [{"tag":"path","d":"M12 5v14"},{"tag":"path","d":"m19 12-7 7-7-7"}],
@@ -80,6 +81,7 @@ export const UI_ICONS = /** @type {const} */ ({
   "folder-open": [{"tag":"path","d":"m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2"}],
   "folder-plus": [{"tag":"path","d":"M12 10v6"},{"tag":"path","d":"M9 13h6"},{"tag":"path","d":"M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"}],
   "folders": [{"tag":"path","d":"M20 5a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h2.5a1.5 1.5 0 0 1 1.2.6l.6.8a1.5 1.5 0 0 0 1.2.6z"},{"tag":"path","d":"M3 8.268a2 2 0 0 0-1 1.738V19a2 2 0 0 0 2 2h11a2 2 0 0 0 1.732-1"}],
+  "goal": [{"tag":"path","d":"M12 13V2l8 4-8 4"},{"tag":"path","d":"M20.561 10.222a9 9 0 1 1-12.55-5.29"},{"tag":"path","d":"M8.002 9.997a5 5 0 1 0 8.9 2.02"}],
   "grid-3x3": [{"tag":"rect","width":18,"height":18,"x":3,"y":3,"rx":2},{"tag":"path","d":"M3 9h18"},{"tag":"path","d":"M3 15h18"},{"tag":"path","d":"M9 3v18"},{"tag":"path","d":"M15 3v18"}],
   "house": [{"tag":"path","d":"M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"},{"tag":"path","d":"M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"}],
   "id-card": [{"tag":"path","d":"M13 19a4 4 0 00-8 0"},{"tag":"path","d":"M16 10h2"},{"tag":"path","d":"M16 14h2"},{"tag":"circle","cx":9,"cy":12,"r":3},{"tag":"rect","x":2,"y":5,"width":20,"height":14,"rx":2}],
@@ -91,10 +93,12 @@ export const UI_ICONS = /** @type {const} */ ({
   "layout-dashboard": [{"tag":"rect","width":7,"height":9,"x":3,"y":3,"rx":1},{"tag":"rect","width":7,"height":5,"x":14,"y":3,"rx":1},{"tag":"rect","width":7,"height":9,"x":14,"y":12,"rx":1},{"tag":"rect","width":7,"height":5,"x":3,"y":16,"rx":1}],
   "library": [{"tag":"path","d":"m16 6 4 14"},{"tag":"path","d":"M12 6v14"},{"tag":"path","d":"M8 8v12"},{"tag":"path","d":"M4 4v16"}],
   "list-checks": [{"tag":"path","d":"M13 5h8"},{"tag":"path","d":"M13 12h8"},{"tag":"path","d":"M13 19h8"},{"tag":"path","d":"m3 17 2 2 4-4"},{"tag":"path","d":"m3 7 2 2 4-4"}],
+  "list-plus": [{"tag":"path","d":"M16 5H3"},{"tag":"path","d":"M11 12H3"},{"tag":"path","d":"M16 19H3"},{"tag":"path","d":"M18 9v6"},{"tag":"path","d":"M21 12h-6"}],
   "list-todo": [{"tag":"path","d":"M13 5h8"},{"tag":"path","d":"M13 12h8"},{"tag":"path","d":"M13 19h8"},{"tag":"path","d":"m3 17 2 2 4-4"},{"tag":"rect","x":3,"y":4,"width":6,"height":6,"rx":1}],
   "list-tree": [{"tag":"path","d":"M8 5h13"},{"tag":"path","d":"M13 12h8"},{"tag":"path","d":"M13 19h8"},{"tag":"path","d":"M3 10a2 2 0 0 0 2 2h3"},{"tag":"path","d":"M3 5v12a2 2 0 0 0 2 2h3"}],
   "message-square": [{"tag":"path","d":"M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z"}],
   "monitor-play": [{"tag":"path","d":"M15.033 9.44a.647.647 0 0 1 0 1.12l-4.065 2.352a.645.645 0 0 1-.968-.56V7.648a.645.645 0 0 1 .967-.56z"},{"tag":"path","d":"M12 17v4"},{"tag":"path","d":"M8 21h8"},{"tag":"rect","x":2,"y":3,"width":20,"height":14,"rx":2}],
+  "mouse-pointer-click": [{"tag":"path","d":"M14 4.1 12 6"},{"tag":"path","d":"m5.1 8-2.9-.8"},{"tag":"path","d":"m6 12-1.9 2"},{"tag":"path","d":"M7.2 2.2 8 5.1"},{"tag":"path","d":"M9.037 9.69a.498.498 0 0 1 .653-.653l11 4.5a.5.5 0 0 1-.074.949l-4.349 1.041a1 1 0 0 0-.74.739l-1.04 4.35a.5.5 0 0 1-.95.074z"}],
   "palette": [{"tag":"path","d":"M12 22a1 1 0 0 1 0-20 10 9 0 0 1 10 9 5 5 0 0 1-5 5h-2.25a1.75 1.75 0 0 0-1.4 2.8l.3.4a1.75 1.75 0 0 1-1.4 2.8z"},{"tag":"circle","cx":13.5,"cy":6.5,"r":0.5,"fill":"currentColor"},{"tag":"circle","cx":17.5,"cy":10.5,"r":0.5,"fill":"currentColor"},{"tag":"circle","cx":6.5,"cy":12.5,"r":0.5,"fill":"currentColor"},{"tag":"circle","cx":8.5,"cy":7.5,"r":0.5,"fill":"currentColor"}],
   "pencil": [{"tag":"path","d":"M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"},{"tag":"path","d":"m15 5 4 4"}],
   "pencil-line": [{"tag":"path","d":"M13 21h8"},{"tag":"path","d":"m15 5 4 4"},{"tag":"path","d":"M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"}],

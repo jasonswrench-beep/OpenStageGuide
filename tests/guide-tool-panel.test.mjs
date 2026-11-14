@@ -3,13 +3,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {TOOLS,GUIDE_SECTIONS,relatedTools} from '../src/guide-tools.mjs';
+import {TOOLS,PROGRAM_TOOLS,GUIDE_SECTIONS,relatedTools} from '../src/guide-tools.mjs';
 import {pane,started,click,addModule,addLesson,moveTo,startsWith} from './helpers/guide-harness.mjs';
 import {focusedId} from './helpers/app-dom.mjs';
 
 const PARTS=['add','slides','elearning','look','organize'];
-const PART_OF={'guide-sec-module':'add','guide-sec-block':'add','guide-sec-owncues':'add','guide-sec-import':'slides','guide-sec-update':'slides','guide-sec-look':'look','guide-sec-standard':'look','guide-sec-built':'look','guide-sec-move':'organize','guide-sec-keeptidy':'organize','guide-sec-contents':'organize','guide-sec-library':'add','guide-sec-agenda':'organize','guide-sec-align':'organize','guide-sec-versions':'organize','guide-sec-backup':'organize','guide-sec-restore':'organize'};
-const guideTools=Object.values(TOOLS).filter(t=>t.kind==='guide');
+const PART_OF={'guide-sec-module':'add','guide-sec-lesson':'add','guide-sec-block':'add','guide-sec-owncues':'add','guide-sec-import':'slides','guide-sec-update':'slides','guide-sec-look':'look','guide-sec-standard':'look','guide-sec-built':'look','guide-sec-move':'organize','guide-sec-keeptidy':'organize','guide-sec-contents':'organize','guide-sec-library':'add','guide-sec-agenda':'organize','guide-sec-align':'organize','guide-sec-versions':'organize','guide-sec-backup':'organize','guide-sec-restore':'organize'};
+const guideTools=Object.values({...TOOLS,...PROGRAM_TOOLS}).filter(t=>t.kind==='guide');
 
 // What is on screen in the Guide screen: the one part showing, and the pieces of it that are not hidden.
 const onScreen=a=>{
@@ -57,14 +57,18 @@ for(const t of guideTools){
   });
 }
 
-test('the module part stays with the writing tools: Add Module, Add Activity and Instructional Cues each show where the cursor is, and each offers the others',async()=>{
+test('the writing tools each show where the cursor is, and Add module and Add lesson are two tools that offer each other',async()=>{
   const {a}=await withTools();
-  for(const id of ['addModule','addActivity','instructionalCues']){
+  for(const id of ['addModule','addLesson','learningOutcomes','addActivity','instructionalCues','eLearningCues']){
     await a.p.openTool(id);
     assert.equal(a.n('guide-sec-selected').hidden,false,`${id} shows the "In your document" line`);
-    const more=relatedTools(id).map(t=>t.id);
-    assert.ok(['addModule','addActivity','instructionalCues'].filter(x=>x!==id).every(x=>more.includes(x)),`${id} offers the other writing tools`);
   }
+  assert.ok(relatedTools('addModule').some(t=>t.id==='addLesson'),'Add module offers Add lesson');
+  assert.ok(relatedTools('addLesson').some(t=>t.id==='addModule'),'and Add lesson offers Add module');
+  await a.p.openTool('addModule');
+  assert.deepEqual(['guide-sec-module','guide-sec-lesson'].map(s=>a.n(s).hidden),[false,true],'Add module shows the module form and not the lesson form');
+  await a.p.openTool('addLesson');
+  assert.deepEqual(['guide-sec-module','guide-sec-lesson'].map(s=>a.n(s).hidden),[true,false],'Add lesson shows the lesson form and not the module form');
 });
 
 test('Add Activity opens the block form on Activity written as parts; Instructional Cues takes it back to an ordinary cue',async()=>{
@@ -184,7 +188,8 @@ test('Help: the sample guide button starts the sample and opens Open Designer, a
 
 test('a piece whose heading says what the strip already says leaves it to the strip; one that says something else keeps its own',async()=>{
   const {a}=await withTools();
-  a.n('guide-module-heading').textContent='Add a module or lesson';
+  a.n('guide-module-heading').textContent='Add a module';
+  a.n('guide-lesson-heading').textContent='Add a lesson';
   a.n('guide-el-heading').textContent='E-Learning screens';
   a.n('guide-upd-heading').textContent='Update from slides';
   await a.p.openTool('addModule');
@@ -193,8 +198,12 @@ test('a piece whose heading says what the strip already says leaves it to the st
   await a.p.openTool('eLearningScreens');
   assert.equal(a.n('guide-el-heading').hidden,true);
   assert.equal(a.n('guide-module-heading').hidden,false,'and the module form\'s own heading is back for the other tools');
+  await a.p.openTool('addLesson');
+  assert.equal(a.n('guide-lesson-heading').hidden,true,'the lesson form has the strip\'s words as its heading too');
+  assert.equal(a.n('guide-module-heading').hidden,false);
   await a.p.openTool('addActivity');
   assert.equal(a.n('guide-module-heading').hidden,false);
+  assert.equal(a.n('guide-lesson-heading').hidden,false);
   await a.p.openTool('updateFromSlides');
   assert.equal(a.n('guide-upd-heading').hidden,true);
 });
@@ -224,4 +233,61 @@ test('a tool chosen while a file window is open is not carried out long after th
   await choosing;
   assert.equal(a.p.state().tool,'importSlides','the pane stays where the author was');
   assert.equal(a.p.state().busy,false);
+});
+
+test('Add lesson is its own tool: a lesson is added from its own title and minutes, and the tool changes to the writing tools after it, as Add module and Add lesson did together before',async()=>{
+  const {a}=await withTools();
+  await a.p.openTool('addModule');
+  a.type('guide-new-title','One');await a.n('guide-add-module').onclick();
+  assert.equal(a.n('guide-new-title').value,'','the module title is taken');
+  assert.match(a.n('guide-status').textContent,/Module 1 added, with a Transition block at its end\. Choose Add lesson for its first lesson\./);
+  await a.p.openTool('addLesson');
+  a.type('guide-lesson-title','First');a.type('guide-new-minutes','12');await a.n('guide-add-lesson').onclick();
+  assert.equal(a.err(),'');
+  assert.equal(a.n('guide-lesson-title').value,'','the lesson title is taken');
+  assert.match(a.n('guide-status').textContent,/Lesson 1\.1 added/);
+  assert.ok(a.rows().some(r=>/Lesson 1\.1: First/.test(r)),'the lesson is in the guide');
+  a.type('guide-lesson-title','');await a.n('guide-add-lesson').onclick();
+  assert.match(a.n('guide-status').textContent+a.err(),/Type a title for the lesson first/);
+});
+
+test('Learning outcomes opens the block form on the Objective kind, and E-learning cues on the e-learning kinds; Instructional cues is left as it was',async()=>{
+  const {a}=await withTools();
+  await a.p.openTool('learningOutcomes');
+  assert.equal(a.n('guide-cue-current').textContent,'Objective');
+  assert.equal(a.n('guide-sec-block').hidden,false);assert.equal(a.n('guide-sec-owncues').hidden,true);
+  await a.p.openTool('eLearningCues');
+  assert.equal(a.n('guide-cue-current').textContent,'Screen title');
+  assert.equal(a.n('guide-sec-block').hidden,false);assert.equal(a.n('guide-sec-owncues').hidden,false,'your own kinds are offered here too');
+  await a.p.openTool('learningOutcomes');
+  assert.equal(a.n('guide-cue-current').textContent,'Objective','it goes back to Objective each time it is opened');
+  await a.p.openTool('instructionalCues');
+  assert.notEqual(a.n('guide-cue-current').textContent,'Activity');
+});
+
+test('Accessibility is the Review screen with only the document\'s checks, and Review guide keeps what the guide says',async()=>{
+  const {a}=await withTools();
+  await addModule(a,'One');await addLesson(a,'Empty lesson','5');
+  await a.adapter.setTitle('');
+  const listed=id=>a.n(id).children.map(li=>li.textContent);
+  await a.p.openTool('reviewGuide');
+  assert.equal(a.n('guide-review').hidden,false);
+  assert.equal(a.n('guide-review-heading').textContent,'Review this guide');
+  assert.ok(listed('guide-review-look').some(t=>/has no blocks yet/.test(t)),'Review lists what is missing in the guide');
+  assert.ok(![...listed('guide-review-fix'),...listed('guide-review-look')].some(t=>/no title/.test(t)),'and not the document\'s title');
+  assert.deepEqual(listed('guide-review-check').length,1);assert.match(listed('guide-review-check')[0],/spoken aloud/);
+  assert.equal(a.n('guide-review-pdf-part').hidden,false);
+  await a.p.openTool('accessibility');
+  assert.equal(a.n('guide-review').hidden,false);
+  assert.equal(a.n('guide-review-heading').textContent,'Accessibility');
+  assert.ok(listed('guide-review-fix').some(t=>/no title/.test(t)),'Accessibility lists the document\'s title');
+  assert.ok(![...listed('guide-review-fix'),...listed('guide-review-look')].some(t=>/has no blocks yet/.test(t)),'and not what is missing in the guide');
+  assert.equal(listed('guide-review-check').length,2);assert.match(listed('guide-review-check').join(' '),/Check Accessibility[\s\S]*screen reader/);
+  assert.match(a.n('guide-review-summary').textContent,/This is not Word's Accessibility Checker and not a screen-reader test\./);
+  assert.equal(a.n('guide-review-pdf-part').hidden,true,'Save as PDF stays with Review guide');
+  await a.n('guide-review-run').onclick();
+  assert.equal(a.n('guide-review-heading').textContent,'Accessibility','Review again stays on the tool it is in');
+  await a.p.openTool('reviewGuide');
+  assert.equal(a.n('guide-review-heading').textContent,'Review this guide');
+  assert.equal(a.n('guide-review-pdf-part').hidden,false);
 });

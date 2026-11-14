@@ -98,15 +98,23 @@
 </form>
 
 <div id="guide-sec-module">
-<h2 id="guide-module-heading" class="guide-first">Add a module or lesson</h2>
-<div class="guide-row2 guide-row-wide">
+<h2 id="guide-module-heading" class="guide-first">Add a module</h2>
 <div><label for="guide-new-title">Title</label>
 <input id="guide-new-title" type="text" autocomplete="off"></div>
+<div class="guide-actions"><button id="guide-add-module" type="button">Add module</button></div>
+<details class="guide-where-details"><summary>Where does it go?</summary><p class="hint">A new module goes after the module your cursor is in. The program numbers it and puts a Transition block at its end.</p></details>
+</div>
+
+<div id="guide-sec-lesson">
+<h2 id="guide-lesson-heading" class="guide-first">Add a lesson</h2>
+<div class="guide-row2 guide-row-wide">
+<div><label for="guide-lesson-title">Title</label>
+<input id="guide-lesson-title" type="text" autocomplete="off"></div>
 <div><label for="guide-new-minutes">Lesson minutes</label>
 <input id="guide-new-minutes" type="text" inputmode="numeric" autocomplete="off" value="10"></div>
 </div>
-<div class="guide-actions"><button id="guide-add-module" type="button">Add module</button><button id="guide-add-lesson" type="button">Add lesson</button></div>
-<details class="guide-where-details"><summary>Where does it go?</summary><p class="hint">A new module goes after the module your cursor is in, a new lesson after the lesson your cursor is in, and a new block after the block your cursor is in.</p></details>
+<div class="guide-actions"><button id="guide-add-lesson" type="button">Add lesson</button></div>
+<details class="guide-where-details"><summary>Where does it go?</summary><p class="hint">A new lesson goes after the lesson your cursor is in. The program numbers it and gives it a time line. Add its blocks below it with the Activities menu.</p></details>
 </div>
 
 <div id="guide-sec-block">
@@ -606,11 +614,13 @@ a. True
 <h2>To check yourself</h2>
 <ul id="guide-review-check" class="guide-issues"></ul>
 <div class="guide-actions"><button id="guide-review-run" type="button">Review again</button><button id="guide-review-back" type="button">Back to guide</button></div>
+<div id="guide-review-pdf-part">
 <h2>Save as PDF</h2>
 <p class="hint">This reviews the document first. With nothing to fix, it asks Word for its own PDF and checks that the PDF is tagged. With anything to fix, no PDF is made.</p>
 <p id="guide-review-pdf-problem" role="alert" class="guide-error" hidden></p>
 <p id="guide-review-pdf-ok" role="status" class="guide-ok" hidden></p>
 <button id="guide-review-pdf" type="button">Save as PDF</button>
+</div>
 </div>
 </section>
 <section id="view-course" aria-labelledby="course-heading" hidden>

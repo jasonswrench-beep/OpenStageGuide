@@ -2,10 +2,12 @@
 /**
  * The menus of the program: every command it has, with the words, icon and keys it has in a menu, in the command search and on a button.
  * The tools come from the one list the add-in's ribbon and pane are built from (src/guide-tools.mjs), so a command cannot exist
- * without its tool or the other way round: each group of the ribbon is a menu here, and each of its twenty-one tools is one item in one menu
- * (Save and Restore a backup are in File, and Help is in Help). Kept apart from the page so it can be tested without one.
+ * without its tool or the other way round: each of its twenty-one tools and each of the four the program adds (PROGRAM_TOOLS) is one item in one menu.
+ * The menus are the program's own (PROGRAM_MENUS: Start, Sections, Activities, Slides, Assessment, eLearning, Check & Plan, Make), grouped by the work
+ * they are for and not in threes, which only the ribbon needed. Save and Restore a backup are in File, and Help is in Help. Kept apart from the page so
+ * it can be tested without one.
  */
-import { GROUPS, TOOLS } from "../../src/guide-tools.mjs";
+import { PROGRAM_MENUS, PROGRAM_TOOLS, TOOLS } from "../../src/guide-tools.mjs";
 
 /**
  * @typedef {import("./menubar.js").MenuCommand} MenuCommand
@@ -14,28 +16,22 @@ import { GROUPS, TOOLS } from "../../src/guide-tools.mjs";
  * @typedef {import("./ui-icons.js").UiIconName} UiIconName
  */
 
-/** The menu each ribbon group becomes. The Protect group has no menu: its tools go to File and Help. */
-const GROUP_MENUS = {
-  start: { id: "guide", label: "Guide" },
-  write: { id: "write", label: "Write" },
-  bring: { id: "bring", label: "Bring in" },
-  elearning: { id: "elearning", label: "E-learning" },
-  check: { id: "check", label: "Check" },
-  make: { id: "make", label: "Make" },
-};
-
 /** What each tool is called in a menu. */
 export const TOOL_NAMES = /** @type {Record<string, string>} */ ({
   openDesigner: "Guide overview",
   courseSettings: "Course settings",
   courseOutline: "Course outline",
   addModule: "Add module",
+  addLesson: "Add lesson",
+  learningOutcomes: "Learning outcomes",
   addActivity: "Add activity",
   instructionalCues: "Instructional cues",
   activityLibrary: "Activity library",
   importSlides: "Import slides",
   updateFromSlides: "Update from slides",
   eLearningScreens: "E-learning screens",
+  eLearningCues: "E-learning cues",
+  accessibility: "Accessibility",
   assessments: "Assessments",
   learningAlignment: "Learning alignment",
   reviewGuide: "Review guide",
@@ -55,12 +51,16 @@ export const TOOL_ICONS = {
   courseSettings: "settings",
   courseOutline: "list-tree",
   addModule: "square-plus",
+  addLesson: "list-plus",
+  learningOutcomes: "goal",
   addActivity: "square-pen",
   instructionalCues: "message-square",
   activityLibrary: "library",
   importSlides: "presentation",
   updateFromSlides: "refresh-cw",
   eLearningScreens: "monitor-play",
+  eLearningCues: "mouse-pointer-click",
+  accessibility: "accessibility",
   assessments: "clipboard-list",
   learningAlignment: "target",
   reviewGuide: "list-checks",
@@ -130,7 +130,7 @@ export function buildMenus(ctx) {
   const edits = (/** @type {string} */ name) => () => void editor.command(name);
   /** @param {string} id @returns {MenuCommand} */
   const tool = (id) => {
-    const t = /** @type {Record<string, any>} */ (TOOLS)[id];
+    const t = /** @type {Record<string, any>} */ (TOOLS)[id] ?? /** @type {Record<string, any>} */ (PROGRAM_TOOLS)[id];
     return { label: TOOL_NAMES[id], icon: TOOL_ICONS[id], title: t.tip, run: () => ctx.openTool(id), enabled: ctx.hasGuide };
   };
   /** @type {MenuDef} */
@@ -216,10 +216,7 @@ export function buildMenus(ctx) {
       { label: "About OpenStage Guide", icon: "info", title: "What this program is, its version, its license and what it is made with", run: ctx.about },
     ],
   };
-  const middle = GROUPS.filter((g) => /** @type {Record<string, unknown>} */ (GROUP_MENUS)[g.id]).map((g) => {
-    const m = /** @type {Record<string, { id: string, label: string }>} */ (GROUP_MENUS)[g.id];
-    return /** @type {MenuDef} */ ({ id: m?.id, label: m?.label, items: g.tools.map(tool) });
-  });
+  const middle = PROGRAM_MENUS.map((m) => /** @type {MenuDef} */ ({ id: m.id, label: m.label, items: m.tools.map(tool) }));
   /** @type {MenuCommand[]} */
   const quick = [
     { label: "Review guide", icon: "list-checks", title: "Find missing text, objectives, unfinished prompts and timing issues", run: () => ctx.openTool("reviewGuide") },

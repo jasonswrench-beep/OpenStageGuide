@@ -31,8 +31,11 @@ import {AGENDA_START_KEY,LOOK_KEY} from './program-settings.mjs';
 import {fingerprint,notesPrint,readMemory,writeMemory,recordFor,remember,slideBlocksIn,labelOf,planSlideUpdate,planSummary,operations,entriesAfter} from './slides-sync.mjs';
 
 const BUSY_IDS=['guide-leave-block','guide-bk-save','guide-bk-file','guide-bk-open','guide-upd-choose','guide-upd-which','guide-upd-all','guide-upd-none','guide-upd-go','guide-help-sample','guide-tab-guide','guide-tab-assess','guide-tab-workbook','guide-workbook-go','guide-sec-level-one','guide-sec-level-two','guide-sec-level-three','guide-item-go','guide-paste-go','guide-bank-go','guide-item-cancel','guide-item-start-two','guide-assess-edit','guide-retry','guide-start-go','guide-sample','guide-add-module','guide-add-lesson','guide-lib-save','guide-agenda-refresh','guide-agenda-download','guide-align-refresh','guide-ver-new','guide-ver-make','guide-block-go','guide-block-cancel','guide-update','guide-build-glance','guide-build-cues','guide-build-overview','guide-open-review','guide-refresh','guide-review-run','guide-review-back','guide-review-pdf','guide-edit-selected','guide-edit-save','guide-edit-cancel','guide-move-up','guide-move-down','guide-delete','guide-delete-yes','guide-delete-no','guide-add-standard','guide-add-appendix','guide-own-save','guide-pic-choose','guide-slides-choose','guide-slides-all','guide-slides-none','guide-slides-go','guide-look-apply','guide-el-add','guide-el-script','guide-el-text','guide-el-author'];
+// What only a person can check. Review guide has the first; Accessibility (the document's own checks) has the other two.
 const CHECK_YOURSELF=[
-  'Does each cue read sensibly when spoken aloud?',
+  'Does each cue read sensibly when spoken aloud?'
+];
+const CHECK_YOURSELF_ACCESSIBILITY=[
   'Run Word\'s own check: Review > Check Accessibility.',
   'Read one page with a screen reader before you share the guide.'
 ];
@@ -107,7 +110,8 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
     // that screen's own tool, so the strip and the screen never say different things.
     if(tool){
       const own={assess:'assessments',workbook:'participantWorkbook',review:'reviewGuide',help:'help'}[which];
-      if(own&&tool!==own)setTool(own);
+      // Accessibility is the Review screen with only the document's checks (see review()), so that screen is its own too.
+      if(own&&tool!==own&&!(which==='review'&&tool==='accessibility'))setTool(own);
       else if(which==='build'&&toolFor(tool).kind!=='guide')setTool('openDesigner');
     }
     $('guide-start').hidden=which!=='start';
@@ -143,7 +147,7 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
     $('guide-sec-selected').hidden=guide&&!t.selected;
     // A piece whose own heading says what the strip above already says (Add a module or lesson, E-Learning screens, Update from slides)
     // leaves the saying to the strip, so a screen reader does not read the same heading twice.
-    for(const id of ['guide-module-heading','guide-el-heading','guide-upd-heading','guide-lib-heading','guide-agenda-heading','guide-align-heading','guide-ver-heading','guide-bk-heading','guide-rs-heading']){
+    for(const id of ['guide-module-heading','guide-lesson-heading','guide-el-heading','guide-upd-heading','guide-lib-heading','guide-agenda-heading','guide-align-heading','guide-ver-heading','guide-bk-heading','guide-rs-heading']){
       const heading=$(id);
       if(heading)heading.hidden=!!t&&clean(heading.textContent).toLowerCase()===t.title.toLowerCase();
     }
@@ -215,7 +219,7 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
   const showPart=tabSet('guide-part-tab-','guide-part-',PART_IDS);
   const showAssessPart=tabSet('guide-apart-tab-','guide-apart-',['items','paste','bank']);
   // The block form lives in the Add part, and the item form in the Items part, so anything that sends the author to one shows it first.
-  const focusBlockText=()=>{ensureTool(['addActivity','instructionalCues'],'instructionalCues');showPart('add');focus('guide-block-text');};
+  const focusBlockText=()=>{ensureTool(['addActivity','instructionalCues','learningOutcomes','eLearningCues'],'instructionalCues');showPart('add');focus('guide-block-text');};
   const focusItemStem=()=>{showAssessPart('items');focus('guide-item-stem');};
 
   // ---- reading the document
@@ -502,13 +506,13 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
     status(`Module ${n} added, with a Transition block at its end. Choose Add lesson for its first lesson.${tidy()} ${UNDO}`);
   }
   async function addLesson(){
-    const title=$('guide-new-title').value.trim();
+    const title=$('guide-lesson-title').value.trim();
     if(!title)throw new Error('Type a title for the lesson first.');
     const minutes=parseMinutes($('guide-new-minutes').value,'Lesson minutes');
     const list=await adapter.paragraphs(),here=await adapter.cursorIndex();
     const {anchor,m,l,before,after}=lessonPlacement(list,here);
     await adapter.insert(ctx=>lessonHeading(m,l,title)+timeBlock({minutes,cumulative:before},ctx),{where:'after',after:anchor,select:'last'});
-    $('guide-new-title').value='';
+    $('guide-lesson-title').value='';
     await keepOpen();
     await load();
     status(`Lesson ${m}.${l} added after ${after}. Add its blocks below.${tidy()} ${UNDO}`);
@@ -1401,11 +1405,16 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
   async function review(){
     paras=await adapter.paragraphs();
     plan=updatePlan(paras,{forms:formSettings});
-    const parts=await adapter.reviewParts();
+    // One screen, two tools: Review guide checks what the guide says (its shape, numbers, forms, assessments and e-learning screens), and Accessibility
+    // checks the document made from it (title, language, heading levels, picture descriptions, tables, color, size of text).
+    const accessibility=tool==='accessibility';
     // Question numbers the guide holds, so a Knowledge check can be checked against them.
     const itemNumbers=new Set(plan.assess.sections.flatMap(s=>s.items.map(i=>i.number)).filter(n=>n!==null&&n!==undefined));
-    const found=[...guideIssues(plan),...elearningIssues(paras,itemNumbers),...checkParts(parts).findings.filter(f=>f.level==='fail'||f.level==='warn')];
+    const found=accessibility
+      ?checkParts(await adapter.reviewParts()).findings.filter(f=>f.level==='fail'||f.level==='warn')
+      :[...guideIssues(plan),...elearningIssues(paras,itemNumbers)];
     const fix=found.filter(f=>f.level==='fail'),look=found.filter(f=>f.level==='warn');
+    const checks=accessibility?CHECK_YOURSELF_ACCESSIBILITY:CHECK_YOURSELF;
     const fill=(id,items,empty)=>{
       const list=$(id);
       if(!items.length){const li=doc.createElement('li');li.textContent=empty;list.replaceChildren(li);return;}
@@ -1425,8 +1434,12 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
     };
     fill('guide-review-fix',fix,'Nothing to fix.');
     fill('guide-review-look',look,'Nothing to look at.');
-    fill('guide-review-check',CHECK_YOURSELF.map(message=>({message})),'');
-    $('guide-review-summary').textContent=`${fix.length} to fix, ${look.length} to look at, ${CHECK_YOURSELF.length} to check yourself. This is not Word's Accessibility Checker and not a screen-reader test.`;
+    fill('guide-review-check',checks.map(message=>({message})),'');
+    $('guide-review-heading').textContent=accessibility?'Accessibility':'Review this guide';
+    $('guide-review-pdf-part').hidden=accessibility;
+    $('guide-review-summary').textContent=`${fix.length} to fix, ${look.length} to look at, ${checks.length} to check yourself. `+(accessibility
+      ?'This is not Word\'s Accessibility Checker and not a screen-reader test.'
+      :'The checks of the document itself (heading levels, picture descriptions, tables, color, size of text) are in Accessibility.');
     status('');
     hidePdfMessages();
     show('review',{moveFocus:true});
@@ -1441,8 +1454,14 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
     $(kind==='problem'?'guide-review-pdf-problem':'guide-review-pdf-ok').scrollIntoView?.({block:'nearest'});
   }
   async function makePdf(){
+    // A PDF is made only when both reviews have nothing to fix: this one (what the guide says) and the document's (Accessibility).
     const {fix}=await review();
-    if(fix.length){pdfMessage('problem',`No PDF was made: ${plural(fix.length,'thing')} to fix first, listed above. Fix them, then choose Save as PDF again.`);return;}
+    const documentFix=checkParts(await adapter.reviewParts()).findings.filter(f=>f.level==='fail');
+    if(fix.length||documentFix.length){
+      const where=[fix.length?'listed above':'',documentFix.length?'in Accessibility':''].filter(Boolean).join(' and ');
+      pdfMessage('problem',`No PDF was made: ${plural(fix.length+documentFix.length,'thing')} to fix first, ${where}. Fix them, then choose Save as PDF again.`);
+      return;
+    }
     let base64;
     try{base64=await adapter.exportPdf();}
     catch(e){

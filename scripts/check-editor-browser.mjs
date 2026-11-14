@@ -63,15 +63,17 @@ try{
   await fr.locator('#guide-title').fill('Editor guide');
   await fr.locator('#guide-title').press('Enter');
   await fr.locator('#guide-build').waitFor({state:'visible',timeout:15000});
-  await page.getByRole('menuitem',{name:/^Write/}).click();
+  await page.getByRole('menuitem',{name:/^Sections/}).click();
   await page.getByRole('menuitem',{name:/Add module/}).click();
   await fr.locator('#guide-new-title').fill('Naming it');
   await fr.locator('#guide-add-module').click();
   await page.waitForFunction(()=>/Module 1: Naming it/.test(document.querySelector('#work-guide')?.innerText||''),null,{timeout:10000});
-  await fr.locator('#guide-new-title').fill('First');
+  await page.getByRole('menuitem',{name:/^Sections/}).click();
+  await page.getByRole('menuitem',{name:/Add lesson/}).click();
+  await fr.locator('#guide-lesson-title').fill('First');
   await fr.locator('#guide-new-minutes').fill('10');
   await fr.locator('#guide-add-lesson').click();
-  await page.getByRole('menuitem',{name:/^Write/}).click();
+  await page.getByRole('menuitem',{name:/^Activities/}).click();
   await page.getByRole('menuitem',{name:/Instructional cues/i}).click();
   await fr.locator('#guide-cue-ask').evaluate(e=>{e.checked=true;e.dispatchEvent(new Event('change',{bubbles:true}));});
   await fr.locator('#guide-block-text').fill('What makes it hard?');
@@ -160,7 +162,7 @@ try{
   ok(!/A new line of the author's own\./.test(await page.locator('#work-guide').innerText()),'Ctrl+Z undoes the paragraph typed');
   await page.keyboard.press('Control+y');
   ok(/A new line of the author's own\./.test(await page.locator('#work-guide').innerText()),'Ctrl+Y brings it back');
-  await page.getByRole('menuitem',{name:/^Write/}).click();
+  await page.getByRole('menuitem',{name:/^Activities/}).click();
   await page.getByRole('menuitem',{name:/Instructional cues/i}).click();
   await fr.locator('#guide-cue-say').evaluate(e=>{e.checked=true;e.dispatchEvent(new Event('change',{bubbles:true}));});
   await fr.locator('#guide-block-text').fill('From the tools.');
@@ -827,11 +829,19 @@ try{
   await page.getByRole('button',{name:'Apply'}).click();
   await page.waitForFunction(()=>/given a new look|colored/.test(document.querySelector('#status')?.textContent||''),null,{timeout:15000});
   await saved();
+  // the document's checks (color, headings, pictures, tables...) are Accessibility, in Check & Plan; Review guide keeps what the guide says
   await page.locator('#bar-buttons').getByRole('button',{name:'Review guide'}).click();
+  await fr.locator('#guide-review-heading').waitFor({state:'visible',timeout:20000});
+  ok(!/Colored words are hard to read/.test(await fr.locator('#guide-review-fix').innerText()),'Review guide does not list the document\'s color check, which is Accessibility\'s');
+  await page.getByRole('menuitem',{name:/^Check/}).click();
+  await page.getByRole('menuitem',{name:/Accessibility/}).click();
+  // wait for the heading itself: the list of the Review guide screen is still there for a moment and would end the wait too early
+  await fr.locator('#guide-review-heading',{hasText:/^Accessibility$/}).waitFor({timeout:20000});
   await fr.locator('#guide-review-fix li').first().waitFor({timeout:20000});
+  ok((await fr.locator('#guide-review-heading').innerText())==='Accessibility','the Accessibility tool is the review screen with its own heading');
   const fixText=await fr.locator('#guide-review-fix').innerText();
   const lookText=await fr.locator('#guide-review-look').innerText();
-  ok(/Colored words are hard to read: "Heads up" in CCCCCC on FFFFFF is 1\.6:1; it needs 4\.5:1/.test(fixText),'the Review fails colored words that are hard to read, and says which: '+fixText.slice(0,160));
+  ok(/Colored words are hard to read: "Heads up" in CCCCCC on FFFFFF is 1\.6:1; it needs 4\.5:1/.test(fixText),'Accessibility fails colored words that are hard to read, and says which: '+fixText.slice(0,160));
   ok(/looks like a heading/.test(lookText),'and says a short bold paragraph looks like a heading but has no heading style');
   await fr.locator('#guide-review-fix .guide-link').first().click();
   await page.waitForTimeout(300);
