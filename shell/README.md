@@ -39,12 +39,17 @@ The icons in `src-tauri/icons` are made from the product icon (`public/assets/ri
 
 ## State (2026-11-14)
 
-The signed setup is built: `python -I tools/build_installer.py --sign`, from commit a08348d, release `v0.1.0-alpha.1` (recorded in `release.txt` for Check
-for updates). `OpenStage Guide_0.1.0_x64-setup.exe`, 29,086,176 bytes, SHA-256
-`263e8c6060b622fb24152c2ee927e3967c81d768731cae013f2257caf3ae7bc0`. The setup and every program of ours in it (the window, the uninstaller and the five
+The signed setup is built: `python -I tools/build_installer.py --sign`, from commit 80a6eda, release `v0.1.0-alpha.1` (recorded in `release.txt` for Check
+for updates). `OpenStage Guide_0.1.0_x64-setup.exe`, 29,100,176 bytes, SHA-256
+`021df4a19d5171bf334ad9b8eca11b30919f993ead07ea2f3f200cb57ab9009b`. The setup and every program of ours in it (the window, the uninstaller and the five
 installer plugins) are signed by Jason Wrench and timestamped; the Node that runs the server keeps the OpenJS Foundation's valid signature; the program
 holds no folder name of the computer that built it. Its uninstaller deletes only the files the setup put in the install folder, and never the guides in
 `Documents\OpenStage Guides`. The setup itself has not been run by anyone, and nothing has been published.
+
+The setup built from a08348d (SHA-256 `263e8c60...7bc0`) is superseded and must not be used: its file list left out `scripts/updates.mjs`, which the server
+loads, so an installed copy would not have started. 80a6eda adds it, and `tests/shell-prepare.test.mjs` fails if the server ever loads a script, source folder
+or package that `prepare.mjs` does not carry. The new setup was unpacked and the server in its own files was started with its own Node: `/health`, the
+program page, the tools pane and `/api/updates` answered, and the add-in's file window and PDF library were not there.
 
 Earlier (2026-11-13), built and tried by script on the author's computer: the window starts the carried Node, the server says where it is, the page
 answers, and the server stops when the window is killed.
