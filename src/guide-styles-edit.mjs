@@ -7,7 +7,7 @@
 //
 // A spec has only what the author set: {font:{name,size,color,bold,italic,underline,strike}, paragraph:{alignment,spaceBefore,spaceAfter,
 // lineSpacing,leftIndent,firstLineIndent,keepWithNext,keepTogether}, shading}. Sizes and spaces are in points, line spacing is a multiple of
-// one line, colours are #RRGGBB. Everything is written as real Word style properties, in the order Word's schema gives, so the styles are
+// one line, colors are #RRGGBB. Everything is written as real Word style properties, in the order Word's schema gives, so the styles are
 // the styles a Word user sees and can use.
 import {ALIGNMENTS,FORMAT_LIMITS} from './guide-format.mjs';
 const W='http://schemas.openxmlformats.org/wordprocessingml/2006/main';
@@ -375,7 +375,7 @@ export function diffSpec(was={},now={}){
 
 const channel=c=>{const v=c/255;return v<=0.03928?v/12.92:Math.pow((v+0.055)/1.055,2.4);};
 const luminance=hex=>{const n=parseInt(hex.slice(1),16);return 0.2126*channel((n>>16)&255)+0.7152*channel((n>>8)&255)+0.0722*channel(n&255);};
-/** The contrast of two #RRGGBB colours, from 1 to 21 (WCAG). */
+/** The contrast of two #RRGGBB colors, from 1 to 21 (WCAG). */
 export function contrastRatio(a,b){
   if(!COLOR.test(a)||!COLOR.test(b))return null;
   const x=luminance(a),y=luminance(b);

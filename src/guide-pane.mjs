@@ -1104,7 +1104,7 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
     };
   }
 
-  // ---- the look: the guide's colours and fonts, kept as real styles and remembered in the document
+  // ---- the look: the guide's colors and fonts, kept as real styles and remembered in the document
   // Until the new way of changing styles has been proven in the author's Word, a new guide starts with the standard styles.
   const START_LOOK='';
   let look=null,lookRaw=null;
@@ -1128,7 +1128,7 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
   const readLookForm=()=>({id:chosenGuideLook(),accent:$('guide-look-accent').value,organization:$('guide-look-org').value,header:!!$('guide-look-header').checked,copyright:$('guide-look-copyright').value,revised:$('guide-look-revised').value});
   function drawLook(){
     $('guide-look-now').textContent=look
-      ?`This guide uses the ${lookName(look.id)} look${look.accent?`, accent colour ${look.accent}`:''}${look.header?', with a running header and footer':''}.`
+      ?`This guide uses the ${lookName(look.id)} look${look.accent?`, accent color ${look.accent}`:''}${look.header?', with a running header and footer':''}.`
       :'This guide has no look yet, so it uses the standard styles. Open "Change the look" to choose one.';
     const s=look||cleanLook(null);
     for(const l of GUIDE_LOOKS)guideLookInputs.get(l.id).checked=l.id===s.id;
@@ -1445,7 +1445,12 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
     if(fix.length){pdfMessage('problem',`No PDF was made: ${plural(fix.length,'thing')} to fix first, listed above. Fix them, then choose Save as PDF again.`);return;}
     let base64;
     try{base64=await adapter.exportPdf();}
-    catch(e){pdfMessage('problem',`Word could not make the PDF. ${(e&&e.message)||''} You can make one yourself: File > Export > Create PDF/XPS, with "Document structure tags for accessibility" ticked.`.trim());return;}
+    catch(e){
+      const said=(e&&e.message)||'';
+      // The program (no Word behind it) says its own whole message, with how to get a PDF.
+      if(/^The program does not make PDFs yet\./.test(said)){pdfMessage('problem',said);return;}
+      pdfMessage('problem',`Word could not make the PDF. ${said} You can make one yourself: File > Export > Create PDF/XPS, with "Document structure tags for accessibility" ticked.`.trim());return;
+    }
     const tags=checkPdfTags(Uint8Array.from(atob(base64),ch=>ch.charCodeAt(0)));
     const name=pdfFileName(plan.guide.title);
     adapter.offerDownload(base64,name,'application/pdf');
@@ -1840,7 +1845,7 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
     let accent=String($('guide-wb-accent').value??'').trim();
     if(accent){
       if(!accent.startsWith('#'))accent=`#${accent}`;
-      if(!/^#[0-9a-fA-F]{6}$/.test(accent))throw new Error('Type the accent colour as a # and six letters or digits, like #164B6B, or leave it empty.');
+      if(!/^#[0-9a-fA-F]{6}$/.test(accent))throw new Error('Type the accent color as a # and six letters or digits, like #164B6B, or leave it empty.');
       brand.accent=accent;
     }
     if($('guide-wb-print-gray').checked)brand.printMode='grayscale';

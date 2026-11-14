@@ -1,5 +1,5 @@
 // Looks for the facilitator guide. A look is the same handful of values the learner workbook uses (the five families, an accent
-// colour, an organization's name), turned into the guide's styles. The guide is made of real Word styles, so changing the look
+// color, an organization's name), turned into the guide's styles. The guide is made of real Word styles, so changing the look
 // means changing those styles, and every block follows.
 //
 // Two things carry a look into the document. Styles the guide has not used yet are made by the next insert, from the active
@@ -33,13 +33,13 @@ export function cleanLook(raw){
   };
 }
 export const parseLook=text=>{try{return cleanLook(JSON.parse(text));}catch{return cleanLook(null);}};
-// The grey a "print in black and white" setting turns a colour into (the usual weights of red, green and blue), as a colour.
+// The grey a "print in black and white" setting turns a color into (the usual weights of red, green and blue), as a color.
 const greyOf=color=>{
   const n=parseInt(color.slice(1),16),v=Math.round(0.299*(n>>16&255)+0.587*(n>>8&255)+0.114*(n&255)).toString(16).padStart(2,'0');
   return `#${v}${v}${v}`;
 };
 
-// The look's theme (see styleDefinitions), or the reasons it cannot be used. The accent is the colour of every heading, so it
+// The look's theme (see styleDefinitions), or the reasons it cannot be used. The accent is the color of every heading, so it
 // has to read as text on white.
 export function resolveGuideLook(settings){
   const s=cleanLook(settings),brand={},extra=GUIDE_LOOKS.find(l=>l.id===s.id);
@@ -49,13 +49,13 @@ export function resolveGuideLook(settings){
   const r=resolveWorkbookBrand(extra?.family||s.id,brand);
   if(!r.eligible)return {ok:false,settings:s,issues:r.issues};
   const theme=lookTheme(r.effective,'en-US'),accent=`#${theme.navy}`,shade=`#${theme.shade}`,ratio=textContrast(accent,'#FFFFFF');
-  if(ratio<4.5)return {ok:false,settings:s,issues:[`The accent colour is too light to read as heading text: its contrast with the page is ${ratio.toFixed(1)} to 1, and it needs at least 4.5 to 1. Choose a darker colour.`]};
-  // The accent is also the colour of the labels that sit on the beige boxes (facilitator notes, answer keys), and the guide is printed in
-  // black and white as often as not, so it has to read there too, in colour and as the greys a black-and-white printer turns it into.
+  if(ratio<4.5)return {ok:false,settings:s,issues:[`The accent color is too light to read as heading text: its contrast with the page is ${ratio.toFixed(1)} to 1, and it needs at least 4.5 to 1. Choose a darker color.`]};
+  // The accent is also the color of the labels that sit on the beige boxes (facilitator notes, answer keys), and the guide is printed in
+  // black and white as often as not, so it has to read there too, in color and as the greys a black-and-white printer turns it into.
   const onShade=textContrast(accent,shade);
-  if(onShade<4.5)return {ok:false,settings:s,issues:[`The accent colour is too light to read on the beige boxes (facilitator notes and answer keys): its contrast with the box is ${onShade.toFixed(1)} to 1, and it needs at least 4.5 to 1. Choose a darker colour.`]};
+  if(onShade<4.5)return {ok:false,settings:s,issues:[`The accent color is too light to read on the beige boxes (facilitator notes and answer keys): its contrast with the box is ${onShade.toFixed(1)} to 1, and it needs at least 4.5 to 1. Choose a darker color.`]};
   const printed=Math.min(textContrast(greyOf(accent),'#FFFFFF'),textContrast(greyOf(accent),greyOf(shade)));
-  if(printed<4.5)return {ok:false,settings:s,issues:[`The accent colour is too faint when the guide is printed in black and white: its contrast would be ${printed.toFixed(1)} to 1, and it needs at least 4.5 to 1. Choose a darker colour.`]};
+  if(printed<4.5)return {ok:false,settings:s,issues:[`The accent color is too faint when the guide is printed in black and white: its contrast would be ${printed.toFixed(1)} to 1, and it needs at least 4.5 to 1. Choose a darker color.`]};
   return {ok:true,settings:s,theme,effective:r.effective,issues:[]};
 }
 

@@ -3,6 +3,7 @@
  * The welcome page: what the program shows with no guide open. Its two main actions as large buttons (New guide... filled in the program's
  * colour, and Open guide...), and a card of the guides there are, each one a button. After the suite's other programs' welcome pages.
  */
+import { guideName } from "./guide-name.js";
 import { el, uiIcon } from "./menubar.js";
 
 /**
@@ -21,7 +22,7 @@ export function drawWelcome(doc, main, opts) {
         "ul",
         {},
         ...opts.guides.map((g) => {
-          const button = el(doc, "button", { type: "button", "data-guide": g.name }, uiIcon(doc, "file-text"), el(doc, "span", { class: "recent-name", text: g.name }), el(doc, "span", { class: "recent-when", text: opts.when(g.when) }));
+          const button = el(doc, "button", { type: "button", "data-guide": g.name }, uiIcon(doc, "file-text"), el(doc, "span", { class: "recent-name", text: guideName(g.name) }), el(doc, "span", { class: "recent-when", text: opts.when(g.when) }));
           button.addEventListener("click", () => opts.onOpenNamed(g.name));
           return el(doc, "li", {}, button);
         }),

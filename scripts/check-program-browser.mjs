@@ -61,6 +61,17 @@ try{
   ok(await page.evaluate(()=>document.activeElement?.id)==='dlg-name','focus starts in the name box');
   await page.getByRole('button',{name:'Create'}).click();
   ok(/Type a name first/.test(await page.locator('dialog[open] .problem').innerText()),'an empty name is refused in the dialog');
+  // A name Windows does not allow is refused in the same dialog, which stays open with what was typed (it once closed and left a message behind).
+  await page.fill('#dlg-name','Con');
+  await page.press('#dlg-name','Enter');
+  await page.waitForFunction(()=>/Windows does not allow that name/.test(document.querySelector('dialog[open] .problem')?.textContent||''),null,{timeout:10000});
+  ok(await page.locator('dialog[open]').count()===1&&await page.inputValue('#dlg-name')==='Con'&&await page.locator('dialog[open] .problem').isVisible(),'a name Windows does not allow is refused in the dialog, which stays open with the name still in it');
+  ok(!files(GUIDES).some(f=>/^con\./i.test(f)),'and no guide was made');
+  // The server's refusal (400) is what the browser logs for it; that one message is expected here and is not a fault of the page.
+  let refused=-1;
+  for(let i=0;i<20&&refused<0;i++){refused=problems.findIndex(p=>/status of 400/.test(p));if(refused<0)await page.waitForTimeout(100);}
+  ok(refused>=0,'the refusal was the server\'s 400, which the check expects');
+  if(refused>=0)problems.splice(refused,1);
   await page.fill('#dlg-name','Reframing conflict');
   await shot('2-new-dialog.png');
   await page.press('#dlg-name','Enter');
@@ -149,6 +160,22 @@ try{
   const menus=await page.waitForFunction(()=>document.activeElement?.classList.contains('menubar-item'),null,{timeout:3000}).then(()=>true,()=>false);
   ok(menus,'F10 goes to the menus');
   await page.keyboard.press('Escape');
+
+  // ---- a menu taller than the room under the bar (the Format menu in a short window) stays inside the window and scrolls, so its last command can be reached
+  const normalSize=page.viewportSize();
+  await page.setViewportSize({width:1000,height:600});
+  await page.getByRole('menuitem',{name:/^Format/}).click();
+  const tall=await page.evaluate(()=>{
+    const m=document.querySelector('.menu:not([hidden])');
+    const items=[...m.querySelectorAll('[role=menuitem]')];
+    const box=m.getBoundingClientRect();
+    m.scrollTop=m.scrollHeight;
+    const last=items[items.length-1].getBoundingClientRect();
+    return {bottom:Math.round(box.bottom),winH:innerHeight,scrolls:m.scrollHeight>m.clientHeight,lastShown:last.bottom<=innerHeight&&last.top>=0,lastText:items[items.length-1].textContent.trim()};
+  });
+  ok(tall.bottom<=tall.winH&&tall.scrolls&&tall.lastShown,'in a short window the Format menu stays inside it and scrolls to its last command ('+tall.lastText+'): '+JSON.stringify(tall));
+  await page.keyboard.press('Escape');
+  await page.setViewportSize(normalSize);
 
   // ---- close, and the guide is on the welcome page; open it again
   await page.getByRole('menuitem',{name:/^File/}).click();

@@ -46,7 +46,7 @@ export const STARTER_ACTIVITIES=Object.freeze([
   entry({id:'gallery-walk',kind:'Discuss',title:'Gallery walk',minutes:20,
     summary:'Groups post their ideas on the wall, then everyone walks round and reads them.',
     objective:'Learners compare ideas from several groups and add to them.',
-    materials:'Flip chart paper and markers for each group. Sticky notes or a second marker colour. Tape.',
+    materials:'Flip chart paper and markers for each group. Sticky notes or a second marker color. Tape.',
     preparation:'Choose a question each group will answer. Clear wall space and put up one sheet for each group.',
     instructions:'Form groups. Give each group one question and a sheet of paper.\nAsk each group to write their answer on the sheet in large letters. Allow six minutes.\nAsk groups to post their sheets on the wall.\nAsk every group to walk to the next sheet, read it, and add a note or a question. Change sheets every two minutes until each group is back at its own.\nAsk groups to read what was added to their sheet. Take one comment from each group.',
     notes:'Play no music; people need to be able to talk. If a group is slow to start, ask them for one example before they write.'}),

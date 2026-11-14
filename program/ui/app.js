@@ -243,10 +243,16 @@ async function show() {
 
 async function newGuide() {
   if (!(await settle())) return;
-  const name = await askName(doc, { title: "New guide", label: "Name of the guide", confirm: "Create", hint: "For example: Reframing conflict workshop. You can write the guide's title in it later." });
+  // The guide is made while the dialog is open, so a name that cannot be used is refused in the dialog, with what was typed still there.
+  const name = await askName(doc, {
+    title: "New guide",
+    label: "Name of the guide",
+    confirm: "Create",
+    hint: "For example: Reframing conflict workshop. You can write the guide's title in it later.",
+    accept: (typed) => post("new", { name: typed }),
+  });
   if (!name) return;
   try {
-    await post("new", { name });
     await show();
   } catch (e) {
     say(/** @type {Error} */ (e).message, true);

@@ -111,11 +111,11 @@ test('black and white leaves no colour: the accent is dark grey and the tables\'
   assert.deepEqual(colours((await build(a,{brand:{printMode:'grayscale',accent:'#D4AF37'}})).files),[]);
 });
 
-test('an accent colour sets the headings, and one too pale to read as text is refused with the reason',async()=>{
+test('an accent color sets the headings, and one too pale to read as text is refused with the reason',async()=>{
   const a=await guide({tables:false});
   const red=await build(a,{brand:{accent:'#7A1F2B'}});
   assert.match(text(red.files,'word/styles.xml'),/<w:color w:val="7A1F2B"\/>/);
-  await assert.rejects(async()=>build(a,{brand:{accent:'#F2C94C'}}),/This look cannot be used: the accent colour is too light to read as heading text \(its contrast with the page is 1\.\d to 1, and it needs at least 4\.5 to 1\)/);
+  await assert.rejects(async()=>build(a,{brand:{accent:'#F2C94C'}}),/This look cannot be used: the accent color is too light to read as heading text \(its contrast with the page is 1\.\d to 1, and it needs at least 4\.5 to 1\)/);
   await assert.rejects(async()=>build(a,{brand:{accent:'red'}}),/This look cannot be used: accent must be an opaque #RRGGBB color/);
   assert.equal((await build(a,{brand:{printMode:'grayscale',accent:'#F2C94C'}})).files.length>5,true,'black and white does not use it, so it is not refused');
 });
@@ -196,7 +196,7 @@ test('what the author chooses is used, and a bad choice is refused above the but
   assert.equal(rowsOf(files).filter(r=>r==='OSG Answer Line:').length,4,'two lines each: the label and one more');
   // refusals
   const before=a.adapter.openedDocuments().length;
-  for(const [field,value,pattern] of [['guide-wb-accent','blue',/Type the accent colour as a # and six letters or digits/],['guide-wb-accent','#F2C94C',/too light to read as heading text/],['guide-wb-lines','x',/Lines to write on must be a whole number from 0 to 6/],['guide-wb-lines','7',/Lines to write on must be a whole number from 0 to 6/]]){
+  for(const [field,value,pattern] of [['guide-wb-accent','blue',/Type the accent color as a # and six letters or digits/],['guide-wb-accent','#F2C94C',/too light to read as heading text/],['guide-wb-lines','x',/Lines to write on must be a whole number from 0 to 6/],['guide-wb-lines','7',/Lines to write on must be a whole number from 0 to 6/]]){
     a.n('guide-wb-accent').value='';a.n('guide-wb-lines').value='3';
     a.n(field).value=value;
     await click(a,'guide-workbook-go');

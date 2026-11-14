@@ -13,6 +13,9 @@
 // browser asks the program's own server; a test hands in a few lines.
 import {parseProject,serializeProject} from './guide-project.mjs';
 
+// What the program says when asked for a PDF. The pane shows a message that starts this way as it is (guide-pane.mjs, makePdf).
+export const NO_PDF='The program does not make PDFs yet. Choose File > Save as Word file, open that file in Word, and choose File > Export > Create PDF/XPS, with "Document structure tags for accessibility" ticked.';
+
 // What the pane may ask of its document without changing it. Everything else counts as a change and is followed by a save.
 // The few settings below it only describe the session (a stand-in file picker, the theme the pane draws with) and are not part of the guide.
 const READ_ONLY=new Set([
@@ -70,7 +73,8 @@ export function createProjectAdapter(document,{read,write,delayMs=400,soon=(fn,m
     return {opened:true};
   })();
   ready.catch(()=>{});
-  const own={ready,flush,status:()=>({state,message}),blocked:()=>blocked};
+  // The program has no Word to ask for a PDF (the stand-in document would give an empty file), so it says so instead of saving one that is not real.
+  const own={ready,flush,status:()=>({state,message}),blocked:()=>blocked,exportPdf:async()=>{throw new Error(NO_PDF);}};
   return new Proxy(document,{
     get(target,prop){
       if(Object.hasOwn(own,prop))return own[prop];

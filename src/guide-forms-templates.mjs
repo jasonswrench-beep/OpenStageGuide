@@ -19,9 +19,9 @@ export const FORM_TEMPLATES=Object.freeze([
     body:ctx=>checkList({items:['First item','Second item','Third item'],columns:['Who','When'],ctx})},
   {id:'rating',label:'Rating form with evidence',kind:'Form',note:'Statements to rate from 1 to 5, with a column for the evidence.',
     body:ctx=>formText('Rate each statement from 1 (not at all) to 5 (completely), and write what you saw or heard.')+ratingGrid({statements:['First statement','Second statement','Third statement'],evidence:true,ctx,caption:'Ratings'})},
-  {id:'observer',label:'Observer form',kind:'Form',note:'Behaviours that were met or not met, comments, signature and date.',
+  {id:'observer',label:'Observer form',kind:'Form',note:'Behaviors that were met or not met, comments, signature and date.',
     body:ctx=>fieldRow([{label:'Observer',width:'full'},{label:'Date',width:'short'}])
-      +formTable({columns:[{name:'Behaviour',weight:4},{name:'Met',weight:1,kind:'check'},{name:'Not met',weight:1,kind:'check'},{name:'Comments',weight:4}],rows:[['First behaviour'],['Second behaviour'],['Third behaviour']],ctx,caption:'Observed behaviours'})
+      +formTable({columns:[{name:'Behavior',weight:4},{name:'Met',weight:1,kind:'check'},{name:'Not met',weight:1,kind:'check'},{name:'Comments',weight:4}],rows:[['First behavior'],['Second behavior'],['Third behavior']],ctx,caption:'Observed behaviors'})
       +fieldRow([{label:'Signature',width:'full'}])},
   {id:'action',label:'Action plan',kind:'Template',note:'What, who, by when, and a check box for done.',
     body:ctx=>formTable({columns:[{name:'Action',weight:4},{name:'Who',weight:2},{name:'By when',weight:2},{name:'Done',weight:1,kind:'check'}],blankRows:6,ctx,caption:'Action plan'})},

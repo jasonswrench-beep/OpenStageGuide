@@ -6,13 +6,14 @@ import {DOMParser,XMLSerializer} from '@xmldom/xmldom';
 import {readSource,buildWorkbook,pdfFileName} from '../src/guide-workbook.mjs';
 import {workbookStructure,printCheck,checkPdfTags,WORKBOOK_HUMAN_CHECKS} from '../src/workbook-checks.mjs';
 import {resolveWorkbookBrand} from '../src/workbook-presentation.mjs';
-import {createWordAdapter} from '../src/guide-word.mjs';
+import {createWordAdapter,createDemoAdapter} from '../src/guide-word.mjs';
+import {createProjectAdapter,NO_PDF} from '../src/guide-project-adapter.mjs';
 import {started,pane,WORD_QUIRKS,click,submit,addModule,addLesson,addBlock} from './helpers/guide-harness.mjs';
 
 const xml={DOMParserClass:DOMParser,SerializerClass:XMLSerializer};
 const typeItem=(a,type,fields)=>{a.itemRadio(type).checked=true;a.itemRadio(type).onchange();for(const [id,v] of Object.entries(fields))a.n(id).value=v;};
-async function guide(quirks=WORD_QUIRKS){
-  const a=await started('Reframing conflict',{quirks});
+async function guide(quirks=WORD_QUIRKS,extra={}){
+  const a=await started('Reframing conflict',{quirks,...extra});
   await addModule(a,'Recognize the conflict');await addLesson(a,'Reframe the conversation','20');
   await addBlock(a,'objective','Identify two ways to reframe a disagreement.');
   await addBlock(a,'ask','What makes a disagreement hard to reframe?');
@@ -49,18 +50,18 @@ test('the structure check finds a missing title, a table with no header row, and
 test('the print check says how the look prints, in colour and in black and white',()=>{
   const colour=printCheck(effective(),{lines:3}),gray=printCheck(effective('clearline',{printMode:'grayscale'}),{lines:3});
   assert.deepEqual(colour.filter(f=>f.level==='warn'),[]);
-  assert.match(colour[0].message,/^Body text prints as a grey at \d+\.\d to 1 against the page in black and white\.$/);
-  assert.ok(colour.some(f=>/The accent colour prints as a grey at/.test(f.message)));
-  assert.ok(colour.some(f=>f.level==='info'&&/colour version.*choose Black and white/.test(f.message)));
-  assert.ok(gray.some(f=>f.level==='info'&&/black-and-white version.*icons are still coloured pictures/.test(f.message)));
+  assert.match(colour[0].message,/^Body text prints as a gray at \d+\.\d to 1 against the page in black and white\.$/);
+  assert.ok(colour.some(f=>/The accent color prints as a gray at/.test(f.message)));
+  assert.ok(colour.some(f=>f.level==='info'&&/color version.*choose Black and white/.test(f.message)));
+  assert.ok(gray.some(f=>f.level==='info'&&/black-and-white version.*icons are still colored pictures/.test(f.message)));
   assert.ok(colour.some(f=>/Body text is 12 pt/.test(f.message))&&colour.some(f=>/Margins are 0\.8 in/.test(f.message))&&colour.some(f=>/Lines to write on are about 0\.35 in apart/.test(f.message)));
   assert.equal(printCheck(effective(),{lines:0}).some(f=>/Lines to write on/.test(f.message)),false,'no lines, nothing to say about them');
 });
 
-test('the print check warns about a grey that is too light, small text, tight margins and close lines',()=>{
+test('the print check warns about a gray that is too light, small text, tight margins and close lines',()=>{
   const base=effective();
   const warns=values=>printCheck({...base,...values},{lines:3}).filter(f=>f.level==='warn').map(f=>f.message);
-  assert.match(warns({accent:'#C8C8C8'})[0],/The accent colour prints as a grey that is too light in black and white \(1\.\d to 1; it needs 4\.5 to 1\)/);
+  assert.match(warns({accent:'#C8C8C8'})[0],/The accent color prints as a gray that is too light in black and white \(1\.\d to 1; it needs 4\.5 to 1\)/);
   assert.match(warns({bodyPt:10})[0],/Body text is 10 pt, which is small for a printed page/);
   assert.match(warns({marginIn:0.3})[0],/Margins are 0\.3 in, which some printers will cut off/);
   assert.match(warns({responseLineIn:0.2})[0],/closer together than 0\.25 in/);
@@ -75,7 +76,7 @@ test('the Workbook screen shows what was checked: nothing to fix, the print chec
   assert.equal(a.adapter.openedDocuments().length,1);
   assert.equal(a.n('guide-workbook-checks-box').hidden,false);
   assert.deepEqual(items('guide-workbook-fix')(a),['Nothing to fix.']);assert.deepEqual(items('guide-workbook-look-at')(a),['Nothing to look at.']);
-  assert.ok(items('guide-workbook-print')(a).some(t=>/prints as a grey at/.test(t)));
+  assert.ok(items('guide-workbook-print')(a).some(t=>/prints as a gray at/.test(t)));
   assert.deepEqual(items('guide-workbook-human')(a),WORKBOOK_HUMAN_CHECKS);
   assert.match(a.n('guide-workbook-ok').textContent,/Structure check: 0 to fix, 0 to look at\.$/);
 });
@@ -130,6 +131,20 @@ test('if Word cannot make the PDF the screen says so and how to make one by hand
   await click(a,'guide-open-review');await click(a,'guide-review-pdf');
   assert.equal(a.adapter.downloads().length,0);
   assert.match(a.n('guide-review-pdf-problem').textContent,/^Word could not make the PDF\. .*You can make one yourself: File > Export > Create PDF\/XPS/);
+});
+
+test('in the program, with no Word behind it, Save as PDF says so and how to get one, and saves nothing (it once saved an empty file and called it tagged)',async()=>{
+  const document=createProjectAdapter(createDemoAdapter({...xml,quirks:WORD_QUIRKS}),{read:async()=>null,write:async()=>{},soon:()=>0,cancel:()=>{}});
+  await document.ready;
+  await assert.rejects(document.exportPdf(),{message:NO_PDF},'the document itself refuses');
+  const a=await guide(WORD_QUIRKS,{adapter:document});
+  await click(a,'guide-open-review');await click(a,'guide-review-pdf');
+  assert.equal(a.adapter.downloads().length,0,'no file is offered');
+  assert.equal(a.n('guide-review-pdf-problem').textContent,NO_PDF,'the screen says what the program says, whole');
+  assert.equal(a.n('guide-review-pdf-ok').hidden,true,'and does not say a PDF was saved');
+  assert.doesNotMatch(NO_PDF,/Word could not/);
+  assert.match(NO_PDF,/Save as Word file/);
+  assert.match(NO_PDF,/Create PDF\/XPS/);
 });
 
 test('the tag check reads a PDF\'s catalogue for the marks of a tagged one, and says so when it cannot tell',()=>{

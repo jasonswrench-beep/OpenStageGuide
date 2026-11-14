@@ -46,7 +46,7 @@ const DEFAULT_LOOK={navy:NAVY,ink:INK,shade:SHADE,bar:BAR};
 export const HANG=2400; // twips: room for a half-inch icon and the longest cue label
 
 // A look is a handful of values that restyle everything the guide writes. With none given, this is the facilitator guide's
-// own look. The learner workbook passes its look in (colours, heading font, heading sizes in half-points).
+// own look. The learner workbook passes its look in (colors, heading font, heading sizes in half-points).
 export function styleDefinitions(theme={}){
   const {navy:NAVY=DEFAULT_LOOK.navy,ink:INK=DEFAULT_LOOK.ink,shade:SHADE=DEFAULT_LOOK.shade,bar:BAR=DEFAULT_LOOK.bar}=theme;
   const sz={title:52,h1:36,h2:30,...(theme.sizes||{})};

@@ -4,6 +4,7 @@
  * a Close button in the corner that does what Escape does, a heading, and a foot of buttons whose main one is filled. Focus starts on the first
  * thing to fill in or choose, and goes back to where it was when the dialog closes. Text and attributes only, never markup.
  */
+import { guideName } from "./guide-name.js";
 import { el, uiIcon } from "./menubar.js";
 
 /**
@@ -25,7 +26,11 @@ export function openDialog(doc, spec) {
     const confirm = el(doc, "button", { type: "button", class: "primary", text: spec.confirm });
     const cancel = spec.cancel === "" ? null : el(doc, "button", { type: "button", text: spec.cancel ?? "Cancel" });
     let result = /** @type {T | null} */ (null);
+    let working = false;
     const done = async () => {
+      // A second press while the first is still being dealt with (a slow disk, a double press of Enter) does nothing.
+      if (working) return;
+      working = true;
       problem.hidden = true;
       try {
         result = await spec.finish(dialog);
@@ -33,6 +38,8 @@ export function openDialog(doc, spec) {
       } catch (e) {
         problem.textContent = /** @type {Error} */ (e).message;
         problem.hidden = false;
+      } finally {
+        working = false;
       }
     };
     confirm.addEventListener("click", done);
@@ -55,13 +62,20 @@ export function openDialog(doc, spec) {
     });
     doc.body.append(dialog);
     dialog.showModal();
-    (spec.first?.(dialog) ?? confirm).focus();
+    const first = spec.first?.(dialog) ?? confirm;
+    first.focus();
+    // A first box that already holds words has them chosen, so what the person types replaces them (it joined the new words on to the old ones).
+    const box = /** @type {HTMLInputElement | HTMLTextAreaElement} */ (first);
+    if ((box.tagName === "INPUT" && box.type === "text") || box.tagName === "TEXTAREA") {
+      if (box.value) box.select();
+    }
   });
 }
 
 /**
  * Ask for a name. Resolves to the name, or null when the dialog was closed.
- * @param {Document} doc @param {{ title: string, label: string, confirm: string, hint?: string, value?: string }} opts
+ * `accept`, when given, is tried with the name before the dialog closes; if it throws, its message is shown in the dialog, which stays open.
+ * @param {Document} doc @param {{ title: string, label: string, confirm: string, hint?: string, value?: string, accept?: (name: string) => Promise<unknown> | unknown }} opts
  */
 export function askName(doc, opts) {
   /** @type {HTMLInputElement} */
@@ -71,9 +85,12 @@ export function askName(doc, opts) {
     body: () => [el(doc, "div", { class: "field" }, el(doc, "label", { class: "field-label", for: "dlg-name", text: opts.label }), input, ...(opts.hint ? [el(doc, "p", { class: "hint", text: opts.hint })] : []))],
     confirm: opts.confirm,
     first: () => input,
-    finish: () => {
+    finish: async () => {
       const name = input.value.trim();
       if (!name) throw new Error("Type a name first.");
+      // What is done with the name is tried here, so a refusal (a name Windows does not allow, or one in use) is told in the dialog, which stays
+      // open with what was typed, instead of closing and leaving a message behind it.
+      if (opts.accept) await opts.accept(name);
       return name;
     },
   });
@@ -89,7 +106,7 @@ export function chooseGuide(doc, guides, when) {
     title: "Open guide",
     intro: "Choose the guide to open.",
     body: () => [
-      el(doc, "ul", { class: "dialog-list", role: "radiogroup", "aria-label": "Guides" }, ...guides.map((g, i) => el(doc, "li", {}, el(doc, "label", {}, el(doc, "input", { type: "radio", name: "dlg-guide", value: g.name, ...(i === 0 ? { checked: "" } : {}) }), el(doc, "span", { class: "recent-name", text: g.name }), el(doc, "span", { class: "recent-when", text: when(g.when) }))))),
+      el(doc, "ul", { class: "dialog-list", role: "radiogroup", "aria-label": "Guides" }, ...guides.map((g, i) => el(doc, "li", {}, el(doc, "label", {}, el(doc, "input", { type: "radio", name: "dlg-guide", value: g.name, ...(i === 0 ? { checked: "" } : {}) }), el(doc, "span", { class: "recent-name", text: guideName(g.name) }), el(doc, "span", { class: "recent-when", text: when(g.when) }))))),
     ],
     confirm: "Open",
     first: (d) => /** @type {HTMLElement | null} */ (d.querySelector("input[type=radio]:checked")),

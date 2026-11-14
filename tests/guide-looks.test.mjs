@@ -180,7 +180,7 @@ test('a guide with no look says so; applying one tells the adapter, changes the 
   assert.equal(state.theme.headingFont,'Georgia');assert.equal(state.theme.navy,'543D67');
   assert.equal(state.applied.length,1);assert.equal(state.applied[0][0].name,'Normal');
   assert.deepEqual(settingsOf(a),{id:'editorial-study',accent:'#543D67',organization:'Acme Learning',header:false,copyright:'',revised:''});
-  assert.match(a.n('guide-look-now').textContent,/This guide uses the Editorial Study look, accent colour #543D67\./);
+  assert.match(a.n('guide-look-now').textContent,/This guide uses the Editorial Study look, accent color #543D67\./);
   assert.match(a.n('guide-status').textContent,/The Editorial Study look is applied\./);
   assert.equal(state.headerFooter.length,0,'no header or footer was asked for, so none was touched');
 });
@@ -260,7 +260,7 @@ test('a guide that already has a look shows it, tells the adapter, and the workb
   const a=await started();
   await a.adapter.setLook(JSON.stringify({id:'field-guide',accent:'#625014',organization:'Acme'}));
   await a.p.refresh();
-  assert.match(a.n('guide-look-now').textContent,/Field Guide look, accent colour #625014/);
+  assert.match(a.n('guide-look-now').textContent,/Field Guide look, accent color #625014/);
   assert.equal(a.adapter.lookState().theme.navy,'625014');
   assert.equal(lookRadio(a,'field-guide').checked,true);assert.equal(a.n('guide-look-org').value,'Acme');
   assert.equal(a.n('guide-wb-accent').value,'#625014');assert.equal(a.n('guide-wb-org').value,'Acme');

@@ -23,13 +23,13 @@ export function printCheck(effective,{lines=3}={}){
   const out=[],add=(level,message)=>out.push({level,message});
   const inGrey=(label,fg)=>{
     const ratio=contrast(grayOf(fg),grayOf(page));
-    ratio>=4.5?add('pass',`${label} prints as a grey at ${ratio.toFixed(1)} to 1 against the page in black and white.`):add('warn',`${label} prints as a grey that is too light in black and white (${ratio.toFixed(1)} to 1; it needs 4.5 to 1).`);
+    ratio>=4.5?add('pass',`${label} prints as a gray at ${ratio.toFixed(1)} to 1 against the page in black and white.`):add('warn',`${label} prints as a gray that is too light in black and white (${ratio.toFixed(1)} to 1; it needs 4.5 to 1).`);
   };
-  inGrey('Body text',text);inGrey('The accent colour',accent);
+  inGrey('Body text',text);inGrey('The accent color',accent);
   effective.bodyPt>=11?add('pass',`Body text is ${effective.bodyPt} pt.`):add('warn',`Body text is ${effective.bodyPt} pt, which is small for a printed page.`);
   effective.marginIn>=0.5?add('pass',`Margins are ${effective.marginIn} in, inside what most printers can reach.`):add('warn',`Margins are ${effective.marginIn} in, which some printers will cut off.`);
   lines>0&&effective.responseLineIn<0.25?add('warn','The lines to write on are closer together than 0.25 in.'):lines>0&&add('pass',`Lines to write on are about ${effective.responseLineIn} in apart.`);
-  add('info',gray?'This is the black-and-white version. The icons are still coloured pictures, and each has its label beside it.':'This is the colour version. For a black-and-white copy, choose Black and white. The icons are coloured pictures, and each has its label beside it.');
+  add('info',gray?'This is the black-and-white version. The icons are still colored pictures, and each has its label beside it.':'This is the color version. For a black-and-white copy, choose Black and white. The icons are colored pictures, and each has its label beside it.');
   return out;
 }
 
@@ -37,7 +37,7 @@ export function printCheck(effective,{lines=3}={}){
 export const WORKBOOK_HUMAN_CHECKS=[
   'Run Word\'s own check on the workbook: Review > Check Accessibility.',
   'Read one page of the workbook with a screen reader before you share it.',
-  'Print one page in colour and one in black and white, and check that nothing is understood by colour alone.'
+  'Print one page in color and one in black and white, and check that nothing is understood by color alone.'
 ];
 
 // A PDF is tagged when its catalogue says it is marked and points to a structure tree. This reads the file's plain text, which

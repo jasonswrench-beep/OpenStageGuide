@@ -255,8 +255,8 @@ const footerXml=(effective,title,organization)=>{
 const hex6=c=>String(c).replace('#','').toUpperCase();
 const grayOf=hex=>{const [r,g,b]=[0,2,4].map(i=>parseInt(hex.slice(i,i+2),16)),v=Math.round(0.299*r+0.587*g+0.114*b).toString(16).padStart(2,'0');return `${v}${v}${v}`.toUpperCase();};
 
-// What a look is: the fonts, sizes, colours and page the workbook's styles are written with. In black and white the accent is a
-// dark grey and nothing is told by colour alone.
+// What a look is: the fonts, sizes, colors and page the workbook's styles are written with. In black and white the accent is a
+// dark grey and nothing is told by color alone.
 export function lookTheme(effective,language='en-US'){
   const gray=effective.printMode==='grayscale',accent=gray?'333333':hex6(effective.accent),text=hex6(effective.text);
   return {navy:accent,ink:text,bar:accent,shade:gray?'EDEDED':'F1EBDD',headingFont:effective.headingFont,bodyFont:effective.bodyFont,
@@ -350,7 +350,7 @@ function trimMinutes(p){
   for(let i=ts.length-1;i>=0&&n>0;i--){const s=ts[i].textContent,cut=Math.min(n,s.length);ts[i].textContent=s.slice(0,s.length-cut);n-=cut;}
 }
 
-// In black and white, every colour in the kept content becomes the grey of the same lightness, so nothing is told by colour alone.
+// In black and white, every color in the kept content becomes the grey of the same lightness, so nothing is told by color alone.
 function grayify(node){
   for(const el of [node,...Array.from(node.getElementsByTagName('*'))])
     for(const a of Array.from(el.attributes||[]))
@@ -370,9 +370,9 @@ export function buildWorkbook(source,{familyId='clearline',brand={},lines=3}={},
   const look=resolveWorkbookBrand(familyId,brand);
   if(!look.eligible)throw new Error(`This look cannot be used: ${look.issues.join(' ')}`);
   const effective=look.effective,theme=lookTheme(effective,source.language),gray=effective.printMode==='grayscale';
-  // The accent colours the headings, so it must be readable on the page.
+  // The accent colors the headings, so it must be readable on the page.
   const accentContrast=textContrast(effective.accent,effective.background);
-  if(!gray&&accentContrast<4.5)throw new Error(`This look cannot be used: the accent colour is too light to read as heading text (its contrast with the page is ${accentContrast.toFixed(1)} to 1, and it needs at least 4.5 to 1).`);
+  if(!gray&&accentContrast<4.5)throw new Error(`This look cannot be used: the accent color is too light to read as heading text (its contrast with the page is ${accentContrast.toFixed(1)} to 1, and it needs at least 4.5 to 1).`);
   // Everything is read from a cleaned copy, so hidden or revised-away words cannot reach a page the workbook writes.
   const prepared=prepare(source);
   const {entries,owner,paras}=flatten(prepared);
