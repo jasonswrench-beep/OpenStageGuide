@@ -37,8 +37,14 @@ publisher is unknown. A log of what the window did can be had by setting `OPENST
 
 The icons in `src-tauri/icons` are made from the product icon (`public/assets/ribbon-*.png`).
 
-## State (2026-11-13)
+## State (2026-11-14)
 
-Built and tried by script on the author's computer: the window starts the carried Node, the server says where it is, the page answers, and the
-server stops when the window is killed. The unsigned setup builds (27 MB, `src-tauri/target/release/bundle/nsis/`). The setup itself has not been
-run by anyone, nothing has been signed, and nothing has been published.
+The signed setup is built: `python -I tools/build_installer.py --sign`, from commit a08348d, release `v0.1.0-alpha.1` (recorded in `release.txt` for Check
+for updates). `OpenStage Guide_0.1.0_x64-setup.exe`, 29,086,176 bytes, SHA-256
+`263e8c6060b622fb24152c2ee927e3967c81d768731cae013f2257caf3ae7bc0`. The setup and every program of ours in it (the window, the uninstaller and the five
+installer plugins) are signed by Jason Wrench and timestamped; the Node that runs the server keeps the OpenJS Foundation's valid signature; the program
+holds no folder name of the computer that built it. Its uninstaller deletes only the files the setup put in the install folder, and never the guides in
+`Documents\OpenStage Guides`. The setup itself has not been run by anyone, and nothing has been published.
+
+Earlier (2026-11-13), built and tried by script on the author's computer: the window starts the carried Node, the server says where it is, the page
+answers, and the server stops when the window is killed.
