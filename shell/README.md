@@ -13,6 +13,19 @@ It follows the OpenAssess window (same owner, Apache-2.0), without its Save dial
 backup) goes to the Downloads folder, and the page says so. Guides are kept in `OpenStage Guides` inside the person's own Documents folder,
 wherever Windows has put it.
 
+**Closing the window.** The page saves a moment after each change, and a page that is going away cannot be sure its last request is sent, so the
+first request to close is held: the window asks the page (`window.osgClosing`, run by the window itself; there is still no command for the page to
+call), the page saves the open guide and tells its server (`/api/closing`), and the server says one line on its output that the window reads
+(`OPENSTAGE_CLOSE_READY`, or `OPENSTAGE_CLOSE_HELD` when the guide could not be saved, which keeps the window open with the page's message; closing
+it again then leaves anyway). A page that does not answer within five seconds is not waited for. Then the server's input is closed, which it takes as
+the end, and it is stopped by force only if it has not gone in two seconds. `tests/program-closing.test.mjs` and `npm run check:closing` try the
+server and the page; the window itself was tried on 2026-11-14 with a test build (below).
+
+**Trying the window without touching the guides.** `OPENSTAGE_GUIDES_FOLDER` (a full path) names another guides folder, for trying a build; nothing
+else can change where the guides are. Build with `TAURI_CONFIG='{"identifier":"org.openstage.guide.closetest"}'` and `--features tauri/custom-protocol`
+to give the test build its own WebView2 profile (the installed program's is `org.openstage.guide`), and set `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS` to
+`--remote-debugging-port=<port>` to drive its page from a script.
+
 ## What it needs to build
 
 - Node.js 20 or later (a copy of the one that builds it is carried inside the window, so the computer it is installed on needs nothing)

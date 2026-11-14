@@ -74,7 +74,7 @@ export function fileNameFor(raw){
 
 // `release` is the release this copy is (a tag such as v0.1.0-alpha.1; the window gives it from the installer's build), `updateCheck` false turns
 // Check for updates off, and `releases` is how GitHub's list is fetched (replaced in tests, which never reach the network). See scripts/updates.mjs.
-export async function startProjectServer({file,folder,port=3850,snapshot,maxBytes=LIMITS.fileCharacters*4,release,updateCheck=true,releases=fetchReleases}={}){
+export async function startProjectServer({file,folder,port=3850,snapshot,maxBytes=LIMITS.fileCharacters*4,release,updateCheck=true,releases=fetchReleases,onClosing}={}){
   if(!file&&!folder)throw new Error('Name the guides folder with --folder, or one project file with --file.');
   const dir=path.resolve(folder||path.dirname(file));
   let current=file?path.basename(file):null,backedUp=false,token=null;
@@ -240,6 +240,13 @@ export async function startProjectServer({file,folder,port=3850,snapshot,maxByte
       json(res,200,await stateNow());return;
     }
     if(name==='close'){current=null;token=null;json(res,200,await stateNow());return;}
+    // The program's window was asked to close and held the close until the page had saved: the page says it has (`saved`), or that it could not.
+    // Every write the server was already given is finished first, then the window is told (onClosing), which closes it, or keeps it open.
+    if(name==='closing'){
+      await saving;
+      onClosing?.(body?.saved!==false);
+      json(res,200,{ok:true});return;
+    }
     // A setting of the program (the saved activities, the workbook's look, the agenda's start time): one of the names it keeps, and text or null.
     if(name==='settings'){
       const key=body?.key,value=body?.value;
@@ -301,11 +308,15 @@ if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.ur
   try{
     const folder=arg('--folder'),file=arg('--file');
     const updateOff=process.argv.includes('--no-update-check')||String(process.env.OPENSTAGE_UPDATE_CHECK||'').trim().toLowerCase()==='off';
-    const s=await startProjectServer({file,folder:folder||(file?undefined:defaultGuidesFolder()),port:Number(arg('--port')||3850),release:arg('--release'),updateCheck:!updateOff});
+    const windowMode=process.argv.includes('--exit-when-stdin-closes');
+    // In the window, closing it is held until the page has saved: the page tells the server (/api/closing) and the server tells the window on its
+    // output, one line, which is all the window reads from it (shell/src-tauri/src/main.rs).
+    const onClosing=windowMode?saved=>console.log(saved?'OPENSTAGE_CLOSE_READY':'OPENSTAGE_CLOSE_HELD'):undefined;
+    const s=await startProjectServer({file,folder:folder||(file?undefined:defaultGuidesFolder()),port:Number(arg('--port')||3850),release:arg('--release'),updateCheck:!updateOff,onClosing});
     console.log(`OpenStage Guide at http://127.0.0.1:${s.port}/  (guides folder: ${s.folder})`);
     // The program's window (shell/) starts this server, reads this line to learn where it is listening, and stops it by closing its input:
     // when the window goes, with it or without it, the server goes too.
-    if(process.argv.includes('--exit-when-stdin-closes')){
+    if(windowMode){
       console.log(`OPENSTAGE_READY http://127.0.0.1:${s.port}/`);
       process.stdin.resume();
       process.stdin.on('end',()=>{s.close().finally(()=>process.exit(0));});

@@ -15,8 +15,9 @@ use std::fs::OpenOptions;
 use std::io::{BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
-use std::sync::atomic::{AtomicU16, Ordering};
+use std::sync::atomic::{AtomicU16, AtomicU8, Ordering};
 use std::sync::Mutex;
+use std::time::{Duration, Instant};
 
 use tauri::webview::NewWindowResponse;
 use tauri::{Manager, RunEvent, Url, WebviewWindowBuilder};
@@ -29,6 +30,40 @@ struct Server(Mutex<Option<Child>>);
 
 /// The port the server listens on, set when it says where it is (0 until then). The window is only ever sent to that address on this machine.
 static SERVER_PORT: AtomicU16 = AtomicU16::new(0);
+
+/// Where closing the window stands. The page saves a moment after each change, and a page that is going away cannot be sure its last request is
+/// sent, so the first request to close is held: the page is asked to save the open guide and say so (through its server, which tells this window
+/// on its output), and only then does the window go.
+const CLOSE_IDLE: u8 = 0;
+/// The page was asked to save, and the window waits for the server to say it has (or a few seconds, whichever is first).
+const CLOSE_WAITING: u8 = 1;
+/// The page said it could not save: the window stays open, and the next request to close leaves anyway.
+const CLOSE_HELD: u8 = 2;
+/// The window is going.
+const CLOSE_GOING: u8 = 3;
+static CLOSE_STATE: AtomicU8 = AtomicU8::new(CLOSE_IDLE);
+/// How long the window waits for the page to save before it goes anyway (a page that does not answer must not keep the window open).
+const CLOSE_WAIT: Duration = Duration::from_secs(5);
+/// What the server says on its output when the page has saved, and when it could not (see scripts/project-server.mjs).
+const CLOSE_READY_LINE: &str = "OPENSTAGE_CLOSE_READY";
+const CLOSE_HELD_LINE: &str = "OPENSTAGE_CLOSE_HELD";
+
+/// What the window does with a request to close. Only the first request is held, and only when there is a page of the program to ask (the server
+/// has said where it is); a request made while waiting, or after the page said it could not save, is the person insisting, and goes through.
+fn hold_close(state: &AtomicU8, page_is_there: bool) -> bool {
+    page_is_there && state.compare_exchange(CLOSE_IDLE, CLOSE_WAITING, Ordering::SeqCst, Ordering::SeqCst).is_ok()
+}
+
+/// What a line on the server's output means for a window that is waiting to close: `Some(true)` to go, `Some(false)` to stay, `None` for no change.
+fn close_answer(state: &AtomicU8, line: &str) -> Option<bool> {
+    if line == CLOSE_READY_LINE && state.compare_exchange(CLOSE_WAITING, CLOSE_GOING, Ordering::SeqCst, Ordering::SeqCst).is_ok() {
+        return Some(true);
+    }
+    if line == CLOSE_HELD_LINE && state.compare_exchange(CLOSE_WAITING, CLOSE_HELD, Ordering::SeqCst, Ordering::SeqCst).is_ok() {
+        return Some(false);
+    }
+    None
+}
 
 /// Whether the window may show this address: its own first page, and the server's address on this machine (the port it said). A web page of
 /// any other site is not the program, and is never shown inside the program's window, where it could be mistaken for it. (Pictures and files the
@@ -182,6 +217,26 @@ fn note(message: &str) {
     }
 }
 
+/// Stops the server: its input is closed, which it takes as the end (it finishes the request it is in the middle of, and goes), and if it has
+/// not gone in two seconds it is stopped by force.
+fn stop_server(child: &mut Child) {
+    drop(child.stdin.take());
+    let began = Instant::now();
+    let until = began + Duration::from_secs(2);
+    while Instant::now() < until {
+        match child.try_wait() {
+            Ok(Some(_)) => {
+                note(&format!("the server stopped by itself after {} ms", began.elapsed().as_millis()));
+                return;
+            }
+            Ok(None) => std::thread::sleep(Duration::from_millis(25)),
+            Err(_) => break,
+        }
+    }
+    note("the server did not stop in time and was stopped");
+    let _ = child.kill();
+}
+
 fn main() {
     let app = tauri::Builder::default()
         .setup(|app| {
@@ -201,6 +256,26 @@ fn main() {
                     NewWindowResponse::Deny
                 })
                 .build()?;
+            // Closing the window waits for the page to save (see CLOSE_STATE). The page is asked through the window itself, there is no command for the
+            // page to call, and the answer comes back on the server's output, which this window already reads.
+            let closing = window.clone();
+            window.on_window_event(move |event| {
+                if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                    if hold_close(&CLOSE_STATE, SERVER_PORT.load(Ordering::SeqCst) != 0) {
+                        api.prevent_close();
+                        note("the window was asked to close: asking the page to save first");
+                        let _ = closing.eval("if (window.osgClosing) { window.osgClosing(); }");
+                        let waiting = closing.clone();
+                        std::thread::spawn(move || {
+                            std::thread::sleep(CLOSE_WAIT);
+                            if CLOSE_STATE.compare_exchange(CLOSE_WAITING, CLOSE_GOING, Ordering::SeqCst, Ordering::SeqCst).is_ok() {
+                                note("the page did not answer in time: the window goes anyway");
+                                let _ = waiting.destroy();
+                            }
+                        });
+                    }
+                }
+            });
             let resources = plain(app.path().resource_dir().unwrap_or_else(|_| PathBuf::from(".")));
 
             note(&format!("resources: {}", resources.display()));
@@ -213,8 +288,12 @@ fn main() {
             let root = plain(root);
             let script = root.join("scripts").join("project-server.mjs");
 
-            // Where guides are kept: a folder in the person's own Documents (wherever Windows has put it, OneDrive included).
-            let guides = plain(app.path().document_dir().unwrap_or_else(|_| PathBuf::from("."))).join("OpenStage Guides");
+            // Where guides are kept: a folder in the person's own Documents (wherever Windows has put it, OneDrive included). For trying the window
+            // without touching the person's guides, OPENSTAGE_GUIDES_FOLDER may name another folder (a full path); nothing else can.
+            let guides = std::env::var_os("OPENSTAGE_GUIDES_FOLDER")
+                .map(PathBuf::from)
+                .filter(|folder| folder.is_absolute())
+                .unwrap_or_else(|| plain(app.path().document_dir().unwrap_or_else(|_| PathBuf::from("."))).join("OpenStage Guides"));
 
             let mut command = Command::new(node_path(&resources));
             command
@@ -255,6 +334,15 @@ fn main() {
                 let mut shown = false;
                 for line in BufReader::new(stdout).lines().map_while(Result::ok) {
                     note(&line);
+                    // The page has saved (or could not) and the server says so: the window goes, or stays open with the page's message.
+                    match close_answer(&CLOSE_STATE, line.trim()) {
+                        Some(true) => {
+                            let _ = window.destroy();
+                            continue;
+                        }
+                        Some(false) => continue,
+                        None => {}
+                    }
                     if shown {
                         continue;
                     }
@@ -286,7 +374,7 @@ fn main() {
             if let Some(server) = handle.try_state::<Server>() {
                 if let Ok(mut guard) = server.0.lock() {
                     if let Some(mut child) = guard.take() {
-                        let _ = child.kill();
+                        stop_server(&mut child);
                     }
                 }
             }
@@ -296,8 +384,44 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use super::{is_license_page, is_release_page, may_open, opens_in_browser};
+    use super::{
+        close_answer, hold_close, is_license_page, is_release_page, may_open, opens_in_browser, CLOSE_GOING, CLOSE_HELD, CLOSE_HELD_LINE, CLOSE_IDLE, CLOSE_READY_LINE, CLOSE_WAITING,
+    };
+    use std::sync::atomic::{AtomicU8, Ordering};
     use tauri::Url;
+
+    #[test]
+    fn the_first_request_to_close_is_held_for_the_page_to_save_and_a_second_one_goes_through() {
+        let state = AtomicU8::new(CLOSE_IDLE);
+        assert!(!hold_close(&state, false), "with no page of the program there is nothing to wait for");
+        assert_eq!(state.load(Ordering::SeqCst), CLOSE_IDLE);
+        assert!(hold_close(&state, true), "the first request is held");
+        assert_eq!(state.load(Ordering::SeqCst), CLOSE_WAITING);
+        assert!(!hold_close(&state, true), "a request made while waiting is the person insisting");
+    }
+
+    #[test]
+    fn the_server_saying_the_page_saved_closes_the_window_and_saying_it_could_not_keeps_it_open() {
+        let state = AtomicU8::new(CLOSE_WAITING);
+        assert_eq!(close_answer(&state, "OPENSTAGE_READY http://127.0.0.1:1/"), None, "other lines change nothing");
+        assert_eq!(close_answer(&state, CLOSE_READY_LINE), Some(true));
+        assert_eq!(state.load(Ordering::SeqCst), CLOSE_GOING);
+        assert_eq!(close_answer(&state, CLOSE_READY_LINE), None, "once only");
+
+        let state = AtomicU8::new(CLOSE_WAITING);
+        assert_eq!(close_answer(&state, CLOSE_HELD_LINE), Some(false));
+        assert_eq!(state.load(Ordering::SeqCst), CLOSE_HELD);
+        assert!(!hold_close(&state, true), "after that, the next request to close leaves");
+        assert_eq!(close_answer(&state, CLOSE_READY_LINE), None);
+    }
+
+    #[test]
+    fn a_line_that_says_the_page_saved_does_nothing_when_the_window_was_not_asked_to_close() {
+        let state = AtomicU8::new(CLOSE_IDLE);
+        assert_eq!(close_answer(&state, CLOSE_READY_LINE), None, "a page cannot close the window by saying so when nobody asked");
+        assert_eq!(close_answer(&state, CLOSE_HELD_LINE), None);
+        assert_eq!(state.load(Ordering::SeqCst), CLOSE_IDLE);
+    }
 
     fn url(text: &str) -> Url {
         Url::parse(text).expect("an address")

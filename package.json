@@ -13,7 +13,8 @@
     "check:program": "node scripts/check-program-browser.mjs",
     "check:editor": "node scripts/check-editor-browser.mjs",
     "check:project": "node scripts/check-project-browser.mjs",
-    "check:settings": "node scripts/check-settings-browser.mjs"
+    "check:settings": "node scripts/check-settings-browser.mjs",
+    "check:closing": "node scripts/check-closing-browser.mjs"
   },
   "dependencies": { "acorn": "8.19.0", "jszip": "3.10.1" },
   "devDependencies": {

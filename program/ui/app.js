@@ -288,6 +288,29 @@ async function closeGuide() {
   }
 }
 
+/**
+ * The program's window holds the close of the window until this has run (shell/src-tauri/src/main.rs asks for it): the open guide is saved
+ * first, then the program is told, and it tells the window, which closes. When the guide cannot be saved the program is told that, the window
+ * stays open, and the message that says so is on the page; closing the window again leaves anyway. (Without this, a change made in the last
+ * moment before the window went could be lost: saving waits a short while after a change, and a page that is going away cannot be sure its last
+ * request is sent.)
+ */
+Object.defineProperty(window, "osgClosing", {
+  value: async () => {
+    let saved = true;
+    try {
+      saved = await settle();
+    } catch {
+      saved = false;
+    }
+    try {
+      await post("closing", { saved });
+    } catch {
+      /* the window closes itself after a few seconds */
+    }
+  },
+});
+
 // Save what is waiting when the page is hidden or closed.
 window.addEventListener("pagehide", () => void guideDoc?.flush());
 doc.addEventListener("visibilitychange", () => {
