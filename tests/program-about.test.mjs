@@ -10,10 +10,19 @@ const ROOT=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const notice=fs.readFileSync(path.join(ROOT,'NOTICE'),'utf8');
 const pkg=JSON.parse(fs.readFileSync(path.join(ROOT,'package.json'),'utf8'));
 
+test('the program does not call itself a prototype: not in the About line, and not in the closed section every tool page ends with',()=>{
+  assert.doesNotMatch(aboutVersion({version:'0.1.0',build:'a1b2c3d4'}),/prototype/i);
+  const tools=fs.readFileSync(path.join(ROOT,'public','taskpane.html'),'utf8');
+  const support=/<details class="support"><summary>([^<]*)<\/summary><p>([^<]*)<\/p>/.exec(tools);
+  assert.ok(support,'the closed section is there');
+  assert.equal(support[1],'Support and recovery');
+  assert.doesNotMatch(support[1]+support[2],/prototype|first build|test document/i);
+});
+
 test('the version line says the version and the start of the build, and says nothing it was not told',()=>{
-  assert.equal(aboutVersion({version:'0.1.0',build:'a1b2c3d4'}),'Version 0.1.0 (prototype), build a1b2c3d4.');
-  assert.equal(aboutVersion({version:'0.1.0'}),'Version 0.1.0 (prototype).','no build, no build in the line');
-  assert.equal(aboutVersion({version:'0.1.0',build:'not hex!'}),'Version 0.1.0 (prototype).','a build that is not a hash is left out');
+  assert.equal(aboutVersion({version:'0.1.0',build:'a1b2c3d4'}),'Version 0.1.0, build a1b2c3d4.');
+  assert.equal(aboutVersion({version:'0.1.0'}),'Version 0.1.0.','no build, no build in the line');
+  assert.equal(aboutVersion({version:'0.1.0',build:'not hex!'}),'Version 0.1.0.','a build that is not a hash is left out');
   for(const bad of [null,undefined,{},{version:''},{version:'x'},{version:'1.2'},{version:'<b>1.0.0</b>'}])assert.equal(aboutVersion(bad),null,JSON.stringify(bad));
 });
 

@@ -171,7 +171,7 @@ try{
   await page.getByRole('menuitem',{name:/About OpenStage Guide/}).click();
   await page.locator('dialog[open] h2').waitFor({timeout:5000});
   const about=await page.evaluate(()=>{const d=document.querySelector('dialog[open]'),b=d.querySelector('.dialog-body');return {text:d.innerText,sideways:b.scrollWidth>b.clientWidth+1,fits:d.getBoundingClientRect().bottom<=innerHeight+1};});
-  ok(/Version \d+\.\d+\.\d+ \(prototype\), build [0-9a-f]{8}\./.test(about.text),'About says the version and the build');
+  ok(/Version \d+\.\d+\.\d+, build [0-9a-f]{8}\./.test(about.text)&&!/prototype/i.test(about.text),'About says the version and the build');
   ok(/Apache License 2\.0/.test(about.text)&&/Made with/.test(about.text)&&/JSZip/.test(about.text)&&/SIL Open Font License/.test(about.text)&&/NOTICE file/.test(about.text),'and the license, what it is made with, and where the full notices are');
   ok(!about.sideways&&about.fits,'in a dialog with no sideways scrollbar that fits the window: '+JSON.stringify({sideways:about.sideways,fits:about.fits}));
   await page.keyboard.press('Escape');

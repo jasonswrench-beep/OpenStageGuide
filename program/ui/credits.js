@@ -23,5 +23,5 @@ export function aboutVersion(info) {
   const version = String(info?.version ?? "").trim();
   if (!/^\d+\.\d+\.\d+$/.test(version)) return null;
   const build = String(info?.build ?? "").trim();
-  return `Version ${version} (prototype)${/^[0-9a-f]{6,64}$/.test(build) ? `, build ${build}` : ""}.`;
+  return `Version ${version}${/^[0-9a-f]{6,64}$/.test(build) ? `, build ${build}` : ""}.`;
 }
