@@ -52,7 +52,16 @@ The icons in `src-tauri/icons` are made from the product icon (`public/assets/ri
 
 ## State (2026-11-14)
 
-**Latest: v0.1.0-alpha.3**, published the same day as a pre-release (tag on 7120c09; on GitHub `OpenStage-Guide-0.1.0-alpha.3-Setup.exe`, 29,088,176 bytes,
+**Latest: v0.1.0-alpha.4**, published the same day as a pre-release (tag on 8af0500; on GitHub `OpenStage-Guide-0.1.0-alpha.4-Setup.exe`, 29,092,600 bytes,
+SHA-256 `b174758911e0395313f37e1678c476a113fd0b61c1571f0798cbaeaf1f36f236`, About reads build `e27dca16`), built with `python -I tools/build_installer.py --sign`. It adds
+the fourteen menus (Start, Sections, Activities, Slides, Assessment, eLearning, Check & Plan, Make between View and Help; `PROGRAM_MENUS` in `src/guide-tools.mjs`), the four
+tools only the program has (Add Lesson, Learning Outcomes, E-Learning Cues, Accessibility) and the blocks' icons drawn on the guide's page. Signed and timestamped as below
+(8 of our files by Jason Wrench; Node keeps its makers' signature), unpacked: 259 files of the program identical to the commit, `release.txt` says `v0.1.0-alpha.4`, the five
+browser checks pass on the unpacked files with the setup's own Node (112, 29, 217, 7, 6), and its signed window, started from the unpacked folder, showed the fourteen menus
+on one row at 1360 by 900 with the icons on the page. Downloaded again from GitHub without signing in, the file has the same hash and a valid signature, and a copy
+that says it is alpha 3 asked Check for updates and was told alpha 4 is out. Not yet seen installed by the author.
+
+**v0.1.0-alpha.3**, published the same day as a pre-release (tag on 7120c09; on GitHub `OpenStage-Guide-0.1.0-alpha.3-Setup.exe`, 29,088,176 bytes,
 SHA-256 `e59eda6e05d07c7625c37087ef31ca87de2bd27734778a97cc483f72e366ff2f`), built with `python -I tools/build_installer.py --sign`. It adds zoom for the guide's page (View menu,
 the formatting bar, Ctrl+Alt+= - 0, Ctrl and the wheel over the guide) and the fix for the empty space below a long guide. Signed and timestamped as below (8 of our files by
 Jason Wrench; Node keeps its makers' signature), unpacked: 259 files of the program identical to the commit, `release.txt` says `v0.1.0-alpha.3`, and the server in its own
