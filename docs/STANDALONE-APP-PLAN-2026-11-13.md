@@ -86,7 +86,7 @@ Where it lives (recommended): a new `app/` folder in this repository, on its own
 
 ## 7. Questions only the author can answer
 
-1. The program's name and the file extension (not `.osguide`, which Capture Express uses).
+1. ~~The program's name~~ **Answered 2026-11-13: it stays OpenStage Guide.** The file extension is still open (not `.osguide`, which Capture Express uses).
 2. ~~The Guide's colour pair (section 4 proposes teal-blue).~~ **Answered 2026-11-13: the blue is accepted** (`#0E7490`, `#155E75`, `#E3F4F7`, `#67E8F9`).
 3. Whether the add-in is kept going next to the program, or frozen once the program can do everything it does.
 4. Where the code lives (this repository, recommended, or a new one) and where a public download would live.

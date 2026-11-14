@@ -28,5 +28,5 @@ The page writes text and attributes only (never markup); it reaches nothing but 
 - **The tools beside it keep the add-in's look inside** (green boxes, small type). Restyling them in the suite's look, and moving each tool's buttons into the menus, comes with the editing surface and the Forms tool.
 - **No Forms tool** (F3): adding it to the add-in's tool list would change the add-in's ribbon, so the program needs a tool list of its own.
 - **No export menu**, no welcome-page sample guide, no Save as, no recent-list controls, no About page beyond a short dialog.
-- **The file ending** (`.guide-project.json`) and the program's name are decisions for the author.
+- **The program's name is OpenStage Guide** (answered by the author, 2026-11-13). **The file ending** (`.guide-project.json`) is still a decision for the author.
 - **Nothing has been tried in Word, with a screen reader, or on a second computer.**
