@@ -49,7 +49,8 @@ try{
   // (the page saves 0.4 seconds after the last change, so what is on disk is read only after that has passed and it says Saved)
   const saved=async()=>{await page.waitForTimeout(600);await page.waitForFunction(()=>document.querySelector('.bar-context-state')?.getAttribute('data-state')==='saved',null,{timeout:10000});};
   const rows=()=>page.locator('#work-guide [data-index]');
-  const row=re=>page.locator('#work-guide [data-index]').filter({hasText:re}).first();
+  // (the contents list under "Contents" repeats the headings' words; it is not what these checks mean by a row)
+  const row=re=>page.locator('#work-guide [data-index]:not(.g-toc)').filter({hasText:re}).first();
   const active=()=>page.evaluate(()=>{const a=document.activeElement;return a?{tag:a.tagName,words:a.tagName==='TEXTAREA'||a.isContentEditable,index:a.dataset?.index??null,label:a.getAttribute('aria-label'),value:a.value??null,start:a.selectionStart??null}:null;});
 
   // ---- a guide with something in it, made with the tools

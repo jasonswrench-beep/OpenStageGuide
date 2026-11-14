@@ -164,6 +164,11 @@ dialog:has(.dlg-close) .dialog-body > h2:first-child { padding-right: 40px; }
 dialog .dialog-body { max-height: calc(100vh - 48px); overflow-y: auto; margin: 0 -20px; padding: 0 20px; }
 /* The foot sits flush with the dialog's bottom edge, inside the scrolling body (a negative margin there was cut off by the body's own edge). */
 dialog:has(.dialog-body) { padding-bottom: 0; }
+/* The About window's version, license and what the program is made with. */
+.about-version { font-weight: 600; margin: 0 0 8px; }
+.about-head { font-size: 1rem; margin: 14px 0 4px; }
+.about-list { margin: 0 0 8px; padding-left: 1.2rem; }
+.about-list li { margin: 3px 0; }
 dialog .dialog-actions { position: sticky; bottom: 0; margin: 8px -20px 0; padding: 12px 20px; background: var(--card); border-top: 1px solid var(--line); border-radius: 0 0 11px 11px; }
 
 /* The app moves focus to the content when a screen changes, for a screen reader. That focus is not drawn: the keyboard's own
@@ -275,6 +280,7 @@ main:focus, main:focus-visible { outline: none; }
 .page .g-notes { border-left: 4px solid var(--os-shell); background: var(--subtle); padding: 6px 10px; margin: 6px 0; font-size: 0.93rem; }
 .page .g-para { margin: 0 0 8px; }
 .page .g-toc { margin: 0 0 2px; font: 0.95rem "Segoe UI", system-ui, sans-serif; }
+.page .g-toc-2 { margin-left: 1.4rem; }
 .page h4.g-form { font: 700 1.05rem "Segoe UI", system-ui, sans-serif; margin: 22px 0 6px; padding: 6px 10px; border-left: 5px solid var(--accent); background: var(--tint); color: var(--text); }
 .page h4.g-form.facilitator { border-left-color: var(--edge); background: var(--subtle); }
 .page .g-print { font: italic 0.85rem "Segoe UI", system-ui, sans-serif; color: var(--muted); background: var(--subtle); padding: 3px 8px; margin: 0 0 6px; }

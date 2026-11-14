@@ -4,6 +4,7 @@
  * a Close button in the corner that does what Escape does, a heading, and a foot of buttons whose main one is filled. Focus starts on the first
  * thing to fill in or choose, and goes back to where it was when the dialog closes. Text and attributes only, never markup.
  */
+import { ICONS_LINE, LICENSE_LINE, MADE_WITH, NOTICE_LINE, aboutVersion } from "./credits.js";
 import { guideName } from "./guide-name.js";
 import { el, uiIcon } from "./menubar.js";
 
@@ -210,13 +211,24 @@ export function askFields(doc, opts) {
   });
 }
 
-/** @param {Document} doc */
-export function aboutDialog(doc) {
+/**
+ * The About window: what the program is, which version it is (as the server reports it), its license and what it is made with.
+ * @param {Document} doc @param {{ version?: unknown, build?: unknown } | null} [info]
+ */
+export function aboutDialog(doc, info) {
+  const version = aboutVersion(info);
   return openDialog(doc, {
     title: "About OpenStage Guide",
     body: () => [
+      ...(version ? [el(doc, "p", { class: "about-version", text: version })] : []),
       el(doc, "p", { text: "OpenStage Guide makes facilitator guides and participant workbooks: the script, the forms and handouts around it, the timing and the checks." }),
       el(doc, "p", { class: "hint", text: "This is the first form of the program: the guide is kept in a file on this computer, and the tools beside it are the ones the Word add-in has. Nothing leaves this computer." }),
+      el(doc, "h3", { class: "about-head", text: "License" }),
+      el(doc, "p", { text: LICENSE_LINE }),
+      el(doc, "p", { text: ICONS_LINE }),
+      el(doc, "h3", { class: "about-head", text: "Made with" }),
+      el(doc, "ul", { class: "about-list" }, ...MADE_WITH.map((c) => el(doc, "li", { text: `${c.name}: ${c.use}. ${c.license}.` }))),
+      el(doc, "p", { class: "hint", text: NOTICE_LINE }),
     ],
     confirm: "Close",
     cancel: "",

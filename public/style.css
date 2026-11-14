@@ -83,6 +83,8 @@ details.legacy nav{position:static}
    landing underneath them. */
 .guide-status:not(:empty),.guide-error:not([hidden]){position:sticky;top:0;z-index:5;box-shadow:0 2px 6px #00000026}
 main{scroll-padding-top:7rem}
+/* While a box is being typed in, the lines stop being pinned, so what is being written is never underneath them; they pin again when the box is left. */
+main:has(input:focus,textarea:focus,select:focus) .guide-status:not(:empty),main:has(input:focus,textarea:focus,select:focus) .guide-error:not([hidden]){position:static;box-shadow:none}
 /* Compact layout (2026-11-06). A third of the pane was taken by bars that never scroll away, and long lists made the Guide screen about
    six screens tall, so the author did a lot of scrolling. The bars are slim, the screen is five short parts shown one at a time, and
    the long cue list stays put away until it is asked for. */

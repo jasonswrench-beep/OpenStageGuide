@@ -24,7 +24,7 @@ const main = /** @type {HTMLElement} */ (doc.getElementById("main"));
 const status = /** @type {HTMLElement} */ (doc.getElementById("status"));
 
 /** @type {{ current: string | null, folder: string, guides: { name: string, when: string }[] }} */
-let state = { current: null, folder: "", guides: [] };
+let state = { current: null, folder: "", guides: [], version: "", build: "" };
 /** @type {HTMLIFrameElement | null} */
 let toolsFrame = null;
 /** What to do when the tools have loaded: a tool chosen before they were ready. @type {string | null} */
@@ -105,7 +105,7 @@ const frame = startFrame(doc, {
   newGuide: () => void newGuide(),
   openGuide: () => void openGuide(),
   closeGuide: () => void closeGuide(),
-  about: () => void aboutDialog(doc),
+  about: () => void aboutDialog(doc, state),
 });
 
 /** @param {string} name */

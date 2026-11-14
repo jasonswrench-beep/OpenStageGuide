@@ -108,12 +108,24 @@ try{
   await fr.locator('#guide-add-module').click();
   await page.waitForFunction(()=>/Module 1: Naming the feeling/.test(document.querySelector('#work-guide')?.innerText||''),null,{timeout:10000});
   ok(true,'a module added in the tools appears in the guide');
+  // What the tools said stays pinned at the top of their pane while buttons are used, and stops being pinned while a box is typed in, so it never covers what is written.
+  const pinned=()=>fr.locator('#guide-status').evaluate(e=>getComputedStyle(e).position);
+  await fr.locator('#guide-status').waitFor({state:'visible',timeout:5000});
+  ok(await pinned()==='sticky','what the tools said is pinned at the top of their pane');
+  await fr.locator('#guide-new-title').focus();
+  ok(await pinned()==='static','and is not pinned while a box is being typed in');
+  await fr.locator('#guide-new-title').blur();
+  ok(await pinned()==='sticky','and is pinned again when the box is left');
   await shot('5-module-added.png');
 
   // ---- a button on the navy bar
   await page.getByRole('button',{name:'Update guide'}).click();
   await page.waitForTimeout(600);
   ok(!problems.length,'nothing went wrong in the page so far: '+JSON.stringify(problems.slice(0,2)));
+  // The contents table Update guide fills in is drawn under "Contents": an entry for each module, at its own level, with no page number (Word gives those).
+  await page.waitForFunction(()=>[...document.querySelectorAll('#work-guide .g-toc')].some(e=>/Module 1: Naming the feeling/.test(e.textContent)),null,{timeout:10000});
+  const toc=await page.locator('#work-guide .g-toc').evaluateAll(els=>els.map(e=>[e.className,e.textContent]));
+  ok(toc.some(([c,t])=>c==='g-toc g-toc-1'&&t==='Module 1: Naming the feeling')&&toc.some(([c,t])=>c==='g-toc g-toc-2'&&t==='About This Guide')&&toc.every(([,t])=>!t.includes('	')),'Update guide fills the Contents list in, drawn in the guide at its levels, with no page numbers: '+JSON.stringify(toc.slice(0,3)));
 
   // ---- the workbook reaches the author: there is no Word to open it in, so it is a real download
   // (a workbook needs something for learners in the guide: a highlight block, added from the Write menu)
@@ -152,6 +164,21 @@ try{
   await page.locator('dialog.keys-dialog').waitFor({state:'visible'});
   ok((await page.locator('dialog.keys-dialog h2').innerText())==='Keyboard keys','Ctrl+/ opens the key list');
   await shot('7-keys.png');
+  await page.keyboard.press('Escape');
+  // The About window says the version, the license and what the program is made with, in a dialog with no sideways scrollbar.
+  await page.getByRole('menuitem',{name:/^Help/}).click();
+  await page.getByRole('menuitem',{name:/About OpenStage Guide/}).click();
+  await page.locator('dialog[open] h2').waitFor({timeout:5000});
+  const about=await page.evaluate(()=>{const d=document.querySelector('dialog[open]'),b=d.querySelector('.dialog-body');return {text:d.innerText,sideways:b.scrollWidth>b.clientWidth+1,fits:d.getBoundingClientRect().bottom<=innerHeight+1};});
+  ok(/Version \d+\.\d+\.\d+ \(prototype\), build [0-9a-f]{8}\./.test(about.text),'About says the version and the build');
+  ok(/Apache License 2\.0/.test(about.text)&&/Made with/.test(about.text)&&/JSZip/.test(about.text)&&/SIL Open Font License/.test(about.text)&&/NOTICE file/.test(about.text),'and the license, what it is made with, and where the full notices are');
+  ok(!about.sideways&&about.fits,'in a dialog with no sideways scrollbar that fits the window: '+JSON.stringify({sideways:about.sideways,fits:about.fits}));
+  await page.keyboard.press('Escape');
+  // And a search for "pdf" finds where a PDF comes from: Save as Word file, which Word can save as one.
+  await page.keyboard.press('Control+k');
+  await page.locator('dialog.command-search').waitFor({state:'visible'});
+  await page.keyboard.type('pdf');
+  ok(/Save as Word file/.test(await page.locator('.cs-list').innerText()),'a search for pdf finds Save as Word file');
   await page.keyboard.press('Escape');
 
   // ---- the keyboard reaches the menus

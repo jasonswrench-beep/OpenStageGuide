@@ -237,7 +237,14 @@ export function describeGuide(entries, parseXml, options = {}) {
   for (let index = 0; index < entries.length; index++) {
     const entry = entries[index];
     const xml = entry.xml ?? "";
-    if (!xml.trim()) continue;
+    if (!xml.trim()) {
+      // A contents line that the program's own document keeps as plain words (Update guide writes it so; the Word file turns the lines into a
+      // contents table). It is drawn as the entry it will be, without the page number, which only Word can give.
+      const toc = /^toc (\d)$/i.exec(entry.style ?? "");
+      const words = toc ? String(entry.text ?? "").split("\t")[0].trim() : "";
+      if (toc && words) out.push({ tag: "p", cls: `g-toc g-toc-${toc[1]}`, text: words, index });
+      continue;
+    }
     let root = null;
     try {
       root = parseXml(xml).documentElement;

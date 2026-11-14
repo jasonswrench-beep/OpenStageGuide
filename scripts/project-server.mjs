@@ -69,7 +69,8 @@ export async function startProjectServer({file,folder,port=3850,snapshot,maxByte
     for(const name of names){try{const st=await fs.stat(path.join(dir,name));out.push({name,when:st.mtime.toISOString()});}catch{/* gone while listing */}}
     return out.sort((a,b)=>b.when.localeCompare(a.when));
   }
-  const stateNow=async()=>({current,folder:dir,guides:await guides()});
+  // `version` and `build` are what the About window shows: the program's own version and the start of the build's identity (build-snapshot.mjs).
+  const stateNow=async()=>({current,folder:dir,guides:await guides(),version:snap.version,build:String(snap.buildId||'').slice(0,8)});
 
   async function project(req,res){
     if(req.method==='GET'||req.method==='HEAD'){

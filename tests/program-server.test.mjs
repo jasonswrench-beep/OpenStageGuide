@@ -184,3 +184,12 @@ test('started by the program\'s window: it names the address it listens on, on a
     assert.equal(await Promise.race([exited,new Promise(r=>setTimeout(()=>r('still running'),5000))]),0,'closing its input stops it');
   }finally{child.kill();fs.rmSync(dir,{recursive:true,force:true});}
 });
+
+test('the state says which version the program is and the start of its build, for the About window',async()=>{
+  await withServer(async({call,post})=>{
+    const state=(await call('GET','/api/state')).json();
+    assert.equal(state.version,'0-test');
+    assert.equal(state.build,'test-bui','the first eight characters of the build identity');
+    assert.equal((await post('new',{name:'A guide'})).json().version,'0-test','every answer that gives the state gives it');
+  });
+});

@@ -98,6 +98,32 @@ test('what is not words is not drawn: empty paragraphs, a table\'s later cells, 
   assert.deepEqual(nodes,[{tag:'p',cls:'g-other',text:'Words that were in it',index:3}]);
 });
 
+test('the contents lines Update guide writes (plain words, no XML) are drawn as the entries they will be, without the page number only Word can give',async()=>{
+  const W='xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"';
+  const entries=[
+    {xml:`<w:p ${W}><w:r><w:t>Contents</w:t></w:r></w:p>`,text:'Contents',style:'heading 1'},
+    {xml:'',text:'Module 1: Naming it\t1',style:'TOC 1'},
+    {xml:'',text:'Lesson 1.1: First\t1',style:'TOC 2'},
+    {xml:'',text:'\t1',style:'TOC 2'},
+    {xml:'',text:'Not a contents line',style:'Normal'},
+    {xml:`<w:p ${W}><w:r><w:t>Getting Started</w:t></w:r></w:p>`,text:'Getting Started',style:'heading 1'}
+  ];
+  const nodes=describeGuide(entries,parseXml);
+  assert.deepEqual(nodes.filter(n=>/g-toc/.test(n.cls||'')).map(n=>[n.cls,n.text,n.index]),[['g-toc g-toc-1','Module 1: Naming it',1],['g-toc g-toc-2','Lesson 1.1: First',2]],'only lines with words are drawn, at their own level, with no page number');
+  assert.equal(nodes.length,4,'the two headings and the two lines; a line with no words and a plain paragraph with no XML are left out');
+  // drawn with text only
+  const page=new Fake('div');
+  drawNodes(fakeDoc(),page,nodes);
+  assert.match(page.textContent,/Module 1: Naming itLesson 1\.1: First/);
+  assert.doesNotMatch(page.textContent,/\t1/);
+  // the same lines are not swallowed by a table that comes before them
+  const tbl=`<w:tbl ${W}><w:tr><w:tc><w:p><w:r><w:t>A</w:t></w:r></w:p></w:tc></w:tr></w:tbl>`;
+  const after=describeGuide([{xml:tbl,text:'A',style:'OSG Table Head'},{xml:`<w:p ${W}><w:r><w:t>Contents</w:t></w:r></w:p>`,text:'Contents',style:'heading 1'},{xml:'',text:'Module 1\t1',style:'TOC 1'}],parseXml);
+  assert.equal(after.length,3,'the table, the heading and the line');
+  assert.equal(after.at(-1).cls,'g-toc g-toc-1');
+  assert.equal(after.at(-1).text,'Module 1');
+});
+
 test('markup in the guide\'s words is drawn as words: nothing is ever written as markup',()=>{
   const evil='<img src=x onerror=alert(1)> & <script>alert(2)</script>';
   const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');

@@ -142,7 +142,7 @@ export function buildMenus(ctx) {
       { label: "Open guide...", icon: "folder-open", title: "Open a guide you made before", run: ctx.openGuide },
       { label: "Close guide", icon: "x", title: "Close this guide and go back to the welcome page", run: ctx.closeGuide, enabled: ctx.hasGuide },
       "-",
-      { label: "Save as Word file...", icon: "file-down", title: "Make a Word document from the guide, with its styles, pictures and a contents table", run: () => void ctx.saveWord?.(), enabled: ctx.hasGuide },
+      { label: "Save as Word file...", icon: "file-down", title: "Make a Word document from the guide, with its styles, pictures and a contents table. Word can save it as a PDF", run: () => void ctx.saveWord?.(), enabled: ctx.hasGuide },
       { label: "Save styles as a Word template...", icon: "swatch-book", title: "Make a Word template that has the guide's styles, so other documents can look like the guide", run: () => void ctx.saveTemplate?.(), enabled: ctx.hasGuide },
       "-",
       tool("saveBackup"),
@@ -200,7 +200,7 @@ export function buildMenus(ctx) {
       { label: "Search for a command...", icon: "search", keys: "Ctrl+K", title: "Find any command by its name", run: ctx.search },
       { label: "Keyboard keys", icon: "keyboard", keys: "Ctrl+/", title: "Every key the program has", run: ctx.keys },
       "-",
-      { label: "About OpenStage Guide", icon: "info", title: "What this program is", run: ctx.about },
+      { label: "About OpenStage Guide", icon: "info", title: "What this program is, its version, its license and what it is made with", run: ctx.about },
     ],
   };
   const middle = GROUPS.filter((g) => /** @type {Record<string, unknown>} */ (GROUP_MENUS)[g.id]).map((g) => {
