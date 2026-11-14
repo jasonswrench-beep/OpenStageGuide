@@ -37,7 +37,7 @@ export function drawWelcome(doc, main, opts) {
       el(doc, "p", { class: "lead", text: "Make a facilitator guide and the participant workbook that goes with it: the script, the forms and handouts around it, the timing and the checks." }),
       el(doc, "div", { class: "welcome-actions" }, newButton, openButton),
       el(doc, "section", { class: "recent", "aria-labelledby": "recent-title" }, el(doc, "div", { class: "recent-head" }, el(doc, "h2", { id: "recent-title", text: "Your guides" })), list),
-      ...(opts.folder ? [el(doc, "p", { class: "where", text: `Your guides are kept in ${opts.folder}.` })] : []),
+      ...(opts.folder ? [el(doc, "p", { class: "where", text: `Your guides are kept in a folder named "${opts.folder}".` })] : []),
     ),
   );
 }

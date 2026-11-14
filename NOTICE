@@ -23,11 +23,12 @@ JSZip 3.10.1 (public/vendor/jszip.min.js, loaded by the task pane)
   Copyright (c) 2009-2016 Stuart Knightley, David Duponchel, Franz Buchinger, Antonio Afonso. The full text is
   in public/vendor/JSZip-LICENSE.md.
 
-PDF.js 3.11.174 (public/vendor/pdf.min.js and pdf.worker.min.js, loaded only by the file window, picker.html, to draw the pages of a PDF
-of a presentation as slide pictures)
+PDF.js 3.11.174 (public/vendor/pdf.min.js and pdf.worker.min.js, kept in the repository for the Word add-in's file window, picker.html)
   https://mozilla.github.io/pdf.js/
   Apache License 2.0, Copyright 2023 Mozilla Foundation and contributors. The full text is in public/vendor/pdfjs-LICENSE.txt.
-  It runs in the browser on the author's own PC and sends nothing anywhere.
+  It is NOT part of OpenStage Guide as a program: the program's server does not serve it or picker.html, and the program's window does not carry
+  them (shell/prepare.mjs). This version has a published flaw (CVE-2024-4367, fixed in 4.2.67); src/pdf-slides.mjs opens a PDF with eval turned
+  off, and a current release must replace this copy before anything that serves picker.html is made.
 
 Fonts that come with the program (program/fonts: drawn by the program's page, and carried inside a Word file made from a guide that uses them)
   Every font is the makers' own file, unmodified, under the SIL Open Font License, Version 1.1, which allows it to be used, shipped and embedded in

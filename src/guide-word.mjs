@@ -14,6 +14,7 @@ import {REF_TAG_PREFIX} from './guide-forms.mjs';
 import {NS,STYLE_IDS,STYLE_NAMES,stylesPart,numberingPart} from './guide-styles.mjs';
 import {iconUrl,ICON_FILES} from './guide-cues.mjs';
 import {cleanStyleEdits,applyStyleEdits,listStyles} from './guide-styles-edit.mjs';
+import {cleanParagraphXml} from './guide-xml-clean.mjs';
 import {readStyles,textOf} from './guide-check.mjs';
 import {explainWordError} from './word-errors.mjs';
 import {pickFilesWithDialog,pickWithBrowserInputs} from './file-pick.mjs';
@@ -903,15 +904,18 @@ export function createDemoAdapter({DOMParserClass=globalThis.DOMParser,Serialize
       return {title:docTitle,paragraphs:paras.map(({xml,text,style,builtIn})=>({xml,text,style,...(builtIn?{builtIn}:{})})),cursor,ownCues:[...ownCues],look:lookText,slideMemory,versionMemory,forms:formsText,applied:copy(applied),headerFooter:copy(headerFooter),media:usedMedia(),styles:copy(styleEdits)};
     },
     importState(guide){
+      // A guide file is data a person may be sent: what could make Word reach outside the file (fields other than the program's own, links,
+      // objects, addresses) is taken out of every paragraph here, before the guide holds it (src/guide-xml-clean.mjs).
+      const cleaned=guide.paragraphs.map(p=>p.xml?cleanParagraphXml(p.xml,styleIo).xml:p.xml);
       const marksList=guide.paragraphs.map((p,i)=>{
         if(!p.xml)return undefined;
         let d=null;
-        try{d=parseXml(p.xml);}catch{d=null;}
+        try{d=parseXml(cleaned[i]);}catch{d=null;}
         // Every paragraph is a Word paragraph or table. A browser's own parser also flags unbalanced tags with a parsererror.
         if(!d||!d.documentElement||d.getElementsByTagName('parsererror').length||!['p','tbl'].includes(d.documentElement.localName))throw new Error(`Paragraph ${i+1} of the project is damaged, so the project was not opened.`);
         return d.documentElement.localName==='p'?marksOf(d.documentElement):undefined;
       });
-      paras=guide.paragraphs.map((p,i)=>({...p,...(marksList[i]?{marks:marksList[i]}:{})}));cursor=guide.cursor;docTitle=guide.title;ownCues=[...guide.ownCues];
+      paras=guide.paragraphs.map((p,i)=>({...p,xml:cleaned[i],...(marksList[i]?{marks:marksList[i]}:{})}));cursor=guide.cursor;docTitle=guide.title;ownCues=[...guide.ownCues];
       lookText=guide.look;slideMemory=guide.slideMemory;versionMemory=guide.versionMemory;formsText=guide.forms??null;media=Object.create(null);Object.assign(media,guide.media||{});styleEdits=cleanStyleEdits(guide.styles);refreshStyles();
       applied.length=0;applied.push(...guide.applied);headerFooter.length=0;headerFooter.push(...guide.headerFooter);history.length=0;future.length=0;lastGroup=null;
     },

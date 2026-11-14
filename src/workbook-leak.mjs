@@ -22,7 +22,7 @@ const SAVED_REL_TYPES=[`${REL}/extended-properties`,`${REL}/theme`,`${REL}/fontT
 // Elements that carry things a workbook must not carry: revisions, comments, notes, hidden text, custom data, legacy pictures
 // and text boxes (which hold paragraphs of their own).
 const FORBIDDEN_ELEMENTS=['ins','del','moveFrom','moveTo','commentRangeStart','commentRangeEnd','commentReference','footnoteReference','endnoteReference',
-  'footnotes','endnotes','comments','customXml','customXmlPr','smartTagPr','pict','object','txbxContent','cellIns','cellDel','cellMerge'];
+  'footnotes','endnotes','comments','customXml','customXmlPr','smartTagPr','pict','object','txbxContent','cellIns','cellDel','cellMerge','ruby'];
 const FIELD_OK=/^\s*(TOC|PAGE|NUMPAGES)\b/;
 const SAVED_FIELD_OK=/^\s*(TOC|PAGE|NUMPAGES|PAGEREF|HYPERLINK\s+\\l)\b/;
 const FACILITATOR_STYLE_NAMES=new Set([STYLE_NAMES.cueFacilitator,STYLE_NAMES.notes,STYLE_NAMES.answerKey,STYLE_NAMES.time,STYLE_NAMES.formTitleFacilitator,STYLE_NAMES.formPrint]);
@@ -94,7 +94,7 @@ export function leakCheck({files,facilitatorTexts=[],allowedTexts=[],expectedTit
       if(isW&&(FORBIDDEN_ELEMENTS.includes(local)||/Change$/.test(local)))hidden.push(`${name} has ${local}`);
       else if(!isW&&(local==='txbxContent'||el.namespaceURI===MC&&local==='AlternateContent'))hidden.push(`${name} has ${local}`);
       else if(isW&&local==='hyperlink'&&!(saved&&el.getAttributeNS(REL,'id')===''&&el.getAttributeNS(W,'anchor')))hidden.push(`${name} has hyperlink`);
-      else if(isW&&local==='vanish'&&!['false','0','off'].includes(val(el).toLowerCase()))hidden.push(`${name} has hidden text`);
+      else if(isW&&['vanish','webHidden','specVanish'].includes(local)&&!['false','0','off'].includes(val(el).toLowerCase()))hidden.push(`${name} has hidden text`);
       else if(isW&&local==='sdt'&&!all(el,W14,'checkbox').length)hidden.push(`${name} has a content control that is not a check box`);
       else if(isW&&local==='instrText'&&!fieldOk.test(el.textContent))hidden.push(`${name} has the field ${el.textContent.trim().slice(0,30)}`);
       else if(isW&&local==='fldSimple'&&!fieldOk.test(el.getAttributeNS(W,'instr')))hidden.push(`${name} has a field`);

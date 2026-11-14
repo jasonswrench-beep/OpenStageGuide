@@ -7,7 +7,7 @@
 //
 // Run by `npm run build` and `npm run dev`. The folder it fills is not kept in the repository.
 
-import { cpSync, existsSync, mkdirSync, rmSync, statSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -25,11 +25,24 @@ copy("package.json");
 copy("package-lock.json");
 copy("src");
 copy("program");
-copy("public");
-for (const script of ["project-server.mjs", "build-snapshot.mjs", "http-handler.mjs"]) copy(join("scripts", script));
+// The public folder is the add-in's pane. Its file window (picker.html) and the PDF library it uses (public/vendor/pdf*) are for Word's dialog,
+// which the program does not have: they are not carried, and the program's server does not serve them.
+const addInOnly = (path) => /[\\/]picker\.html$/.test(path) || /[\\/]vendor[\\/](pdf\.|pdfjs-)/.test(path);
+cpSync(join(repo, "public"), join(out, "app", "public"), { recursive: true, filter: (source) => !addInOnly(source) });
+for (const script of ["project-server.mjs", "build-snapshot.mjs", "http-handler.mjs", "security-headers.mjs"]) copy(join("scripts", script));
 copy(join("node_modules", "acorn"));
 copy("LICENSE");
 copy("NOTICE");
+
+// The release this window is (OPENSTAGE_GUIDE_RELEASE, such as v0.1.0-alpha.1; tools/build_installer.py sets it), written beside the program's files for
+// Check for updates to compare with the published releases. A window built without one has none, and Check for updates then says which release is
+// the newest.
+const release = (process.env.OPENSTAGE_GUIDE_RELEASE ?? "").trim();
+if (release) {
+  if (!/^v\d{1,6}\.\d{1,6}\.\d{1,6}(?:-(?:alpha|beta|rc)\.\d{1,6})?$/.test(release)) throw new Error(`OPENSTAGE_GUIDE_RELEASE is not a release tag like v0.1.0-alpha.1: ${release}`);
+  writeFileSync(join(out, "app", "release.txt"), `${release}
+`);
+}
 
 // The Node that is running this is the Node the program was written against, and it is the one carried.
 mkdirSync(join(out, "node"), { recursive: true });

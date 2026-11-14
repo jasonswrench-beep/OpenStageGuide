@@ -22,7 +22,7 @@ LeaderGuide Pro itself, from the public Great Circle Learning walkthrough page a
 - Marketplace acceptance is never a prerequisite for a private test.
 - Separate confirmed findings from hypotheses, and native Word results from automated tests.
 
-### Original design intent (the first Claude conversation and spec, read 2026-10-24)
+### Original design intent (the first design conversation and spec, read 2026-10-24)
 
 The first spec (working title GuideSmith, researched from Great Circle Learning's public pages) asked for:
 

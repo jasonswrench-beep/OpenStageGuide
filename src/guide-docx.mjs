@@ -4,6 +4,7 @@
 // The guide is held as a flat Word package (the form Word's own getOoxml gives): the document, its relationships, the styles, the lists and
 // the pictures, each as a part. A Word file is the same parts in a zip with a content types list and the package's own relationships.
 import {STYLES as FONT_STYLES,obfuscateFont,newGuid,packFontsUsed,namedOnlyUsed} from './guide-fonts.mjs';
+import {cleanParagraphXml} from './guide-xml-clean.mjs';
 const W='http://schemas.openxmlformats.org/wordprocessingml/2006/main';
 const REL='http://schemas.openxmlformats.org/officeDocument/2006/relationships';
 const CT={main:'application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml',template:'application/vnd.openxmlformats-officedocument.wordprocessingml.template.main+xml',settings:'application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml',fontTable:'application/vnd.openxmlformats-officedocument.wordprocessingml.fontTable+xml',font:'application/vnd.openxmlformats-officedocument.obfuscatedFont'};
@@ -21,7 +22,7 @@ const EXTENSIONS={png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',gif:'image/
  * no XML) made into a real contents field Word can update to give page numbers.
  * @param {{xml?:string,text?:string,style?:string}[]} entries
  */
-export function bodyWithContents(entries){
+export function bodyWithContents(entries,clean=x=>x){
   let out='',run=[];
   const level=style=>/^toc (\d)$/i.exec(style||'')?.[1];
   const flush=()=>{
@@ -35,7 +36,7 @@ export function bodyWithContents(entries){
     run=[];
   };
   for(const e of entries){
-    if(e.xml&&String(e.xml).trim()){flush();out+=e.xml;}
+    if(e.xml&&String(e.xml).trim()){flush();out+=clean(e.xml);}
     else if(level(e.style)&&String(e.text||'').trim())run.push(e);
     // anything else with no XML is a cell of a table that came with the table's own XML
   }
@@ -86,7 +87,7 @@ const partsOf=(pkgXml,io)=>{
 export async function docxFromPackage(pkgXml,JSZipClass,io,{template=false,entries,title,fonts,onEmbedded,onNamed}={}){
   const parts=partsOf(pkgXml,io);
   const docPart=parts.find(p=>p.name==='/word/document.xml')?.xml??'';
-  const bodyOf=template?'':withSection(entries?bodyWithContents(entries):/<w:body>([\s\S]*)<\/w:body>/.exec(docPart)?.[1]??'');
+  const bodyOf=template?'':withSection(entries?bodyWithContents(entries,xml=>cleanParagraphXml(xml,io).xml):/<w:body>([\s\S]*)<\/w:body>/.exec(docPart)?.[1]??'');
   onNamed?.(namedOnlyUsed(parts.find(p=>p.name==='/word/styles.xml')?.xml,bodyOf).map(f=>({family:f.family})));
   const zip=new JSZipClass();
   // No entries for folders: some services that open Word files refuse a file that has them.
@@ -165,6 +166,34 @@ export async function docxFromPackage(pkgXml,JSZipClass,io,{template=false,entri
  * The styles part (and the theme's two fonts) of a Word file, or a message saying why it cannot be read. Nothing in the file is run or opened.
  * @returns {Promise<{stylesXml:string, themeFonts:{major?:string, minor?:string}}>}
  */
+// A part of a zip as bytes, counted as it is inflated and stopped at `limit`. What a file says about its own size is not used: a crafted file can
+// claim a few bytes and inflate to gigabytes, which would freeze the page. Rejects with {tooLarge:true} when the part is over the limit.
+function readCapped(file,limit){
+  return new Promise((resolve,reject)=>{
+    const chunks=[];
+    let total=0,finished=false;
+    const fail=e=>{if(!finished){finished=true;reject(e);}};
+    let helper;
+    try{helper=file.internalStream('uint8array');}catch(e){fail(e);return;}
+    helper.on('data',chunk=>{
+      if(finished)return;
+      total+=chunk.length;
+      if(total>limit){fail(Object.assign(new Error('too large'),{tooLarge:true}));try{helper.pause();}catch{/* already stopped */}return;}
+      chunks.push(chunk);
+    });
+    helper.on('error',fail);
+    helper.on('end',()=>{
+      if(finished)return;
+      finished=true;
+      const out=new Uint8Array(total);
+      let at=0;
+      for(const c of chunks){out.set(c,at);at+=c.length;}
+      resolve(out);
+    });
+    helper.resume();
+  });
+}
+
 export async function readDocxStyles(bytes,JSZipClass,io){
   if(!bytes||!bytes.length||bytes.length>DOCX_LIMITS.fileBytes)throw new Error(`Choose a Word file under ${DOCX_LIMITS.fileBytes/1048576} MB.`);
   let zip;
@@ -173,15 +202,18 @@ export async function readDocxStyles(bytes,JSZipClass,io){
   if(names.length>DOCX_LIMITS.parts)throw new Error('That Word file has too many parts to read.');
   const file=zip.file('word/styles.xml');
   if(!file)throw new Error('That file has no styles in it. Choose a Word document or template.');
-  if((file._data?.uncompressedSize??0)>DOCX_LIMITS.partBytes)throw new Error('The styles in that file are too large to read.');
-  const stylesXml=await file.async('string');
-  if(stylesXml.length>DOCX_LIMITS.partBytes)throw new Error('The styles in that file are too large to read.');
+  let stylesXml;
+  try{stylesXml=new TextDecoder().decode(await readCapped(file,DOCX_LIMITS.partBytes));}
+  catch(e){throw new Error(e?.tooLarge?'The styles in that file are too large to read.':'The styles in that file could not be read.');}
   const root=io.parse(stylesXml).documentElement;
   if(!root||root.namespaceURI!==W||root.localName!=='styles')throw new Error('The styles in that file are not in a form this program can read.');
   const themeFonts={};
   const theme=zip.file('word/theme/theme1.xml');
-  if(theme&&(theme._data?.uncompressedSize??0)<=DOCX_LIMITS.partBytes){
-    const doc=io.parse(await theme.async('string'));
+  // The theme only names two fonts: one that is too large, or that cannot be read, is left out and the styles are still used.
+  let themeXml=null;
+  if(theme){try{themeXml=new TextDecoder().decode(await readCapped(theme,DOCX_LIMITS.partBytes));}catch{themeXml=null;}}
+  if(themeXml){
+    const doc=io.parse(themeXml);
     const A='http://schemas.openxmlformats.org/drawingml/2006/main';
     for(const [key,tag] of [['major','majorFont'],['minor','minorFont']]){
       const latin=Array.from(doc.getElementsByTagNameNS(A,tag)[0]?.childNodes||[]).find(n=>n.nodeType===1&&n.localName==='latin');

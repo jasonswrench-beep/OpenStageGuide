@@ -38,26 +38,31 @@ test('a project with no file yet answers "nothing there", and the first save mak
   });
 });
 
-test('the project as it was found is kept once as .bak, on the first save only',async()=>{
+const copies=(dir,file)=>fs.readdirSync(dir).filter(n=>n.startsWith(path.basename(file)+'.')&&/\.\d{8}T\d{6}Z-\d{2}\.bak$/.test(n)).sort();
+
+test('the project as it was found is kept once as a dated copy, on the first save only',async()=>{
   const found=project('As found');
-  await withServer(async({file,call})=>{
+  await withServer(async({file,dir,call})=>{
     await put(call,project('Second'));
-    assert.equal(fs.readFileSync(file+'.bak','utf8'),found);
+    const made=copies(dir,file);
+    assert.equal(made.length,1);
+    assert.equal(fs.readFileSync(path.join(dir,made[0]),'utf8'),found);
     await put(call,project('Third'));
-    assert.equal(fs.readFileSync(file+'.bak','utf8'),found,'later saves do not replace the backup');
+    assert.deepEqual(copies(dir,file),made,'later saves take no more copies');
+    assert.equal(fs.readFileSync(path.join(dir,made[0]),'utf8'),found,'and do not change the one kept');
     assert.equal(fs.readFileSync(file,'utf8'),project('Third'));
   },{existing:found});
 });
 
 test('something that is not a project is refused with the reason, and the file is not touched',async()=>{
   const found=project('Keep');
-  await withServer(async({file,call})=>{
+  await withServer(async({file,dir,call})=>{
     for(const [body,pattern] of [['{"nope":1}',/not an OpenStage Guide project/],['not json',/not readable/],[JSON.stringify({format:'openstage-guide-project',version:99,guide:{paragraphs:[]}}),/newer/]]){
       const r=await put(call,body);
       assert.equal(r.status,400);assert.match(r.text,pattern);
     }
     assert.equal(fs.readFileSync(file,'utf8'),found);
-    assert.equal(fs.existsSync(file+'.bak'),false,'a refused save does not even take the backup');
+    assert.deepEqual(copies(dir,file),[],'a refused save does not even take the backup');
   },{existing:found});
 });
 

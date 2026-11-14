@@ -10,7 +10,7 @@ function make(){
   const calls=[];
   let guide=false;
   const ctx={hasGuide:()=>guide,openTool:id=>calls.push(['tool',id]),updateGuide:()=>calls.push(['update']),newGuide:()=>calls.push(['new']),openGuide:()=>calls.push(['open']),
-    closeGuide:()=>calls.push(['close']),search:()=>calls.push(['search']),keys:()=>calls.push(['keys']),about:()=>calls.push(['about'])};
+    closeGuide:()=>calls.push(['close']),search:()=>calls.push(['search']),keys:()=>calls.push(['keys']),about:()=>calls.push(['about']),updates:()=>calls.push(['updates'])};
   return {...buildMenus(ctx),calls,setGuide:v=>{guide=v;}};
 }
 const items=menus=>menus.flatMap(m=>m.items.filter(i=>i!=='-'));
@@ -71,8 +71,8 @@ test('choosing a tool asks for that tool, and the other commands do their own th
   assert.deepEqual(m.calls.map(c=>c[1]),TOOL_IDS);
   m.calls.length=0;
   const byLabel=l=>items(m.menus).find(i=>i.label===l);
-  byLabel('New guide...').run();byLabel('Open guide...').run();byLabel('Close guide').run();byLabel('Search for a command...').run();byLabel('Keyboard keys').run();byLabel('About OpenStage Guide').run();
-  assert.deepEqual(m.calls,[['new'],['open'],['close'],['search'],['keys'],['about']]);
+  byLabel('New guide...').run();byLabel('Open guide...').run();byLabel('Close guide').run();byLabel('Search for a command...').run();byLabel('Keyboard keys').run();byLabel('Check for updates...').run();byLabel('About OpenStage Guide').run();
+  assert.deepEqual(m.calls,[['new'],['open'],['close'],['search'],['keys'],['updates'],['about']]);
 });
 
 test('the search and the keys have their suite keys, and the navy bar has three buttons for what is done all the time',()=>{

@@ -13,7 +13,7 @@ export const CUE_ASSETS=Object.freeze({
     "sha256": "5f0bc5c0e2a39e0fbc9c0e7de4f31b7806d1802803c4e375efa481ac217d46c0"
   },
   "Slide": {
-    "file": "PowerPoint.png",
+    "file": "Slides.png",
     "sha256": "3517a5a0d5b9f86a9c5368554d3ed69fb1538ead273166e81e9f3822b9f47998"
   },
   "Media": {

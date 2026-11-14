@@ -80,7 +80,7 @@ try{
   await waitSaved();
   saved=JSON.parse(fs.readFileSync(file,'utf8'));
   ok(saved.guide.paragraphs.some(p=>/^Lesson 1\.1: Say it plainly/.test(p.text.trim())),'a lesson added after reopening is saved');
-  ok(fs.existsSync(file+'.bak')===false,'no backup yet: the file was made by this run');
+  ok(!fs.readdirSync(path.dirname(file)).some(n=>n.startsWith(path.basename(file))&&/\.bak$/.test(n)),'no backup yet: the file was made by this run');
 
   // A broken file is explained and never written over.
   fs.writeFileSync(file,'this is not a project');

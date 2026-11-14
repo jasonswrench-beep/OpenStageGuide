@@ -25,7 +25,8 @@ wherever Windows has put it.
 cd shell
 npm install
 npm run build:exe     # the window on its own: src-tauri/target/release/openstage-guide-shell.exe
-npm run build         # the installer too: src-tauri/target/release/bundle/nsis/
+npm run build         # the installer too: src-tauri/target/release/bundle/nsis/ (not signed)
+python -I tools/build_installer.py --sign   # the signed installer: records the release, builds, signs every program of ours and the setup, checks them, writes the SHA-256
 ```
 
 `prepare.mjs` runs first and gathers the program's source, the acorn package and a copy of Node into `src-tauri/resources`. The first build

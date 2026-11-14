@@ -22,7 +22,8 @@ const PORT=3852,BASE=`http://127.0.0.1:${PORT}`;
 let pass=0,fail=0;
 const ok=(cond,what)=>{if(cond){pass++;console.log('PASS',what);}else{fail++;console.log('FAIL',what);}};
 
-const server=spawn(process.execPath,['scripts/project-server.mjs','--folder',GUIDES,'--port',String(PORT)],{cwd:APP,stdio:['ignore','pipe','pipe']});
+// (Check for updates is turned off for the run, so that nothing here reaches the network; its answer is then the one that says so.)
+const server=spawn(process.execPath,['scripts/project-server.mjs','--folder',GUIDES,'--port',String(PORT)],{cwd:APP,stdio:['ignore','pipe','pipe'],env:{...process.env,OPENSTAGE_UPDATE_CHECK:'off'}});
 console.log('server pid',server.pid);
 await new Promise((res,rej)=>{let t='';server.stdout.on('data',d=>{t+=d;if(/OpenStage Guide at/.test(t))res();});server.stderr.on('data',d=>rej(new Error(String(d))));setTimeout(()=>rej(new Error('server did not start')),15000);});
 
@@ -174,6 +175,15 @@ try{
   ok(/Apache License 2\.0/.test(about.text)&&/Made with/.test(about.text)&&/JSZip/.test(about.text)&&/SIL Open Font License/.test(about.text)&&/NOTICE file/.test(about.text),'and the license, what it is made with, and where the full notices are');
   ok(!about.sideways&&about.fits,'in a dialog with no sideways scrollbar that fits the window: '+JSON.stringify({sideways:about.sideways,fits:about.fits}));
   await page.keyboard.press('Escape');
+  // Help > Check for updates: asks only when chosen, and says the answer in words (here: turned off, so nothing is asked of GitHub and no link is offered).
+  await page.getByRole('menuitem',{name:/^Help/}).click();
+  await page.getByRole('menuitem',{name:/Check for updates/}).click();
+  await page.locator('dialog[open] h2').waitFor({timeout:5000});
+  await page.waitForFunction(()=>/turned off on this computer/.test(document.querySelector('dialog[open]')?.textContent||''),null,{timeout:10000});
+  const updates=await page.evaluate(()=>{const d=document.querySelector('dialog[open]'),b=d.querySelector('.dialog-body');return {title:d.querySelector('h2').textContent,text:d.innerText,links:d.querySelectorAll('a').length,sideways:b.scrollWidth>b.clientWidth+1};});
+  ok(updates.title==='Check for updates'&&/Checking for updates is turned off on this computer\./.test(updates.text),'Check for updates says the answer in words: '+JSON.stringify(updates.text.slice(0,120)));
+  ok(updates.links===0&&/asks GitHub only when you choose this/.test(updates.text)&&!updates.sideways,'with no link when it is off, a line saying what it does and does not do, and no sideways scrollbar');
+  await page.keyboard.press('Escape');
   // And a search for "pdf" finds where a PDF comes from: Save as Word file, which Word can save as one.
   await page.keyboard.press('Control+k');
   await page.locator('dialog.command-search').waitFor({state:'visible'});
@@ -234,6 +244,25 @@ try{
   // (the one request above that was refused is the page's own probe, and the browser logs it)
   ok(stores.length>0&&stores.every(f=>f==='/program/'),'the guide is saved by the program page only, never by the tools frame: '+JSON.stringify([...new Set(stores)]));
   ok(problems.slice(0,before).length===0&&problems.slice(before).every(p=>/415/.test(p)),'no page errors or policy violations in the whole run: '+JSON.stringify(problems.slice(0,3)));
+
+  // ---- a page left over from another tab: another guide is opened elsewhere, and this page's next save is refused and writes to neither guide
+  const first=path.join(GUIDES,files(GUIDES).find(f=>f.endsWith('.guide-project.json')));
+  const firstBefore=fs.readFileSync(first,'utf8');
+  const other=await browser.newPage();
+  await other.goto(`${BASE}/`);
+  const made=await other.evaluate(async()=>(await fetch('/api/new',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:'Opened in another tab'})})).status);
+  ok(made===200,'a second tab makes and opens another guide');
+  const second=path.join(GUIDES,'Opened in another tab.guide-project.json');
+  const secondBefore=fs.readFileSync(second,'utf8');
+  await page.getByRole('menuitem',{name:/^Write/}).click();
+  await page.getByRole('menuitem',{name:/Add module/}).click();
+  await fr.locator('#guide-new-title').waitFor({state:'visible',timeout:10000});
+  await fr.locator('#guide-new-title').fill('Written by a page that is out of date');
+  await fr.locator('#guide-add-module').click();
+  await page.waitForFunction(()=>/Nothing more is saved from this page/.test(document.querySelector('#status')?.textContent||''),null,{timeout:10000});
+  ok(true,'the page left over from the first tab says it no longer saves');
+  ok(fs.readFileSync(first,'utf8')===firstBefore&&fs.readFileSync(second,'utf8')===secondBefore,'and neither guide was written to');
+  await other.close();
 }finally{
   if(browser)await browser.close();
   server.kill();

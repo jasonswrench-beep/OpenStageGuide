@@ -256,6 +256,9 @@ test('the leak check refuses comments, tracked changes, hidden text, notes, link
     'a comment mark':'<w:commentRangeStart w:id="3"/>',
     'a footnote':'<w:r><w:footnoteReference w:id="4"/></w:r>',
     'a link':'<w:hyperlink w:anchor="x"><w:r><w:t>l</w:t></w:r></w:hyperlink>',
+    'ruby text':'<w:ruby><w:rubyPr/><w:rt><w:r><w:t>r</w:t></w:r></w:rt><w:rubyBase><w:r><w:t>b</w:t></w:r></w:rubyBase></w:ruby>',
+    'web-hidden text':'<w:r><w:rPr><w:webHidden/></w:rPr><w:t>w</w:t></w:r>',
+    'always-hidden text':'<w:r><w:rPr><w:specVanish/></w:rPr><w:t>s</w:t></w:r>',
     'a field':'<w:r><w:instrText> HYPERLINK "http://example.com" </w:instrText></w:r>',
     'a content control that is not a check box':'<w:sdt><w:sdtPr><w:alias w:val="x"/></w:sdtPr><w:sdtContent><w:r><w:t>y</w:t></w:r></w:sdtContent></w:sdt>'
   };
@@ -495,6 +498,36 @@ test('text hidden by a character style, even one based on another, does not come
   const styles='<w:style w:type="character" w:styleId="Secret"><w:name w:val="Secret"/><w:rPr><w:vanish/></w:rPr></w:style><w:style w:type="character" w:styleId="Secret2"><w:name w:val="Secret2"/><w:basedOn w:val="Secret"/></w:style></w:styles>';
   const built=await buildFrom(a,p=>inject(p.replace('</w:styles>',styles),'What makes a disagreement hard','<w:r><w:rPr><w:rStyle w:val="Secret2"/></w:rPr><w:t> STYLE-HIDDEN</w:t></w:r>'));
   assert.ok(!allText(built.files).includes('STYLE-HIDDEN'));
+});
+
+test('ruby text, web-hidden text and always-hidden text do not come through; the words in the base of a ruby stay',async()=>{
+  const a=await richGuide({own:false});
+  const ruby='<w:ruby><w:rubyPr/><w:rt><w:r><w:t> RUBY-SECRET</w:t></w:r></w:rt><w:rubyBase><w:r><w:t> ruby-base</w:t></w:r></w:rubyBase></w:ruby>';
+  const web='<w:r><w:rPr><w:webHidden/></w:rPr><w:t> WEB-HIDDEN</w:t></w:r>';
+  const spec='<w:r><w:rPr><w:specVanish/></w:rPr><w:t> SPEC-HIDDEN</w:t></w:r>';
+  const off='<w:r><w:rPr><w:webHidden w:val="0"/></w:rPr><w:t> web-shown</w:t></w:r>';
+  const built=await buildFrom(a,p=>inject(p,'What makes a disagreement hard',ruby+web+spec+off));
+  const out=allText(built.files);
+  for(const secret of ['RUBY-SECRET','WEB-HIDDEN','SPEC-HIDDEN'])assert.ok(!out.includes(secret),`${secret} is not in the workbook`);
+  assert.ok(out.includes('ruby-base'),'the words in the base of a ruby stay');
+  assert.ok(out.includes('web-shown'),'text that is not hidden stays');
+  assert.equal(passes(built).passed,true,'and the independent check agrees');
+});
+
+test('text in a paragraph whose style hides it does not come through (the style is one the workbook\'s own styles do not hide)',async()=>{
+  const a=await richGuide({own:false});
+  const hideAskStyle=pkg=>{
+    const at=pkg.indexOf('What makes a disagreement hard');
+    const start=Math.max(pkg.lastIndexOf('<w:p>',at),pkg.lastIndexOf('<w:p ',at));
+    const id=/<w:pStyle w:val="([^"]+)"/.exec(pkg.slice(start,at))[1];
+    const re=new RegExp(`(<w:style [^>]*w:styleId="${id}"[^>]*>[\\s\\S]*?)(</w:style>)`);
+    assert.match(pkg,re,`the style ${id} is defined`);
+    return pkg.replace(re,(m,head,tail)=>/<w:rPr>/.test(head)?head.replace('<w:rPr>','<w:rPr><w:vanish/>')+tail:`${head}<w:rPr><w:vanish/></w:rPr>${tail}`);
+  };
+  const before=await buildFrom(a);
+  assert.ok(allText(before.files).includes('What makes a disagreement hard'),'without the hiding style the question is in the workbook');
+  const built=await buildFrom(a,hideAskStyle);
+  assert.ok(!allText(built.files).includes('What makes a disagreement hard'),'with it, the text is not');
 });
 
 // Things that are not leaks, which a first version refused.

@@ -37,6 +37,13 @@ export function createProjectAdapter(document,{read,write,delayMs=400,soon=(fn,m
         await write(serializeProject(document.exportState()));
         if(!dirty)set('saved');
       }catch(e){
+        // A page that is out of date (another guide was opened in another tab or window) stops saving for good: it must never write its guide over
+        // the one that is open now. The person is told to reload; what was typed here since is not saved from this page.
+        if(e?.stale){
+          blocked=true;dirty=false;
+          set('error',`${String(e.message).replace(/\.$/,'')}. Nothing more is saved from this page.`);
+          return;
+        }
         dirty=true;
         set('error',`The guide could not be saved: ${e?.message||'the file could not be written'}. Your changes are still here; the next change tries again.`);
       }

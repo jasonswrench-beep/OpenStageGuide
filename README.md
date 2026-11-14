@@ -15,7 +15,7 @@ npm ci --ignore-scripts
 node scripts/project-server.mjs --folder "C:\path\to\guides" --port 3850
 ```
 
-On Windows, double-clicking `Start OpenStage Guide.cmd` does both steps (it installs what is needed the first time, starts the server in a minimized window, and opens the program in your browser). Otherwise open <http://127.0.0.1:3850/>. With no `--folder`, guides go in `Documents\OpenStage Guides`. A guide is one file ending in `.guide-project.json` (plain JSON, so it can be opened, kept and backed up like any file). The server answers only on this computer, never takes a path from the page, and keeps the previous copy of a guide as `.bak` the first time it saves after the guide is opened.
+On Windows, double-clicking `Start OpenStage Guide.cmd` does both steps (it installs what is needed the first time, starts the server in a minimized window, and opens the program in your browser once it answers; if it does not start, what it said is shown). Otherwise open <http://127.0.0.1:3850/>. With no `--folder`, guides go in `Documents\OpenStage Guides`. A guide is one file ending in `.guide-project.json` (plain JSON, so it can be opened, kept and backed up like any file). The server answers only on this computer, never takes a path from the page, checks that a save comes from the page that has the guide open (a page left over from another tab is refused, so it can never write its guide over another), saves one at a time, and keeps a dated copy of the guide (`.<date>.bak`, the newest three) the first time it saves after the guide is opened. **Help > Check for updates...** asks GitHub whether a newer release is published, only when you choose it, and installs nothing ([docs/UPDATE-CHECK.md](docs/UPDATE-CHECK.md)).
 
 ## Tests
 

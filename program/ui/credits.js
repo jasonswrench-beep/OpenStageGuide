@@ -8,7 +8,6 @@ export const LICENSE_LINE = "OpenStage Guide is free software under the Apache L
 /** What the program is made with, each with the license it is used under. */
 export const MADE_WITH = Object.freeze([
   { name: "JSZip", use: "makes the Word files", license: "MIT License" },
-  { name: "PDF.js", use: "draws the pages of a PDF of a presentation as pictures", license: "Apache License 2.0" },
   { name: "Lucide icons", use: "the icons on the menus and buttons", license: "ISC License" },
   { name: "Atkinson Hyperlegible, Lexend, Source Sans 3 and Source Serif 4", use: "the fonts that come with the program", license: "SIL Open Font License 1.1" },
 ]);

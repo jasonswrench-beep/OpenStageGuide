@@ -21,7 +21,8 @@ export function pageSlideOrders(pageCount,slides){
 // file for the pane. Resolves the list of pictures, one for each page, named Slide<number>.jpg so the pane matches them to slides.
 export async function renderPdfSlides({data,slides,pdfjs,makeCanvas,toFile,width=PICTURE_WIDTH,onProgress=()=>{}}){
   let pdf;
-  try{pdf=await pdfjs.getDocument({data}).promise;}
+  // eval stays off: a crafted PDF must not be able to run script through the library (CVE-2024-4367 in the pdf.js that shipped here).
+  try{pdf=await pdfjs.getDocument({data,isEvalSupported:false}).promise;}
   catch(e){
     if(e?.name==='PasswordException')throw new Error('That PDF is protected with a password. Save a copy without one, then choose it again.');
     throw new Error('That file could not be read as a PDF. Save the presentation as a PDF again, then choose it.');

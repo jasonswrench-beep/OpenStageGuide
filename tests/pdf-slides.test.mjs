@@ -60,3 +60,11 @@ test('a PDF that does not match the presentation, is protected or is not a PDF g
   await assert.rejects(renderPdfSlides({data:new Uint8Array(4),slides:slides(3),...fakeLibrary({fail:locked})}),/protected with a password/);
   await assert.rejects(renderPdfSlides({data:new Uint8Array(4),slides:slides(3),...fakeLibrary({fail:new Error('Invalid PDF structure')})}),/could not be read as a PDF/);
 });
+
+test('a PDF is opened with eval turned off, so a crafted one cannot run script through the library',async()=>{
+  let seen=null;
+  const pdfjs={getDocument:options=>{seen=options;return {promise:Promise.reject(new Error('stop here'))};}};
+  await assert.rejects(renderPdfSlides({data:new Uint8Array([1,2,3]),slides:[],pdfjs,makeCanvas:()=>({}),toFile:()=>({})}),/could not be read as a PDF/);
+  assert.equal(seen.isEvalSupported,false);
+  assert.deepEqual([...seen.data],[1,2,3],'the bytes are still the ones given');
+});

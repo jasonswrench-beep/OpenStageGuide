@@ -180,9 +180,11 @@ function stripAttributes(el){
   for(const a of Array.from(el.attributes||[]))
     if(/^rsid/i.test(a.localName||'')||a.localName==='paraId'||a.localName==='textId')el.removeAttributeNode(a);
 }
-// Character styles whose text is hidden, by themselves or through the style they are based on.
+// The three ways Word hides text: hidden, hidden when the page is read as a web page, and a paragraph mark that is always hidden.
+const HIDING=new Set(['vanish','webHidden','specVanish']);
+// Styles (of characters or of paragraphs) whose text is hidden, by themselves or through the style they are based on.
 function hiddenStyleIds(styles){
-  const hides=s=>{const rpr=s.node&&els(s.node).find(x=>x.localName==='rPr'),v=rpr&&els(rpr).find(x=>x.localName==='vanish');return !!v&&isOn(v);};
+  const hides=s=>{const rpr=s.node&&els(s.node).find(x=>x.localName==='rPr');return !!rpr&&els(rpr).some(x=>HIDING.has(x.localName)&&isOn(x));};
   const out=new Set();
   for(const [id] of styles){
     const seen=new Set();let cur=id;
@@ -213,6 +215,20 @@ function sanitize(node,hidden=new Set()){
     if(isW&&(DROP.has(name)||/Change$/.test(name))){node.removeChild(c);continue;}
     if(isW&&UNWRAP.has(name)){sanitize(c,hidden);move(c,node,c);node.removeChild(c);continue;}
     if(isW&&name==='drawing'){if(isInlinePicture(c)){stripAttributes(c);sanitize(c,hidden);}else node.removeChild(c);continue;}
+    // Ruby text sits above the words it explains and is easy to overlook; only the words themselves (the base) come through.
+    if(isW&&name==='ruby'){
+      const base=els(c).find(x=>x.localName==='rubyBase');
+      if(base){sanitize(base,hidden);move(base,node,c);}
+      node.removeChild(c);continue;
+    }
+    // A paragraph in a style that hides its text keeps its (empty) place, so a table cell still has a paragraph, but none of its words.
+    if(isW&&name==='p'){
+      const pr=els(c).find(x=>x.localName==='pPr'),style=pr&&els(pr).find(x=>x.localName==='pStyle');
+      if(style&&hidden.has(style.getAttributeNS(W,'val'))){
+        for(const k of Array.from(c.childNodes))if(!(k.nodeType===1&&k.localName==='pPr'))c.removeChild(k);
+        stripAttributes(c);continue;
+      }
+    }
     if(isW&&name==='sdt'){
       const pr=els(c).find(x=>x.localName==='sdtPr'),content=els(c).find(x=>x.localName==='sdtContent');
       const isBox=pr&&Array.from(pr.childNodes).some(x=>x.nodeType===1&&x.namespaceURI===W14&&x.localName==='checkbox');
@@ -222,12 +238,12 @@ function sanitize(node,hidden=new Set()){
     }
     if(isW&&name==='r'){
       const kids=els(c),rpr=kids.find(x=>x.localName==='rPr');
-      const off=rpr&&els(rpr).some(x=>x.localName==='vanish'&&isOn(x));
+      const off=rpr&&els(rpr).some(x=>HIDING.has(x.localName)&&isOn(x));
       const style=rpr&&els(rpr).find(x=>x.localName==='rStyle');
       const field=kids.some(x=>x.namespaceURI===W&&(x.localName==='fldChar'||x.localName==='instrText'));
       if(off||field||(style&&hidden.has(style.getAttributeNS(W,'val')))){node.removeChild(c);continue;}
     }
-    if(isW&&name==='vanish'){node.removeChild(c);continue;}
+    if(isW&&HIDING.has(name)){node.removeChild(c);continue;}
     stripAttributes(c);
     sanitize(c,hidden);
   }

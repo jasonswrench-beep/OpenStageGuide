@@ -121,7 +121,7 @@ const FORMAT_ITEMS = /** @type {({ name: string, label: string, icon: UiIconName
  * (undo, redo, cut, copy, paste, add, kind, moveUp, moveDown, delete) and state() says what can be done now.
  * `ctx.insert(name)` makes one of the INSERT_ITEMS (a form, lines, a table...) after the row the author is on.
  * @typedef {{ command: (name: string) => unknown, state: () => { canUndo: boolean, canRedo: boolean, hasRows: boolean, inTable: boolean } }} EditApi
- * @param {{ edit?: EditApi, insert?: (name: string) => unknown, saveWord?: () => unknown, saveTemplate?: () => unknown, importStyles?: () => unknown, hasGuide: () => boolean, openTool: (id: string) => void, updateGuide: () => void, newGuide: () => void, openGuide: () => void, closeGuide: () => void, search: () => void, keys: () => void, about: () => void }} ctx
+ * @param {{ edit?: EditApi, insert?: (name: string) => unknown, saveWord?: () => unknown, saveTemplate?: () => unknown, importStyles?: () => unknown, hasGuide: () => boolean, openTool: (id: string) => void, updateGuide: () => void, newGuide: () => void, openGuide: () => void, closeGuide: () => void, search: () => void, keys: () => void, about: () => void, updates?: () => void }} ctx
  * @returns {{ menus: MenuDef[], quick: MenuCommand[] }}  the menus, and the commands of the navy bar while a guide is open
  */
 export function buildMenus(ctx) {
@@ -200,6 +200,7 @@ export function buildMenus(ctx) {
       { label: "Search for a command...", icon: "search", keys: "Ctrl+K", title: "Find any command by its name", run: ctx.search },
       { label: "Keyboard keys", icon: "keyboard", keys: "Ctrl+/", title: "Every key the program has", run: ctx.keys },
       "-",
+      { label: "Check for updates...", icon: "refresh-cw", title: "Whether a newer OpenStage Guide is published. It asks GitHub only when you choose this, and installs nothing", run: ctx.updates ?? (() => undefined) },
       { label: "About OpenStage Guide", icon: "info", title: "What this program is, its version, its license and what it is made with", run: ctx.about },
     ],
   };

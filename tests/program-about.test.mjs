@@ -18,7 +18,7 @@ test('the version line says the version and the start of the build, and says not
 });
 
 test('what the About window says it is made with is what NOTICE says, with the same licenses',()=>{
-  assert.ok(MADE_WITH.length>=4);
+  assert.ok(MADE_WITH.length>=3);
   for(const c of MADE_WITH){
     for(const part of c.name.split(/,| and /).map(s=>s.trim()).filter(Boolean))assert.ok(notice.includes(part),`NOTICE names ${part}`);
     assert.ok(c.use&&c.license,`${c.name} says what it is for and its license`);
@@ -26,7 +26,7 @@ test('what the About window says it is made with is what NOTICE says, with the s
   const has=(word,license)=>assert.match(notice,license,`NOTICE gives ${word} its license`);
   const by=name=>MADE_WITH.find(c=>c.name.startsWith(name));
   assert.equal(by('JSZip').license,'MIT License');has('JSZip',/JSZip[\s\S]{0,400}MIT License/);
-  assert.equal(by('PDF.js').license,'Apache License 2.0');has('PDF.js',/PDF\.js[\s\S]{0,400}Apache License 2\.0/);
+  assert.equal(by('PDF.js'),undefined,'PDF.js is not carried by the program, so it is not said to be');
   assert.equal(by('Lucide icons').license,'ISC License');has('Lucide',/Lucide icons, ISC licen[cs]e/);
   assert.equal(by('Atkinson').license,'SIL Open Font License 1.1');has('the fonts',/SIL Open Font License, Version 1\.1/);
 });

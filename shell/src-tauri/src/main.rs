@@ -15,15 +15,110 @@ use std::fs::OpenOptions;
 use std::io::{BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
+use std::sync::atomic::{AtomicU16, Ordering};
 use std::sync::Mutex;
 
-use tauri::{Manager, RunEvent, WebviewWindowBuilder};
+use tauri::webview::NewWindowResponse;
+use tauri::{Manager, RunEvent, Url, WebviewWindowBuilder};
 
 #[cfg(windows)]
 use std::os::windows::process::CommandExt;
 
 /// The server, kept so that it can be stopped when the window goes.
 struct Server(Mutex<Option<Child>>);
+
+/// The port the server listens on, set when it says where it is (0 until then). The window is only ever sent to that address on this machine.
+static SERVER_PORT: AtomicU16 = AtomicU16::new(0);
+
+/// Whether the window may show this address: its own first page, and the server's address on this machine (the port it said). A web page of
+/// any other site is not the program, and is never shown inside the program's window, where it could be mistaken for it. (Pictures and files the
+/// program makes arrive as blob: and data: addresses, which stay.)
+fn may_open(url: &Url) -> bool {
+    match url.scheme() {
+        "tauri" | "about" | "blob" | "data" => true,
+        "http" | "https" => {
+            let host = url.host_str().unwrap_or("");
+            let port = SERVER_PORT.load(Ordering::SeqCst);
+            host == "tauri.localhost" || (port != 0 && host == "127.0.0.1" && url.port() == Some(port))
+        }
+        _ => false,
+    }
+}
+
+/// An address with none of the extras a link can carry (a port, a name and password, a query, a fragment), on https.
+fn plain_https(url: &Url, host: &str) -> bool {
+    url.scheme() == "https" && url.host_str() == Some(host) && url.port().is_none() && url.username().is_empty() && url.password().is_none() && url.query().is_none() && url.fragment().is_none()
+}
+
+/// Whether an address is a page of OpenStage Guide's releases on GitHub (the list, or one release by its tag): what Check for updates offers.
+fn is_release_page(url: &Url) -> bool {
+    const RELEASES: &str = "/jasonswrench-beep/OpenStageGuide/releases";
+    if !plain_https(url, "github.com") {
+        return false;
+    }
+    let path = url.path();
+    path == RELEASES
+        || path.strip_prefix(RELEASES).and_then(|rest| rest.strip_prefix("/tag/v")).is_some_and(|tag| {
+            (1..=40).contains(&tag.len()) && tag.starts_with(|c: char| c.is_ascii_digit()) && tag.chars().all(|c| c.is_ascii_alphanumeric() || c == '.' || c == '-')
+        })
+}
+
+/// The license page of the training icons, which the About text and the tools name.
+fn is_license_page(url: &Url) -> bool {
+    plain_https(url, "creativecommons.org") && url.path() == "/licenses/by-nc-sa/4.0/"
+}
+
+/// The pages outside the program that the window opens, and then in the person's own browser, never inside itself. Nothing else is, whatever a
+/// page asks.
+fn opens_in_browser(url: &Url) -> bool {
+    is_release_page(url) || is_license_page(url)
+}
+
+/// Opens such a page in the person's own browser. The address is one argument, never a command line.
+#[cfg(windows)]
+fn open_in_browser(url: &Url) {
+    if opens_in_browser(url) {
+        let _ = Command::new("explorer.exe").arg(url.as_str()).spawn();
+    }
+}
+
+#[cfg(not(windows))]
+fn open_in_browser(_url: &Url) {}
+
+/// What the window does when it is asked to go somewhere: its own pages are let through, a page that belongs in the browser is opened there
+/// instead, and anything else is refused. Only the scheme and the host are written to the log.
+fn navigate_to(url: &Url) -> bool {
+    if may_open(url) {
+        return true;
+    }
+    if opens_in_browser(url) {
+        open_in_browser(url);
+    } else {
+        note(&format!("the window was kept from going to {}://{}", url.scheme(), url.host_str().unwrap_or("")));
+    }
+    false
+}
+
+/// The release this copy is, as the installer's build recorded it (release.txt beside the program's files, from OPENSTAGE_GUIDE_RELEASE), for
+/// Check for updates to compare with the published ones. A window built any other way has none, and Check for updates then says which release is
+/// the newest. The server checks that it is a version.
+fn recorded_release(root: &Path) -> Option<String> {
+    std::fs::read_to_string(root.join("release.txt")).ok().map(|text| text.trim().to_string()).filter(|text| !text.is_empty() && text.len() <= 40)
+}
+
+/// Whether Check for updates is turned off on this computer: OPENSTAGE_UPDATE_CHECK=off, or a file update-check.txt beside the program that says
+/// off (the way an IT department turns it off for the copies it installs). The server is then told so.
+fn update_check_off() -> bool {
+    let off = |text: &str| text.trim().eq_ignore_ascii_case("off");
+    if std::env::var("OPENSTAGE_UPDATE_CHECK").is_ok_and(|v| off(&v)) {
+        return true;
+    }
+    std::env::current_exe()
+        .ok()
+        .and_then(|exe| exe.parent().map(|dir| dir.join("update-check.txt")))
+        .and_then(|file| std::fs::read_to_string(file).ok())
+        .is_some_and(|text| off(&text))
+}
 
 /// A path without Windows' extended-length prefix (backslash, backslash, question mark, backslash), which Tauri puts on the folders it reports and which Node does not take for the same path as
 /// the one its own module loader sees (the server then does not start).
@@ -97,7 +192,15 @@ fn main() {
                 .first()
                 .cloned()
                 .expect("the configuration names the window");
-            let window = WebviewWindowBuilder::from_config(app.handle(), &config)?.build()?;
+            let window = WebviewWindowBuilder::from_config(app.handle(), &config)?
+                .on_navigation(navigate_to)
+                // A link that asks for a new window (Check for updates' link to the release page) never gets one: a page that belongs in the
+                // browser opens there, and anything else is refused.
+                .on_new_window(|url, _features| {
+                    navigate_to(&url);
+                    NewWindowResponse::Deny
+                })
+                .build()?;
             let resources = plain(app.path().resource_dir().unwrap_or_else(|_| PathBuf::from(".")));
 
             note(&format!("resources: {}", resources.display()));
@@ -122,6 +225,12 @@ fn main() {
                 .arg(&guides)
                 .arg("--exit-when-stdin-closes")
                 .current_dir(&root);
+            if let Some(release) = recorded_release(&root) {
+                command.arg("--release").arg(release);
+            }
+            if update_check_off() {
+                command.arg("--no-update-check");
+            }
             command.stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null());
             // No console window of its own beside the program's window.
             #[cfg(windows)]
@@ -152,7 +261,13 @@ fn main() {
                     if let Some(url) = line.strip_prefix("OPENSTAGE_READY ") {
                         // Only the address the server gave, and only if it is this machine's own: nothing else is ever opened.
                         let plain = url.chars().all(|c| c.is_ascii_alphanumeric() || ":/.?=-_".contains(c));
-                        if url.starts_with("http://127.0.0.1:") && plain {
+                        let port = url
+                            .strip_prefix("http://127.0.0.1:")
+                            .and_then(|rest| rest.split('/').next())
+                            .and_then(|digits| digits.parse::<u16>().ok());
+                        if let (Some(port), true) = (port, plain) {
+                            // The window may go to this address (and only this one on this machine) from now on.
+                            SERVER_PORT.store(port, Ordering::SeqCst);
                             let _ = window.eval(&format!("window.location.replace('{url}');"));
                             shown = true;
                         } else {
@@ -177,4 +292,57 @@ fn main() {
             }
         }
     });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{is_license_page, is_release_page, may_open, opens_in_browser};
+    use tauri::Url;
+
+    fn url(text: &str) -> Url {
+        Url::parse(text).expect("an address")
+    }
+
+    #[test]
+    fn the_window_shows_only_its_own_page_and_its_servers_port() {
+        assert!(may_open(&url("http://tauri.localhost/index.html")));
+        assert!(may_open(&url("tauri://localhost/index.html")));
+        assert!(may_open(&url("about:blank")));
+        assert!(!may_open(&url("http://127.0.0.1:47321/")), "no port of the server is let through before it says where it is");
+        for other in ["https://example.invalid/", "http://example.invalid/", "file:///C:/x.html", "ftp://example.invalid/x", "https://github.com/jasonswrench-beep/OpenStageGuide/releases"] {
+            assert!(!may_open(&url(other)), "{other}");
+        }
+    }
+
+    #[test]
+    fn the_pages_that_open_in_the_browser_are_this_programs_releases_and_the_icon_license() {
+        for yes in [
+            "https://github.com/jasonswrench-beep/OpenStageGuide/releases",
+            "https://github.com/jasonswrench-beep/OpenStageGuide/releases/tag/v0.1.0-alpha.1",
+            "https://GitHub.com/jasonswrench-beep/OpenStageGuide/releases/tag/v1.0.0",
+            "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+        ] {
+            assert!(opens_in_browser(&url(yes)), "{yes}");
+        }
+        for no in [
+            "https://github.com/jasonswrench-beep/OpenStageGuide/releases/tag/latest",
+            "https://github.com/jasonswrench-beep/OpenStageGuide/releases/tag/v",
+            "https://github.com/jasonswrench-beep/OpenStageGuide/releases/tag/v0.1.0?x=1",
+            "https://github.com/jasonswrench-beep/OpenStageGuide/releases/tag/v0.1.0#a",
+            "https://github.com/jasonswrench-beep/OpenStageGuide/releases/download/v0.1.0/setup.exe",
+            "https://github.com/jasonswrench-beep/OpenStageGuide/releases/tag/v0.1.0/../../../x",
+            "https://github.com/someone/OpenStageGuide/releases",
+            "http://github.com/jasonswrench-beep/OpenStageGuide/releases",
+            "https://github.com:8443/jasonswrench-beep/OpenStageGuide/releases",
+            "https://user@github.com/jasonswrench-beep/OpenStageGuide/releases",
+            "https://github.com.example/jasonswrench-beep/OpenStageGuide/releases",
+            "https://creativecommons.org/licenses/by/4.0/",
+            "https://creativecommons.org/licenses/by-nc-sa/4.0/?x=1",
+            "https://example.invalid/jasonswrench-beep/OpenStageGuide/releases",
+        ] {
+            assert!(!opens_in_browser(&url(no)), "{no}");
+        }
+        assert!(is_release_page(&url("https://github.com/jasonswrench-beep/OpenStageGuide/releases")));
+        assert!(!is_license_page(&url("https://github.com/jasonswrench-beep/OpenStageGuide/releases")));
+    }
 }

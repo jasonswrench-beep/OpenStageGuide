@@ -10,6 +10,7 @@ import { webProjectStore } from "../../src/guide-project-web.mjs";
 import { serveAdapter } from "../../src/guide-remote.mjs";
 import { createDemoAdapter, loadIcons } from "../../src/guide-word.mjs";
 import { aboutDialog, askName, chooseGuide, chooseOne } from "./dialogs.js";
+import { checkForUpdates } from "./updates.js";
 import { get, post } from "./api.js";
 import { startFrame } from "./frame.js";
 import { mountEditor } from "./editor.js";
@@ -24,7 +25,7 @@ const main = /** @type {HTMLElement} */ (doc.getElementById("main"));
 const status = /** @type {HTMLElement} */ (doc.getElementById("status"));
 
 /** @type {{ current: string | null, folder: string, guides: { name: string, when: string }[] }} */
-let state = { current: null, folder: "", guides: [], version: "", build: "" };
+let state = { current: null, folder: "", guides: [], version: "", build: "", token: null };
 /** @type {HTMLIFrameElement | null} */
 let toolsFrame = null;
 /** What to do when the tools have loaded: a tool chosen before they were ready. @type {string | null} */
@@ -106,6 +107,7 @@ const frame = startFrame(doc, {
   openGuide: () => void openGuide(),
   closeGuide: () => void closeGuide(),
   about: () => void aboutDialog(doc, state),
+  updates: () => void checkForUpdates(doc),
 });
 
 /** @param {string} name */
@@ -151,7 +153,7 @@ function openDocument() {
   closeDocument();
   // The cue icons are the real pictures when a Word document is made from the guide; the program's own server has them.
   const made = createProjectAdapter(createDemoAdapter({ icons: (names) => loadIcons(names) }), {
-    ...webProjectStore(),
+    ...webProjectStore({ token: () => state.token }),
     onStatus: (s) => {
       if (guideDoc !== made) return;
       frame.setSaveState(s.state);

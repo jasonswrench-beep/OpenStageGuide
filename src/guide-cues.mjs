@@ -36,7 +36,7 @@ export const CUES=Object.freeze([
   {id:'time-on-task',group:'activities',label:'Time on task',icon:'time-on-task',audience:'everyone',help:'Time learners spend working.'},
   {id:'break',group:'activities',label:'Break',icon:'break',audience:'everyone',help:'A break. Give its length in minutes.'},
   // Slides and media
-  {id:'slide',group:'slides-media',label:'Slide',icon:'powerpoint',audience:'everyone',help:'Which slide to show and what to do with it.'},
+  {id:'slide',group:'slides-media',label:'Slide',icon:'slides',audience:'everyone',help:'Which slide to show and what to do with it.'},
   {id:'slide-notes',group:'slides-media',label:'Slide notes',icon:'slide-notes',audience:'facilitator',help:'What to say or do with the slide. Facilitator only.'},
   {id:'picture',group:'slides-media',label:'Picture',icon:'picture',audience:'everyone',help:'A picture to show or hand out.'},
   {id:'video',group:'slides-media',label:'Video',icon:'video',audience:'everyone',help:'A video to play, and where to start and stop.'},

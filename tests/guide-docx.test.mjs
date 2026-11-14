@@ -173,3 +173,54 @@ test('a file that cannot be read is explained in words, and nothing in it is run
   const big=new JSZip();big.file('word/styles.xml',`<w:styles xmlns:w="${W}">${' '.repeat(DOCX_LIMITS.partBytes+10)}</w:styles>`);
   await assert.rejects(readDocxStyles(await big.generateAsync({type:'uint8array',compression:'DEFLATE'}),JSZip,io),/too large/);
 });
+
+// ---- reading styles from a file that may be hostile: the size is counted as the part is inflated, not taken from what the file says
+
+async function docxWith(parts){
+  const zip=new JSZip();
+  for(const [name,data] of Object.entries(parts))zip.file(name,data,{compression:'DEFLATE'});
+  return zip.generateAsync({type:'uint8array',compression:'DEFLATE'});
+}
+const STYLES_OK=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:styles xmlns:w="${W}"><w:style w:type="paragraph" w:styleId="Normal" w:default="1"><w:name w:val="Normal"/></w:style></w:styles>`;
+// A zip library whose named files claim to be tiny, as a crafted file can.
+const liar=(...names)=>class extends JSZip{
+  static async loadAsync(...args){
+    const zip=await super.loadAsync(...args);
+    for(const name of names){const file=zip.file(name);if(file?._data)file._data.uncompressedSize=10;}
+    return zip;
+  }
+};
+const LyingStyles=liar('word/styles.xml'),LyingTheme=liar('word/theme/theme1.xml');
+
+test('a styles part that inflates to far more than the cap is refused even when the file claims it is small, and the inflating stops at the cap',async()=>{
+  const huge=' '.repeat(DOCX_LIMITS.partBytes*3);
+  const bytes=await docxWith({'[Content_Types].xml':'<Types/>','word/styles.xml':`<?xml version="1.0"?><w:styles xmlns:w="${W}">${huge}</w:styles>`});
+  assert.ok(bytes.length<200*1024,'the file itself is small: '+bytes.length);
+  await assert.rejects(readDocxStyles(bytes,JSZip,io),/too large to read/,'an honest file is refused');
+  await assert.rejects(readDocxStyles(bytes,LyingStyles,io),/too large to read/,'and so is one whose size field lies');
+  // the part that is read is never longer than the cap, so what was inflated cannot have been the whole of it
+  let seen=0;
+  class Counting extends LyingStyles{
+    static async loadAsync(...args){
+      const zip=await super.loadAsync(...args);
+      const file=zip.file('word/styles.xml');
+      const stream=file.internalStream.bind(file);
+      file.internalStream=type=>{const helper=stream(type);helper.on('data',c=>{seen+=c.length;});return helper;};
+      return zip;
+    }
+  }
+  await assert.rejects(readDocxStyles(bytes,Counting,io),/too large to read/);
+  assert.ok(seen<DOCX_LIMITS.partBytes*3,`the inflating stopped early (${seen} of ${DOCX_LIMITS.partBytes*3} bytes)`);
+});
+
+test('a theme that inflates to more than the cap is left out (its fonts are not used) and the styles still come through; a good file is unchanged',async()=>{
+  const hugeTheme=`<a:theme xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">${' '.repeat(DOCX_LIMITS.partBytes*2)}</a:theme>`;
+  const bytes=await docxWith({'[Content_Types].xml':'<Types/>','word/styles.xml':STYLES_OK,'word/theme/theme1.xml':hugeTheme});
+  const r=await readDocxStyles(bytes,LyingTheme,io);
+  assert.match(r.stylesXml,/w:styleId="Normal"/);
+  assert.deepEqual(r.themeFonts,{},'no theme fonts from a theme that was too large');
+  const goodTheme='<a:theme xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:themeElements><a:fontScheme><a:majorFont><a:latin typeface="Cambria"/></a:majorFont><a:minorFont><a:latin typeface="Calibri"/></a:minorFont></a:fontScheme></a:themeElements></a:theme>';
+  const good=await readDocxStyles(await docxWith({'[Content_Types].xml':'<Types/>','word/styles.xml':STYLES_OK,'word/theme/theme1.xml':goodTheme}),JSZip,io);
+  assert.deepEqual(good.themeFonts,{major:'Cambria',minor:'Calibri'});
+  assert.equal(good.stylesXml,STYLES_OK);
+});

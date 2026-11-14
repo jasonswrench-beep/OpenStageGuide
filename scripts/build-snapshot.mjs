@@ -14,8 +14,8 @@ export async function createBuildSnapshot(root){
   }
   await tree('src','/src',name=>name.endsWith('.mjs'));
   await tree('public/assets','/assets',name=>/\.(?:png|svg|txt)$/i.test(name));
-  for(const name of ['taskpane.html','help.html','picker.html','style.css','vendor/jszip.min.js','vendor/pdf.min.js','vendor/pdf.worker.min.js','vendor/pdfjs-LICENSE.txt'])await add('public/'+name,'/'+name);
-  for(const name of ['package.json','package-lock.json','scripts/project-server.mjs','scripts/build-snapshot.mjs','scripts/http-handler.mjs'])await add(name);
+  for(const name of ['taskpane.html','help.html','style.css','vendor/jszip.min.js'])await add('public/'+name,'/'+name);
+  for(const name of ['package.json','package-lock.json','scripts/project-server.mjs','scripts/build-snapshot.mjs','scripts/http-handler.mjs','scripts/security-headers.mjs'])await add(name);
   const version=JSON.parse(inputs.get('package.json').toString()).version;
   const descriptor={schema:1,app:'OpenStage Guide',version,inputs:[...inputs].sort(([a],[b])=>a.localeCompare(b,'en')).map(([name,data])=>({path:name,sha256:hash(data),bytes:data.length}))};
   const buildId=hash(JSON.stringify(descriptor)),prefix='/build/'+buildId;

@@ -37,7 +37,7 @@ export function editCourseDetails(project,fields){
 }
 export const ICONS = [
   ['Objective','Objective.png'],['Key point','Key Point.png'],['Lecturette','Lecture.png'],
-  ['Slide','PowerPoint.png'],['Media','Media.png'],['Training instrument','Training Instrument.png'],
+  ['Slide','Slides.png'],['Media','Media.png'],['Training instrument','Training Instrument.png'],
   ['Learning activity','Interaction.png'],['Participant workbook','Workbook.png'],['Handout','Hand-Out.png'],
   ['Discussion','Questions.png'],['Time on task','Time on Task.png'],['Trainer notes','Trainer Notes.png'],
   ['Transition','Transitions.png'],['Assessment','Assessment.png']
