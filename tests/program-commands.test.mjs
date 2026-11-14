@@ -15,9 +15,9 @@ function make(){
 }
 const items=menus=>menus.flatMap(m=>m.items.filter(i=>i!=='-'));
 
-test('the menus are File, Edit, Insert, Format, one for each group of the ribbon, and Help, in that order',()=>{
+test('the menus are File, Edit, Insert, Format, View, one for each group of the ribbon, and Help, in that order',()=>{
   const {menus}=make();
-  assert.deepEqual(menus.map(m=>[m.id,m.label]),[['file','File'],['edit','Edit'],['insert','Insert'],['format','Format'],['guide','Guide'],['write','Write'],['bring','Bring in'],['elearning','E-learning'],['check','Check'],['make','Make'],['help','Help']]);
+  assert.deepEqual(menus.map(m=>[m.id,m.label]),[['file','File'],['edit','Edit'],['insert','Insert'],['format','Format'],['view','View'],['guide','Guide'],['write','Write'],['bring','Bring in'],['elearning','E-learning'],['check','Check'],['make','Make'],['help','Help']]);
   assert.equal(GROUPS.length,7,'the ribbon has seven groups: six become menus and Protect is split between File and Help');
 });
 

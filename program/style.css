@@ -256,7 +256,8 @@ main:focus, main:focus-visible { outline: none; }
 
 /* an open guide: the guide itself, and the tools beside it */
 .work { display: grid; grid-template-columns: minmax(0, 1fr) minmax(340px, 400px); gap: 0; height: calc(100vh - var(--top-height, 96px)); min-height: 420px; }
-.work-guide { min-width: 0; overflow: auto; background: var(--bg); padding: 20px 24px 60px; }
+/* position: relative so that what is positioned absolutely inside the guide (the hint for screen readers, .sr-only) is clipped by the guide's own scrolling, and does not stretch the page */
+.work-guide { position: relative; min-width: 0; overflow: auto; background: var(--bg); padding: 20px 24px 60px; }
 .work-guide:focus-visible { outline-offset: -3px; }
 .work-tools { min-width: 0; border-left: 1px solid var(--line); background: var(--card); display: flex; flex-direction: column; }
 .work-tools h2.tools-title { margin: 0; padding: 8px 14px; font-size: 0.95rem; border-bottom: 1px solid var(--line); }
@@ -268,7 +269,7 @@ main:focus, main:focus-visible { outline: none; }
 }
 
 /* the guide as it reads: a view of the paragraphs, not yet an editor */
-.page { background: var(--card); border: 1px solid var(--line); border-radius: 6px; box-shadow: var(--shadow); max-width: 780px; margin: 0 auto; padding: 36px 44px 48px; font: 15px/1.55 Georgia, "Times New Roman", serif; color: var(--text); }
+.page { background: var(--card); border: 1px solid var(--line); border-radius: 6px; box-shadow: var(--shadow); max-width: 780px; margin: 0 auto; padding: 36px 44px 48px; zoom: var(--doc-zoom, 1); font: 15px/1.55 Georgia, "Times New Roman", serif; color: var(--text); }
 .page h1.g-title { font: 700 1.9rem/1.2 "Segoe UI", system-ui, sans-serif; margin: 0 0 18px; color: var(--os-shell); }
 .page h2.g-module, .page h2.g-heading { font: 700 1.35rem/1.25 "Segoe UI", system-ui, sans-serif; margin: 28px 0 10px; color: var(--os-shell); }
 .page h3.g-lesson, .page h3.g-heading2 { font: 700 1.1rem/1.3 "Segoe UI", system-ui, sans-serif; margin: 20px 0 6px; color: var(--os-shell); }
@@ -373,6 +374,8 @@ dialog:has(.si-table) { width: min(900px, 96vw); max-width: 96vw; }
 .format-tool:focus-visible { outline: 3px solid var(--focus); outline-offset: 1px; }
 .format-tool .ui-icon { width: 18px; height: 18px; }
 .format-sep { width: 1px; height: 22px; margin: 0 6px; background: var(--line); }
+.format-zoom { display: inline-flex; align-items: center; gap: 2px; margin-left: auto; }
+.format-zoom-level { width: auto; min-width: 52px; padding: 0 8px; font: 600 0.85rem "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif; }
 
 
 /* ---- The fonts that come with the program (src/guide-fonts.mjs; the files and their licenses are in program/fonts). A test keeps this list and that one the same. */

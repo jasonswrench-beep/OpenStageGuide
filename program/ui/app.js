@@ -12,6 +12,7 @@ import { createDemoAdapter, loadIcons } from "../../src/guide-word.mjs";
 import { aboutDialog, askName, chooseGuide, chooseOne } from "./dialogs.js";
 import { checkForUpdates } from "./updates.js";
 import { get, post } from "./api.js";
+import { ZOOM_KEY, cleanZoom, nextZoom, zoomWords } from "../../src/zoom.mjs";
 import { startFrame } from "./frame.js";
 import { mountEditor } from "./editor.js";
 import { askParagraphFormat, askTextFormat } from "./format.js";
@@ -64,6 +65,43 @@ async function loadState() {
   state = await get("state");
 }
 
+/**
+ * Zoom (src/zoom.mjs): how big the guide's page is drawn, like the zoom of a word processor. It scales the page only, not the menus, the tools or the
+ * dialogs, and it changes nothing in the guide. The level is a style variable on the page (--doc-zoom, which program/style.css gives the guide's page) and is
+ * kept in the program's settings, so it is the same the next time.
+ */
+let zoomNow = 1;
+/** @param {number} factor */
+const drawZoom = (factor) => {
+  doc.documentElement.style.setProperty("--doc-zoom", String(factor));
+  doc.dispatchEvent(new CustomEvent("osg-zoom", { detail: { factor } }));
+};
+async function loadZoom() {
+  try {
+    zoomNow = cleanZoom((await get("settings"))?.values?.[ZOOM_KEY]);
+  } catch {
+    zoomNow = 1;
+  }
+  drawZoom(zoomNow);
+}
+/** @param {number} factor */
+async function setZoom(factor) {
+  zoomNow = cleanZoom(factor);
+  drawZoom(zoomNow);
+  say(zoomWords(zoomNow));
+  try {
+    await post("settings", { key: ZOOM_KEY, value: zoomNow === 1 ? null : String(zoomNow) });
+  } catch {
+    /* it is the size on the screen all the same; it is only not kept for next time */
+  }
+}
+const zoom = {
+  can: () => state.current !== null,
+  more: () => setZoom(nextZoom(zoomNow, 1)),
+  less: () => setZoom(nextZoom(zoomNow, -1)),
+  actual: () => setZoom(1),
+};
+
 /** An Insert menu command: ask what it needs, then put it after the row the author is on. @param {string} name */
 async function insertCommand(name) {
   if (!editor || !guideDoc) return;
@@ -96,6 +134,7 @@ const frame = startFrame(doc, {
   saveWord: () => saveWord(false),
   saveTemplate: () => saveWord(true),
   importStyles: () => importStyles(),
+  zoom,
   edit: {
     command: (name) => editor?.command(name),
     state: () => editor?.state() ?? { canUndo: false, canRedo: false, hasRows: false, inTable: false },
@@ -167,7 +206,7 @@ function openDocument() {
     () => {
       const host = doc.getElementById("work-guide");
       if (guideDoc !== made || !host) return;
-      editor = mountEditor(doc, host, made, { say, choose: (options) => chooseOne(doc, options), askFormat: (current, validate) => askParagraphFormat(doc, current, validate), askText: (current, validate) => askTextFormat(doc, current, validate), askName: (options) => askName(doc, options), openStyles: async (startId) => { if (guideDoc) await openStylesPanel(doc, guideDoc, say, startId); } });
+      editor = mountEditor(doc, host, made, { zoom: { more: zoom.more, less: zoom.less, actual: zoom.actual, level: () => zoomNow }, say, choose: (options) => chooseOne(doc, options), askFormat: (current, validate) => askParagraphFormat(doc, current, validate), askText: (current, validate) => askTextFormat(doc, current, validate), askName: (options) => askName(doc, options), openStyles: async (startId) => { if (guideDoc) await openStylesPanel(doc, guideDoc, say, startId); } });
     },
     () => {},
   );
@@ -329,10 +368,13 @@ window.addEventListener("message", (e) => {
       wantedTool = null;
       void openTool(id);
     }
+  } else if (data.type === "osg-zoom" && ["more", "less", "actual"].includes(data.action)) {
+    if (zoom.can()) void zoom[/** @type {"more" | "less" | "actual"} */ (data.action)]();
   } else if (data.type === "osg-key" && typeof data.key === "string" && ["k", "K", "/", "F10"].includes(data.key)) {
     // A key the author pressed in the tools that belongs to the program (Ctrl+K, Ctrl+/, F10): the program's keys are heard here.
     doc.dispatchEvent(new KeyboardEvent("keydown", { key: data.key, ctrlKey: data.ctrlKey === true, metaKey: data.metaKey === true, bubbles: true, cancelable: true }));
   }
 });
 
+void loadZoom();
 void show().catch((e) => say(/** @type {Error} */ (e).message, true));

@@ -121,7 +121,7 @@ const FORMAT_ITEMS = /** @type {({ name: string, label: string, icon: UiIconName
  * (undo, redo, cut, copy, paste, add, kind, moveUp, moveDown, delete) and state() says what can be done now.
  * `ctx.insert(name)` makes one of the INSERT_ITEMS (a form, lines, a table...) after the row the author is on.
  * @typedef {{ command: (name: string) => unknown, state: () => { canUndo: boolean, canRedo: boolean, hasRows: boolean, inTable: boolean } }} EditApi
- * @param {{ edit?: EditApi, insert?: (name: string) => unknown, saveWord?: () => unknown, saveTemplate?: () => unknown, importStyles?: () => unknown, hasGuide: () => boolean, openTool: (id: string) => void, updateGuide: () => void, newGuide: () => void, openGuide: () => void, closeGuide: () => void, search: () => void, keys: () => void, about: () => void, updates?: () => void }} ctx
+ * @param {{ edit?: EditApi, insert?: (name: string) => unknown, saveWord?: () => unknown, saveTemplate?: () => unknown, importStyles?: () => unknown, zoom?: { more: () => unknown, less: () => unknown, actual: () => unknown, can: () => boolean }, hasGuide: () => boolean, openTool: (id: string) => void, updateGuide: () => void, newGuide: () => void, openGuide: () => void, closeGuide: () => void, search: () => void, keys: () => void, about: () => void, updates?: () => void }} ctx
  * @returns {{ menus: MenuDef[], quick: MenuCommand[] }}  the menus, and the commands of the navy bar while a guide is open
  */
 export function buildMenus(ctx) {
@@ -181,6 +181,18 @@ export function buildMenus(ctx) {
         : /** @type {MenuCommand} */ (i.own ? { label: i.label, icon: i.icon, title: i.title, run: () => void ctx.importStyles?.(), enabled: ctx.hasGuide } : { label: i.label, icon: i.icon, keys: i.keys, title: i.title, run: edits(i.name), enabled: can("hasRows") }),
     ),
   };
+  // The View menu: how big the guide's page is drawn on the screen (the guide's page only; the menus and the tools keep their size). The commands are dimmed with no guide open.
+  const zoom = ctx.zoom;
+  /** @type {MenuDef} */
+  const view = {
+    id: "view",
+    label: "View",
+    items: [
+      { label: "Zoom in", icon: "zoom-in", keys: "Ctrl+Alt+=", title: "Draw the guide's page bigger on the screen (the mouse wheel with Ctrl held, over the guide, does the same)", run: () => void zoom?.more(), enabled: () => zoom?.can() === true },
+      { label: "Zoom out", icon: "zoom-out", keys: "Ctrl+Alt+-", title: "Draw the guide's page smaller on the screen", run: () => void zoom?.less(), enabled: () => zoom?.can() === true },
+      { label: "Actual size", icon: "rotate-ccw", keys: "Ctrl+Alt+0", title: "Draw the guide's page at its usual size, 100%", run: () => void zoom?.actual(), enabled: () => zoom?.can() === true },
+    ],
+  };
   /** @type {MenuDef} */
   const insert = {
     id: "insert",
@@ -214,7 +226,7 @@ export function buildMenus(ctx) {
     { label: "Update guide", icon: "refresh-cw", title: "Renumber the headings and forms, and correct the times", run: ctx.updateGuide },
     { label: "Make workbook", icon: "book-open", title: "Make the participant workbook", run: () => ctx.openTool("participantWorkbook") },
   ];
-  return { menus: [file, edit, insert, format, ...middle, help], quick };
+  return { menus: [file, edit, insert, format, view, ...middle, help], quick };
 }
 
 export function menuEntries(/** @type {MenuDef[]} */ menus, /** @type {string} */ id) {

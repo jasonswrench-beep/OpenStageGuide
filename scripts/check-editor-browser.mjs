@@ -783,7 +783,8 @@ try{
 
   // ---- the formatting bar: the same looks as buttons, which show whether the chosen words have them
   const bar=page.getByRole('toolbar',{name:'Text formatting'});
-  ok(await bar.count()===1&&await bar.getByRole('button').count()===12,'the guide has a formatting bar with its buttons');
+  ok(await bar.count()===1&&await bar.getByRole('button').count()===15,'the guide has a formatting bar with its buttons: twelve for the words and three for zoom');
+  ok(await bar.getByRole('group',{name:'Zoom'}).getByRole('button').count()===3,'the last three, in their own group, are Zoom out, the size, and Zoom in');
   ok(await bar.locator('button[tabindex="0"]').count()===1,'with one Tab stop, and the arrow keys along it');
   const boldButton=bar.getByRole('button',{name:'Bold'});
   ok(await boldButton.getAttribute('aria-pressed')==='false','Bold is not shown as on while no words are being changed');

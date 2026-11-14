@@ -11,6 +11,7 @@ import JSZip from 'jszip';
 import os from 'node:os';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {serializeProject} from '../src/guide-project.mjs';
 const require=createRequire(import.meta.url);
 if(!process.env.PLAYWRIGHT_DIR){console.error('Set PLAYWRIGHT_DIR to the playwright package folder.');process.exit(2);}
 const {chromium}=require(process.env.PLAYWRIGHT_DIR);
@@ -45,7 +46,7 @@ try{
   ok(page.url().endsWith('/program/'),'the address / goes to the program');
   ok((await page.locator('h1').innerText())==='OpenStage Guide','the welcome page has its heading');
   ok(await page.locator('main#main').count()===1&&await page.locator('a.skip').count()===1,'a main region and a skip link');
-  ok((await page.locator('[role=menubar] > .menubar-slot').count())===11,'eleven menus: File, Edit, Insert, Format, Guide, Write, Bring in, E-learning, Check, Make, Help');
+  ok((await page.locator('[role=menubar] > .menubar-slot').count())===12,'twelve menus: File, Edit, Insert, Format, View, Guide, Write, Bring in, E-learning, Check, Make, Help');
   ok(await page.locator('#bar-buttons button').count()===0,'no guide buttons on the navy bar before a guide is open');
   ok(/no guides yet/i.test(await page.locator('.recent').innerText()),'it says there are no guides yet');
   await shot('1-welcome.png');
@@ -263,6 +264,108 @@ try{
   ok(true,'the page left over from the first tab says it no longer saves');
   ok(fs.readFileSync(first,'utf8')===firstBefore&&fs.readFileSync(second,'utf8')===secondBefore,'and neither guide was written to');
   await other.close();
+
+  // ---- a long guide scrolls inside its own pane and never makes the whole page scroll (a paragraph for screen readers inside the guide, positioned
+  // absolutely, once stretched the page by what the guide was longer than the window, so scrolling past the end of the guide moved the page and left
+  // empty space below the guide and the tools)
+  fs.writeFileSync(path.join(GUIDES,'Long guide.guide-project.json'),serializeProject({title:'Long guide',paragraphs:Array.from({length:150},(_,i)=>({xml:`<w:p xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:r><w:t xml:space="preserve">Paragraph ${i+1} of a long guide.</w:t></w:r></w:p>`,text:`Paragraph ${i+1} of a long guide.`,style:'Normal'}))}));
+  const long=await browser.newPage({viewport:{width:1920,height:1009}});
+  await long.goto(`${BASE}/`);
+  await long.waitForSelector('#welcome-new,#work-guide');
+  if(await long.locator('#work-guide').count()){
+    await long.getByRole('menuitem',{name:/^File/}).click();
+    await long.getByRole('menuitem',{name:/Close guide/}).click();
+    await long.waitForSelector('#welcome-new');
+  }
+  await long.getByRole('button',{name:/Long guide/}).click();
+  await long.waitForSelector('#work-guide .page');
+  const layout=()=>long.evaluate(()=>{const g=document.querySelector('#work-guide'),w=document.querySelector('.work').getBoundingClientRect();return {inner:innerHeight,page:document.scrollingElement.scrollHeight,pageTop:document.scrollingElement.scrollTop,guideInner:g.scrollHeight,guideShown:g.clientHeight,workBottom:Math.round(w.bottom)};});
+  for(const [w,h] of [[1920,1009],[1360,900],[1100,700]]){
+    await long.setViewportSize({width:w,height:h});
+    await long.waitForTimeout(300);
+    const m=await layout();
+    ok(m.guideInner>m.guideShown+500,`${w} x ${h}: the guide is longer than its pane, so it scrolls inside the pane`);
+    ok(m.page<=m.inner,`${w} x ${h}: the page itself does not scroll (page ${m.page}, window ${m.inner})`);
+    ok(m.workBottom===m.inner,`${w} x ${h}: the guide and the tools reach the bottom of the window (${m.workBottom} of ${m.inner})`);
+  }
+  await long.setViewportSize({width:1920,height:1009});
+  await long.locator('#work-guide').evaluate(e=>{e.scrollTop=e.scrollHeight;});
+  await long.mouse.move(700,500);
+  await long.mouse.wheel(0,3000);
+  await long.waitForTimeout(400);
+  ok((await layout()).pageTop===0,'scrolling on past the end of the guide does not move the page');
+
+  // ---- zoom: the guide's page is drawn bigger or smaller, and nothing else is (the menus and the tools keep their size)
+  const zoomSizes=()=>long.evaluate(()=>{const p=document.querySelector('#work-guide .page'),q=e=>Math.round(document.querySelector(e).getBoundingClientRect().height*10)/10,w=e=>Math.round(document.querySelector(e).getBoundingClientRect().width*10)/10;
+    return {zoom:getComputedStyle(p).zoom,pageWidth:Math.round(p.getBoundingClientRect().width),menus:q('#menu-row'),bar:q('.shell'),tools:w('.work-tools'),status:document.querySelector('#status').textContent,docScroll:document.scrollingElement.scrollHeight,inner:innerHeight};});
+  const settingsNow=()=>long.evaluate(async()=>(await (await fetch('/api/settings')).json()).values['osg.zoom.v1']??null);
+  const menuView=async name=>{await long.getByRole('menuitem',{name:/^View/}).click();await long.getByRole('menuitem',{name}).click();await long.waitForTimeout(250);};
+  const s100=await zoomSizes();
+  ok(s100.zoom==='1'&&s100.pageWidth>=780&&s100.pageWidth<=782,'the guide\'s page starts at 100% ('+JSON.stringify([s100.zoom,s100.pageWidth])+')');
+  await menuView(/Zoom in/);
+  let z=await zoomSizes();
+  ok(z.zoom==='1.1'&&Math.abs(z.pageWidth-Math.round(s100.pageWidth*1.1))<=2,'View, Zoom in draws the guide\'s page at 110%: '+z.pageWidth+' wide');
+  ok(z.menus===s100.menus&&z.bar===s100.bar&&z.tools===s100.tools,'the menus, the navy bar and the tools keep their size');
+  ok(/Zoom 110%/.test(z.status),'it says so: '+z.status);
+  await long.keyboard.press('Control+Alt+=');z=await zoomSizes();
+  ok(z.zoom==='1.25','Ctrl+Alt+= goes on to 125%');
+  await long.keyboard.press('Control+Alt+-');z=await zoomSizes();
+  ok(z.zoom==='1.1','Ctrl+Alt+- goes back to 110%');
+  await long.mouse.move(700,500);await long.keyboard.down('Control');await long.mouse.wheel(0,-120);await long.keyboard.up('Control');await long.waitForTimeout(250);
+  ok((await zoomSizes()).zoom==='1.25','the mouse wheel with Ctrl held, over the guide, zooms in');
+  await long.mouse.move(1700,500);await long.keyboard.down('Control');await long.mouse.wheel(0,-120);await long.keyboard.up('Control');await long.waitForTimeout(250);
+  ok((await zoomSizes()).zoom==='1.25','but not over the tools');
+  await long.locator('#tools-frame').waitFor({state:'visible'});
+  const toolsFrame=long.frames().find(f=>f.url().includes('/program/tools'));
+  const inTools=toolsFrame.locator('button:visible, input:visible, select:visible').first();
+  await inTools.waitFor({state:'visible',timeout:10000});
+  await inTools.focus();
+  await long.keyboard.press('Control+Alt+=');await long.waitForTimeout(300);
+  ok((await zoomSizes()).zoom==='1.5','Ctrl+Alt+= pressed in the tools zooms the guide\'s page');
+  await long.keyboard.press('Control+=');await long.waitForTimeout(200);
+  ok((await zoomSizes()).zoom==='1.5','Ctrl+= does not zoom (it is subscript in the guide\'s words)');
+  ok(await settingsNow()==='1.5','the size is kept in the program\'s settings');
+  ok((await zoomSizes()).docScroll<=(await zoomSizes()).inner,'a bigger page scrolls inside the guide\'s pane, not the window');
+  // a paragraph can still be chosen and its words changed on a page that is drawn bigger
+  await long.locator('#work-guide .page .g-para').nth(4).click();
+  await long.keyboard.press('Home');
+  await long.keyboard.type('ZOOMED ');
+  await long.keyboard.press('Escape');
+  await long.waitForTimeout(500);
+  ok(/ZOOMED Paragraph 5 of a long guide\./.test(await long.locator('#work-guide .page').innerText()),'on a page drawn at 150% a paragraph is chosen by clicking it and its words are changed');
+  await long.reload();
+  await long.waitForSelector('#work-guide .page');
+  ok((await zoomSizes()).zoom==='1.5','after the page is loaded again the size is still 150%');
+  // the same zoom, as buttons at the right end of the formatting bar
+  const zbar=long.getByRole('toolbar',{name:'Text formatting'});
+  const zlevel=zbar.locator('.format-zoom-level');
+  ok(await zbar.getByRole('group',{name:'Zoom'}).count()===1,'the formatting bar has a Zoom group');
+  ok((await zlevel.innerText())==='150%','it shows the size the page is drawn at: 150%');
+  const rightEdge=await long.evaluate(()=>{const b=document.querySelector('.format-bar').getBoundingClientRect(),g=document.querySelector('.format-zoom').getBoundingClientRect();return b.right-g.right;});
+  ok(rightEdge>=0&&rightEdge<24,'at the right end of the bar ('+Math.round(rightEdge)+' px from its edge)');
+  await zbar.getByRole('button',{name:'Zoom in'}).click();await long.waitForTimeout(250);
+  ok((await zoomSizes()).zoom==='1.75'&&(await zlevel.innerText())==='175%','the Zoom in button goes to 175% and the bar says so');
+  await zbar.getByRole('button',{name:'Zoom out'}).click();await long.waitForTimeout(250);
+  ok((await zoomSizes()).zoom==='1.5'&&(await zlevel.innerText())==='150%','the Zoom out button goes back to 150%');
+  await long.keyboard.press('Control+Alt+=');await long.waitForTimeout(250);
+  ok((await zlevel.innerText())==='175%','the number follows the keys and the menu too');
+  ok(/Zoom 175%/.test(await zlevel.getAttribute('aria-label')),'and the button says it to a screen reader: '+await zlevel.getAttribute('aria-label'));
+  await zlevel.click();await long.waitForTimeout(250);
+  ok((await zoomSizes()).zoom==='1'&&(await zlevel.innerText())==='100%','the number is a button: it goes back to 100%');
+  await long.keyboard.press('Control+Alt+=');await long.waitForTimeout(150);
+  ok((await zlevel.innerText())==='110%','(and on again)');
+  await long.keyboard.press('Control+Alt+0');
+  z=await zoomSizes();
+  ok(z.zoom==='1'&&z.pageWidth===s100.pageWidth&&await settingsNow()===null,'Ctrl+Alt+0 is back to the actual size, which is not kept as a setting');
+  await menuView(/Zoom out/);
+  ok((await zoomSizes()).zoom==='0.9','View, Zoom out draws the page smaller');
+  await long.getByRole('menuitem',{name:/^File/}).click();
+  await long.getByRole('menuitem',{name:/Close guide/}).click();
+  await long.waitForSelector('#welcome-new');
+  await long.getByRole('menuitem',{name:/^View/}).click();
+  ok((await long.getByRole('menuitem',{name:/Zoom in/}).getAttribute('aria-disabled'))==='true','with no guide open the zoom commands are dimmed');
+  await long.keyboard.press('Escape');
+  await long.close();
 }finally{
   if(browser)await browser.close();
   server.kill();

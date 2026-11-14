@@ -53,6 +53,7 @@ import {normalizeMaterials} from './materials.mjs';
 import {planMaterials} from './planning.mjs';
 import {serializeMaterialsDraft,restoreMaterialsDraft,MAX_MATERIAL_DRAFT_BYTES} from './materials-draft.mjs';
 import {createProgramStorage} from './program-settings.mjs';
+import {zoomKeyAction} from './zoom.mjs';
 const $=id=>document.getElementById(id);
 // ?project=1 is the program-of-its-own spike: the same pane and the same in-memory document as the preview, but the guide is read from
 // and saved to one project file by the program's own server (scripts/project-server.mjs). It is a preview in every other way.
@@ -74,6 +75,13 @@ if(programMode){
     if(!suite&&!menus)return;
     e.preventDefault();
     toProgram({type:'osg-key',key:e.key,ctrlKey:e.ctrlKey,metaKey:e.metaKey});
+  });
+  // Zoom is the guide's page (src/zoom.mjs), which the program's page owns: the zoom keys pressed here, in the tools, are passed on to it.
+  document.addEventListener('keydown',e=>{
+    const action=zoomKeyAction(e);
+    if(!action)return;
+    e.preventDefault();
+    toProgram({type:'osg-zoom',action});
   });
 }
 let project=null,busy=false,ready=false,blocked=false,previewRevision=null;

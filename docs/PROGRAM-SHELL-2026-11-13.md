@@ -30,3 +30,14 @@ The page writes text and attributes only (never markup); it reaches nothing but 
 - **No export menu**, no welcome-page sample guide, no Save as, no recent-list controls, no About page beyond a short dialog.
 - **The program's name is OpenStage Guide** (answered by the author, 2026-11-13). **The file ending** (`.guide-project.json`) is still a decision for the author.
 - **Nothing has been tried in Word, with a screen reader, or on a second computer.**
+
+## Zoom and the page's height (2026-11-14)
+
+- **Zoom is the document's.** The View menu (Zoom in, Zoom out, Actual size; Ctrl+Alt+=, Ctrl+Alt+-, Ctrl+Alt+0; the mouse wheel with Ctrl held over the guide) draws the
+  guide's page between 50% and 300%, as a word processor does. It is CSS `zoom` on the guide's page, set by the variable `--doc-zoom` on the program's page (`program/style.css`,
+  `program/ui/app.js`, `src/zoom.mjs`); the menus, the tools and the dialogs keep their size, nothing in the guide or in a Word file changes, and the level is kept in the settings
+  file (`osg.zoom.v1`). Ctrl+= and Ctrl+Shift+= stay subscript and superscript in the guide's words, which is why zoom has Ctrl+Alt. The window's own (web view) zoom is left off,
+  and the window has no part in this.
+- **The whole page never scrolls.** A long guide once made the program's page scroll as well as the guide's pane (and left empty space below the guide and the tools): the hidden
+  hint for screen readers inside the guide is positioned absolutely, and the guide's pane was not its containing block, so the pane did not clip it. `.work-guide` is now
+  `position: relative`, and `check:program` fails without it.

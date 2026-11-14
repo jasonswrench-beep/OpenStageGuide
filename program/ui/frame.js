@@ -5,6 +5,7 @@
  * (Ctrl+K) and the list of keyboard keys (Ctrl+/). Every command is in the one list of commands.js, so a command has the same words, icon
  * and keys in a menu, in the command search and on a button. After OpenAssess's frame (see NOTICE).
  */
+import { zoomKeyAction } from "../../src/zoom.mjs";
 import { buildMenus } from "./commands.js";
 import { openCommandSearch, searchEntries } from "./commandsearch.js";
 import { openKeys } from "./keys.js";
@@ -15,7 +16,7 @@ const SAVE_WORDS = /** @type {Record<string, string>} */ ({ new: "No changes yet
 /**
  * Build the frame into the page, once.
  * @param {Document} doc
- * @param {{ edit?: import("./commands.js").EditApi, insert?: (name: string) => unknown, saveWord?: () => unknown, saveTemplate?: () => unknown, importStyles?: () => unknown, guide: () => { name: string } | null, openTool: (id: string) => void, updateGuide: () => void, newGuide: () => void, openGuide: () => void, closeGuide: () => void, about: () => void }} shell
+ * @param {{ edit?: import("./commands.js").EditApi, insert?: (name: string) => unknown, saveWord?: () => unknown, saveTemplate?: () => unknown, importStyles?: () => unknown, zoom?: { more: () => unknown, less: () => unknown, actual: () => unknown, can: () => boolean }, guide: () => { name: string } | null, openTool: (id: string) => void, updateGuide: () => void, newGuide: () => void, openGuide: () => void, closeGuide: () => void, about: () => void }} shell
  */
 export function startFrame(doc, shell) {
   const contextHost = /** @type {HTMLElement} */ (doc.getElementById("bar-context"));
@@ -54,6 +55,23 @@ export function startFrame(doc, shell) {
       keys();
     }
   });
+
+  // Zoom of the guide's page (src/zoom.mjs): Ctrl+Alt with =, - or 0, and the mouse wheel with Ctrl held over the guide. The tools frame passes the keys on (src/app.mjs).
+  doc.addEventListener("keydown", (e) => {
+    const action = zoomKeyAction(e);
+    if (!action || !shell.zoom?.can()) return;
+    e.preventDefault();
+    void shell.zoom[action === "more" ? "more" : action === "less" ? "less" : "actual"]();
+  });
+  doc.addEventListener(
+    "wheel",
+    (e) => {
+      if (!e.ctrlKey || !shell.zoom?.can() || !(e.target instanceof Element) || !e.target.closest("#work-guide")) return;
+      e.preventDefault();
+      void (e.deltaY < 0 ? shell.zoom.more() : shell.zoom.less());
+    },
+    { passive: false },
+  );
 
   /** Draw the navy bar for what is open now: the guide's name and whether it is saved, and its main buttons. */
   const drawBar = () => {

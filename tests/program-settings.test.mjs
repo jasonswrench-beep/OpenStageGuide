@@ -9,6 +9,7 @@ import path from 'node:path';
 import {startProjectServer,documentsFolder,defaultGuidesFolder,PROJECT_EXTENSION} from '../scripts/project-server.mjs';
 import {parseSettings,serializeSettings,createProgramStorage,SETTING_KEYS,SETTINGS_FILE,SETTING_MAX_CHARS,AGENDA_START_KEY,LOOK_KEY} from '../src/program-settings.mjs';
 import {STORE_KEY} from '../src/activity-library.mjs';
+import {ZOOM_KEY} from '../src/zoom.mjs';
 
 const snapshot={version:'0-test',buildId:'test-build',record:{},read:()=>null};
 
@@ -27,8 +28,8 @@ async function withServer(fn,{folder:given}={}){
   try{await fn({folder,dir,start});}finally{fs.rmSync(dir,{recursive:true,force:true});}
 }
 
-test('the names the program keeps are the three the pane uses, and the file reads back only those, as text',()=>{
-  assert.deepEqual([...SETTING_KEYS],[STORE_KEY,AGENDA_START_KEY,LOOK_KEY]);
+test('the names the program keeps are the three the pane uses and the zoom, and the file reads back only those, as text',()=>{
+  assert.deepEqual([...SETTING_KEYS],[STORE_KEY,AGENDA_START_KEY,LOOK_KEY,ZOOM_KEY]);
   const text=serializeSettings({[STORE_KEY]:'[1]',[AGENDA_START_KEY]:'13:30',other:'x',[LOOK_KEY]:5});
   assert.deepEqual(parseSettings(text),{[STORE_KEY]:'[1]',[AGENDA_START_KEY]:'13:30'},'an unknown name and a value that is not text are not kept');
   for(const bad of ['','not json','[]','{"format":"other","values":{}}',`{"format":"openstage-guide-settings","values":[]}`,'null'])assert.deepEqual(parseSettings(bad),{},`${bad}`);

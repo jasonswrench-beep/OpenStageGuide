@@ -54,6 +54,7 @@
     "redo-2",
     "refresh-cw",
     "remove-formatting",
+    "rotate-ccw",
     "scissors",
     "search",
     "settings",
@@ -76,6 +77,8 @@
     "type",
     "underline",
     "undo-2",
-    "x"
+    "x",
+    "zoom-in",
+    "zoom-out"
   ]
 }

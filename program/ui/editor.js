@@ -37,7 +37,7 @@ const SELECTION_DELAY = 250;
  * @param {Document} doc
  * @param {HTMLElement} host where the guide is drawn
  * @param {any} guide the guide's document, with its saving
- * @param {{ say: (message: string, bad?: boolean) => void, askText: (current: any, validate: (change: any) => void) => Promise<any>, openStyles: (startId?: string) => Promise<void>, askName: (options: any) => Promise<string | null>, askFormat: (current: any, validate: (fmt: any) => void) => Promise<any>, choose: (options: { title: string, intro?: string, confirm: string, options: { id: string, label: string, note?: string }[], current?: string }) => Promise<string | null> }} ui
+ * @param {{ zoom?: { more: () => unknown, less: () => unknown, actual: () => unknown, level: () => number }, say: (message: string, bad?: boolean) => void, askText: (current: any, validate: (change: any) => void) => Promise<any>, openStyles: (startId?: string) => Promise<void>, askName: (options: any) => Promise<string | null>, askFormat: (current: any, validate: (fmt: any) => void) => Promise<any>, choose: (options: { title: string, intro?: string, confirm: string, options: { id: string, label: string, note?: string }[], current?: string }) => Promise<string | null> }} ui
  */
 export function mountEditor(doc, host, guide, ui) {
   const page = doc.createElement("article");
@@ -1447,6 +1447,48 @@ export function mountEditor(doc, host, guide, ui) {
     bar.append(button);
     tools.push({ button, setting });
   }
+  // Zoom of the guide's page, at the right end of the bar: smaller, the size it is (a button: back to 100%), bigger. The program's page owns it (src/zoom.mjs) and
+  // says when it changes (an "osg-zoom" event on the page), so the number here is always the one on the page.
+  let drawLevel = () => {};
+  if (ui.zoom) {
+    const zoom = ui.zoom;
+    const group = doc.createElement("span");
+    group.className = "format-zoom";
+    group.setAttribute("role", "group");
+    group.setAttribute("aria-label", "Zoom");
+    /** @param {string} words @param {() => unknown} act @returns {HTMLButtonElement} */
+    const zoomButton = (words, act) => {
+      const button = doc.createElement("button");
+      button.type = "button";
+      button.className = "format-tool";
+      button.setAttribute("aria-label", words);
+      button.title = words;
+      button.tabIndex = -1;
+      button.addEventListener("mousedown", (ev) => ev.preventDefault());
+      button.addEventListener("click", () => void act());
+      return button;
+    };
+    const smaller = zoomButton("Zoom out", () => zoom.less());
+    smaller.append(uiIcon(doc, "zoom-out"));
+    const level = zoomButton("Actual size", () => zoom.actual());
+    level.classList.add("format-zoom-level");
+    const bigger = zoomButton("Zoom in", () => zoom.more());
+    bigger.append(uiIcon(doc, "zoom-in"));
+    group.append(smaller, level, bigger);
+    bar.append(group);
+    for (const button of [smaller, level, bigger]) tools.push({ button });
+    drawLevel = () => {
+      const percent = `${Math.round(zoom.level() * 100)}%`;
+      level.textContent = percent;
+      level.setAttribute("aria-label", `Zoom ${percent}. Choose to go back to the actual size, 100%.`);
+      level.title = `Zoom ${percent}: choose to go back to 100%`;
+    };
+    drawLevel();
+    doc.addEventListener("osg-zoom", drawZoomLevel);
+  }
+  function drawZoomLevel() {
+    drawLevel();
+  }
   // One Tab stop for the bar, and the arrow keys along it.
   bar.addEventListener("keydown", (ev) => {
     const at = tools.findIndex((t) => t.button === doc.activeElement);
@@ -1490,6 +1532,7 @@ export function mountEditor(doc, host, guide, ui) {
       gone = true;
       if (selectionTimer !== null) window.clearTimeout(selectionTimer);
       doc.removeEventListener("selectionchange", syncBar);
+      doc.removeEventListener("osg-zoom", drawZoomLevel);
       editing = null;
     },
     /** A command of the Edit menu, for the rows the author is on or has chosen. @param {string} name */
