@@ -71,6 +71,7 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
   // The page sets one at start (api.useTool), so in use there is always a tool open and the pane shows that tool alone.
   let tool=null;
   let queuedTool=null,busyIsSlow=false;
+  let layoutDirty=false,layoutLoop=null; // the Layout tool: a choice waits to be kept (layoutDirty) and the loop that keeps them (layoutLoop)
   let formSettings=readFormSettings(null),busy=false,plan=null,contents={present:false,stale:false},paras=[],at=-1,mode='start',selectedCue='say',connected=false,editing=null,pinned=false,contentsSig='',waiting=false,pendingDelete=null,lastOwn='',pictureReady=null;
 
   const status=text=>{$('guide-error').hidden=true;$('guide-error').textContent='';$('guide-status').textContent=text;};
@@ -844,6 +845,7 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
   }
   // -- layout of the Word file: kept with the guide, used when it is saved as a Word file (guide-output-layout.mjs), and the one-page summary page
   function drawLayout(){
+    if(layoutDirty)return; // a choice is waiting to be kept: the boxes hold it, and drawing what was kept over them would undo it
     const fill=(id,labels)=>{
       const sel=$(id);
       if(sel.children.length)return;
@@ -861,12 +863,27 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
     $('guide-layout-says').textContent=describeLayout(l)||'No layout is chosen, so the Word file is made as it always was.';
     $('guide-summary-note').textContent=pageNote('The one-page summary',summaryState(paras),summaryRows(paras,plan.guide).length?'':' It needs a module: add one first.');
   }
+  // A choice made while the last one is still being kept is not lost: layoutDirty says one is waiting, the one being kept is followed by another that reads every box
+  // as it is by then, and until then the boxes are not drawn from what was kept (that would put the waiting choice back to what it was).
   async function changeLayout(){
     const next=cleanLayout({dividers:$('guide-layout-dividers').checked,marginIcons:$('guide-layout-icons').checked,slideBeside:$('guide-layout-slides').checked,header:$('guide-layout-header').value,footer:$('guide-layout-footer').value,footerText:$('guide-layout-footertext').value});
     await saveFormSettings({...formSettings,layout:next});
     drawLayout();
     status('The layout is kept with the guide. It is used when you save the guide as a Word file.');
   }
+  const onLayoutChange=()=>{
+    layoutDirty=true;
+    if(!layoutLoop)layoutLoop=(async()=>{
+      try{
+        for(let waited=0;layoutDirty;){
+          if(busy){if(++waited>40){layoutDirty=false;break;}await new Promise(r=>setTimeout(r,150));continue;}
+          layoutDirty=false;
+          await act(changeLayout);
+        }
+      }finally{layoutLoop=null;}
+    })();
+    return layoutLoop;
+  };
   async function buildSummaryPage(){
     const list=await adapter.paragraphs(),rows=summaryRows(list,readGuide(list)),place=summaryPlacement(list);
     await adapter.insert(()=>summaryBody(rows,{withHeading:place.withHeading}),pageInsert(place));
@@ -2197,11 +2214,6 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
   for(const [id,fn] of [['guide-ref-term-form',addTerm],['guide-ref-form',addReference],['guide-cap-form',addCaption],['guide-quote-form',addQuote],['guide-licence-form',buildLicence]])$(id).onsubmit=e=>{e?.preventDefault?.();return act(fn);};
   $('guide-forms-pack').onclick=()=>packFromTool();
   $('guide-forms-scheme').onchange=()=>act(changeScheme);
-  // A choice made while the last one is still being kept is not lost: it is tried again a moment later, and reads every box as it is by then.
-  const onLayoutChange=async(tries=0)=>{
-    if(busy){if(tries<40)setTimeout(()=>void onLayoutChange(tries+1),150);return;}
-    await act(changeLayout);
-  };
   for(const id of ['guide-layout-dividers','guide-layout-icons','guide-layout-slides','guide-layout-header','guide-layout-footer','guide-layout-footertext'])$(id).onchange=()=>onLayoutChange();
   $('guide-build-summary').onclick=async()=>{await act(buildSummaryPage);focus('guide-build-summary');};
   for(const id of ['guide-forms-people','guide-forms-teams','guide-forms-tables'])$(id).onchange=()=>act(changeGroup);

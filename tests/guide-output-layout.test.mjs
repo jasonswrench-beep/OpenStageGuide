@@ -156,6 +156,22 @@ test('the Layout tool keeps its choices with the guide, says what they do, and d
   assert.equal('layout' in readSettings(await a.adapter.formSettings()),false,'back to the default: nothing is kept');
 });
 
+test('choices made one right after another, while the last is still being kept, are all kept, and the boxes are not drawn back to what was kept',async()=>{
+  const a=await guide();
+  a.p.useTool('layout');await a.p.refresh();
+  const keep=a.adapter.setFormSettings.bind(a.adapter);
+  a.adapter.setFormSettings=async x=>{await new Promise(r=>setTimeout(r,40));return keep(x);};
+  a.n('guide-layout-dividers').checked=true;const first=a.n('guide-layout-dividers').onchange();
+  a.type('guide-layout-header','module');const second=a.n('guide-layout-header').onchange();
+  a.type('guide-layout-footer','mirrored');const third=a.n('guide-layout-footer').onchange();
+  a.type('guide-layout-footertext','Acme');const fourth=a.n('guide-layout-footertext').onchange();
+  await Promise.all([first,second,third,fourth]);
+  assert.equal(a.err(),'');
+  assert.deepEqual(readSettings(await a.adapter.formSettings()).layout,{...LAYOUT_DEFAULTS,dividers:true,header:'module',footer:'mirrored',footerText:'Acme'},'every choice is in what was kept');
+  assert.equal(a.n('guide-layout-header').value,'module');assert.equal(a.n('guide-layout-footer').value,'mirrored');assert.equal(a.n('guide-layout-footertext').value,'Acme');assert.equal(a.n('guide-layout-dividers').checked,true);
+  assert.match(a.n('guide-layout-says').textContent,/name of the module runs along the top/,'and what the tool says follows the last choice');
+});
+
 test('the one-page summary lists each module with its minutes, its lessons and its aims, is built again over itself, and falls out of date',async()=>{
   const a=await guide();
   a.p.useTool('layout');await a.p.refresh();
