@@ -508,6 +508,38 @@ try{
   ok(files(GUIDES).some(f=>/\(restored\)\.guide-project\.json$/.test(f))&&files(GUIDES).some(f=>f==='Forms check.guide-project.json'),'the backup is a new guide beside the first, which is not changed');
   const nowOpen=await fpage.evaluate(()=>fetch('/api/state').then(r=>r.json()));
   ok(/\(restored\)\.guide-project\.json$/.test(String(nowOpen.current)),'and it is the one that is open: '+nowOpen.current);
+  // File > Save as Word file, then File > Import a Word file opens that file as a new guide beside the others, and nothing is written over
+  await fpage.getByRole('menuitem',{name:/^File/}).click();
+  const [wordDownload]=await Promise.all([fpage.waitForEvent('download',{timeout:30000}),fpage.getByRole('menuitem',{name:/Save as Word file/}).click()]);
+  const docxPath=path.join(RUN,'made.docx');
+  await wordDownload.saveAs(docxPath);
+  const guideFiles=()=>files(GUIDES).filter(f=>/\.guide-project\.json$/.test(f));
+  const guidesBefore=guideFiles().length;
+  await fpage.getByRole('menuitem',{name:/^File/}).click();
+  await fpage.getByRole('menuitem',{name:/Import a Word file/}).click();
+  await fpage.locator('dialog[open] input[type=file]').setInputFiles(docxPath);
+  await fpage.locator('dialog[open]').getByRole('button',{name:'Read the file'}).click();
+  await fpage.locator('dialog[open] #dlg-name').waitFor({timeout:15000}).catch(async e=>{console.log('THE DIALOG SAYS: '+await fpage.locator('dialog[open]').innerText());throw e;});
+  ok(/Forms check/.test(await fpage.locator('dialog[open] #dlg-name').inputValue()),'the guide is offered the title the Word file held: '+await fpage.locator('dialog[open] #dlg-name').inputValue());
+  await fpage.locator('dialog[open] #dlg-name').fill('Word import');
+  await fpage.locator('dialog[open]').getByRole('button',{name:'Make the guide'}).click();
+  await fpage.waitForFunction(()=>/^Word import/.test(document.title),null,{timeout:20000});
+  await fpage.waitForFunction(()=>/Goals/.test(document.querySelector('#work-guide')?.innerText||''),null,{timeout:20000});
+  ok(guideFiles().length===guidesBefore+1&&guideFiles().includes('Word import.guide-project.json'),'the Word file is a new guide beside the others: '+guideFiles().join(', '));
+  const afterWord=await fpage.evaluate(()=>fetch('/api/state').then(r=>r.json()));
+  ok(afterWord.current==='Word import.guide-project.json','and it is the one that is open: '+afterWord.current);
+  // File > Paste text makes a guide from lines
+  await fpage.getByRole('menuitem',{name:/^File/}).click();
+  await fpage.getByRole('menuitem',{name:/Paste text/}).click();
+  await fpage.locator('dialog[open] textarea').fill(['Pasted workshop','Module 1: Welcome','Lesson 1.1: Hello (10 min)','Say hello to everyone.'].join(String.fromCharCode(10)));
+  await fpage.locator('dialog[open]').getByRole('button',{name:'Make the guide'}).click();
+  await fpage.locator('dialog[open] #dlg-name').waitFor({timeout:15000});
+  ok(await fpage.locator('dialog[open] #dlg-name').inputValue()==='Pasted workshop','the pasted guide is offered the first line as its name');
+  await fpage.locator('dialog[open]').getByRole('button',{name:'Make the guide'}).click();
+  await fpage.waitForFunction(()=>/^Pasted workshop/.test(document.title)&&/Module 1: Welcome/.test(document.querySelector('#work-guide')?.innerText||''),null,{timeout:20000});
+  const pasted=await fpage.locator('#work-guide').innerText();
+  ok(/Lesson 1\.1: Hello/.test(pasted)&&/Say hello to everyone\./.test(pasted),'the pasted lines are the guide: a module, a lesson and a plain line');
+  ok(files(GUIDES).some(f=>/^Pasted workshop\.guide-project\.json$/.test(f))&&files(GUIDES).some(f=>f==='Forms check.guide-project.json'),'it is a new guide beside the first, which is not changed');
   await fpage.screenshot({path:path.join(SHOTS,'forms-tool.png')});
   await fpage.close();
 }finally{

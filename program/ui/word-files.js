@@ -5,7 +5,8 @@
  * the add-in's own copy, loaded by the page). A file the author chooses is read, never opened or run, and is not changed. Text and attributes
  * only, never markup.
  */
-import { DOCX_LIMITS, docxFromPackage, readDocxStyles } from "../../src/guide-docx.mjs";
+import { DOCX_LIMITS, docxFromPackage, readDocxParts, readDocxStyles } from "../../src/guide-docx.mjs";
+import { guideFromText, guideFromWord } from "../../src/guide-import.mjs";
 import { packEntries } from "../../src/guide-handouts.mjs";
 import { readSettings } from "../../src/guide-forms.mjs";
 import { describeLayout } from "../../src/guide-output-layout.mjs";
@@ -102,6 +103,45 @@ export async function saveWordFile(doc, guide, { name, template, say }) {
   } catch (e) {
     say(/** @type {Error} */ (e).message, true);
   }
+}
+
+/**
+ * A guide read from a Word file the author chooses (src/guide-import.mjs). It is read in the dialog, so a file that cannot be read is refused there, with the reason.
+ * Nothing is changed: the caller opens the result as a new guide. @param {Document} doc
+ * @returns {Promise<{ guide: any, notes: string[], title: string } | null>}
+ */
+export async function readGuideFromWord(doc) {
+  return askFields(doc, {
+    title: "Import a Word file",
+    intro: "Choose a Word document made from a guide, by this program or by the Word add-in. It opens as a new guide, so no guide you have is changed. The file is only read: it is not opened in Word, run or changed.",
+    confirm: "Read the file",
+    fields: [{ id: "file", label: "Word file (.docx)", type: "file", accept: ".docx" }],
+    finish: async (values) => {
+      const file = /** @type {File | null} */ (values.file);
+      if (!file) throw new Error("Choose a Word file first.");
+      if (file.size > DOCX_LIMITS.fileBytes) throw new Error(`Choose a Word file under ${DOCX_LIMITS.fileBytes / 1048576} MB.`);
+      const parts = await readDocxParts(new Uint8Array(await file.arrayBuffer()), zipLibrary());
+      const read = guideFromWord(parts, io, { fallbackTitle: file.name.replace(/\.docx$/i, "") });
+      return { ...read, title: read.guide.title };
+    },
+  });
+}
+
+/**
+ * A guide made from lines the author pastes (src/guide-import.mjs): "Module 1: ..." and "Lesson 1.1: ..." lines become modules and lessons.
+ * @param {Document} doc @returns {Promise<{ guide: any, notes: string[], title: string } | null>}
+ */
+export async function readGuideFromText(doc) {
+  return askFields(doc, {
+    title: "Paste text",
+    intro: "Paste lines to make a new guide from. A line that starts \"Module 1:\" is a module, and one that starts \"Lesson 1.1:\" is a lesson (it may end \"(10 min)\"). The first line is the title, unless it is one of those. Every other line becomes a plain paragraph. The guide you have open is not changed.",
+    confirm: "Make the guide",
+    fields: [{ id: "text", label: "The lines", type: "lines", rows: 10, hint: "For example: Module 1: Welcome, then Lesson 1.1: Introductions (10 min), then the words of the lesson." }],
+    finish: (values) => {
+      const read = guideFromText(String(values.text ?? ""));
+      return { ...read, title: read.guide.title };
+    },
+  });
 }
 
 /**

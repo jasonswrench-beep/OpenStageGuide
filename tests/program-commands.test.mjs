@@ -57,6 +57,7 @@ test('each menu holds the tools the author listed (2026-11-14), in that order; S
   const protect=GROUPS.find(g=>g.id==='protect').tools.map(t=>TOOL_NAMES[t]);
   assert.ok(protect.every(n=>names('file').includes(n)||names('help').includes(n)),'Save and Restore a backup are in File, Help is in Help');
   assert.deepEqual(names('file').slice(0,3),['New guide...','Open guide...','Close guide']);
+  assert.ok(names('file').includes('Import a Word file...')&&names('file').includes('Paste text...'),'a guide can be made from a Word file or from pasted lines, from File');
   assert.equal(PROGRAM_MENUS.flatMap(m=>m.tools).length+protect.length,ALL_IDS.length,'every tool is in a menu once');
 });
 

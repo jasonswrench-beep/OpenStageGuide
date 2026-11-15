@@ -248,3 +248,38 @@ export async function readDocxStyles(bytes,JSZipClass,io){
   }
   return {stylesXml,themeFonts};
 }
+
+const PICTURE_TYPES={png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',gif:'image/gif'};
+const toBase64=bytes=>{let out='';for(let i=0;i<bytes.length;i+=0x8000)out+=String.fromCharCode(...bytes.subarray(i,i+0x8000));return btoa(out);};
+/**
+ * The parts of a Word document that making a guide from it needs (src/guide-import.mjs): its body, styles, relationships, properties and its pictures as base64.
+ * Nothing in the file is run or opened. Every part is read with a limit on what it inflates to, whatever the file says about its own size; a picture that is too
+ * large, or a kind this program does not hold, is not read.
+ */
+export async function readDocxParts(bytes,JSZipClass){
+  if(!bytes||!bytes.length||bytes.length>DOCX_LIMITS.fileBytes)throw new Error(`Choose a Word file under ${DOCX_LIMITS.fileBytes/1048576} MB.`);
+  let zip;
+  try{zip=await JSZipClass.loadAsync(bytes);}catch{throw new Error('That is not a Word file (.docx).');}
+  const names=Object.keys(zip.files);
+  if(names.length>DOCX_LIMITS.parts)throw new Error('That Word file has too many parts to read.');
+  const text=async(name,what,required)=>{
+    const file=zip.file(name);
+    if(!file){if(required)throw new Error(`That file has no ${what}. Choose a Word document.`);return null;}
+    try{return new TextDecoder().decode(await readCapped(file,DOCX_LIMITS.partBytes));}
+    catch(e){if(required)throw new Error(e?.tooLarge?`The ${what} in that file is too large to read.`:`The ${what} in that file could not be read.`);return null;}
+  };
+  const document=await text('word/document.xml','document',true);
+  const styles=await text('word/styles.xml','styles',false),rels=await text('word/_rels/document.xml.rels','relationships',false),core=await text('docProps/core.xml','properties',false);
+  const media={};
+  let total=0;
+  for(const name of names){
+    const m=/^word\/media\/[^/]+\.(png|jpe?g|gif)$/i.exec(name);
+    if(!m||zip.files[name].dir)continue;
+    try{
+      const data=await readCapped(zip.file(name),12*1024*1024);
+      if((total+=data.length)>24*1024*1024)break;
+      media[name]={mime:PICTURE_TYPES[m[1].toLowerCase()],base64:toBase64(data)};
+    }catch{/* a picture that is too large or cannot be read is left out, and the guide is still made */}
+  }
+  return {document,styles,rels,core,media};
+}

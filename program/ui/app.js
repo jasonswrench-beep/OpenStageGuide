@@ -20,7 +20,7 @@ import { askParagraphFormat, askTextFormat } from "./format.js";
 import { openStylesPanel } from "./styles-panel.js";
 import { INSERTS, newForm } from "./forms.js";
 import { drawWelcome } from "./welcome.js";
-import { downloadFile, importStylesFromWord, safeFileName, saveHandoutPack, saveWordFile } from "./word-files.js";
+import { downloadFile, importStylesFromWord, readGuideFromText, readGuideFromWord, safeFileName, saveHandoutPack, saveWordFile } from "./word-files.js";
 
 const doc = document;
 const main = /** @type {HTMLElement} */ (doc.getElementById("main"));
@@ -160,10 +160,41 @@ async function restoreBackup() {
     if (!name) return;
     // The new guide is empty when it opens; the backup is put into it and saved, and the guide is opened again from the file.
     await show();
+    await guideDoc.ready;
     guideDoc.importState(read.guide);
     await guideDoc.flush();
     await show();
     say(`The backup is open as a new guide, "${name}".`);
+  } catch (e) {
+    say(/** @type {Error} */ (e).message, true);
+  }
+}
+
+/**
+ * A guide made from a Word file or from pasted lines, opened as a new guide of its own, so the guide that is open (or any other) is not changed.
+ * @param {"word" | "text"} kind
+ */
+async function importGuide(kind) {
+  if (!(await settle())) return;
+  try {
+    const read = kind === "word" ? await readGuideFromWord(doc) : await readGuideFromText(doc);
+    if (!read) return;
+    const name = await askName(doc, {
+      title: "Name of the new guide",
+      label: "Name of the guide",
+      confirm: "Make the guide",
+      value: String(read.title || "Imported guide").slice(0, 80),
+      hint: "It opens as a new guide with this name. The guide you have open does not change.",
+      accept: (typed) => post("new", { name: typed }),
+    });
+    if (!name) return;
+    // The new guide is empty when it opens; what was read is put into it and saved, and the guide is opened again from the file.
+    await show();
+    await guideDoc.ready;
+    guideDoc.importState(read.guide);
+    await guideDoc.flush();
+    await show();
+    say(`The new guide "${name}" is open. ${read.notes.join(" ")}`);
   } catch (e) {
     say(/** @type {Error} */ (e).message, true);
   }
@@ -190,6 +221,8 @@ const frame = startFrame(doc, {
   saveWord: () => saveWord(false),
   saveBackup: () => saveBackup(),
   restoreBackup: () => restoreBackup(),
+  importWord: () => importGuide("word"),
+  pasteText: () => importGuide("text"),
   saveTemplate: () => saveWord(true),
   importStyles: () => importStyles(),
   zoom,

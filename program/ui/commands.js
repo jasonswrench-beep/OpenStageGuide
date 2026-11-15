@@ -106,7 +106,7 @@ const FORMAT_ITEMS = /** @type {({ name: string, label: string, icon: UiIconName
  * (undo, redo, cut, copy, paste, add, kind, moveUp, moveDown, delete) and state() says what can be done now.
  * `ctx.insert(name)` makes one of the INSERT_ITEMS (a form, lines, a table...) after the row the author is on.
  * @typedef {{ command: (name: string) => unknown, state: () => { canUndo: boolean, canRedo: boolean, hasRows: boolean, inTable: boolean } }} EditApi
- * @param {{ edit?: EditApi, insert?: (name: string) => unknown, saveWord?: () => unknown, saveTemplate?: () => unknown, saveBackup?: () => unknown, restoreBackup?: () => unknown, importStyles?: () => unknown, zoom?: { more: () => unknown, less: () => unknown, actual: () => unknown, can: () => boolean }, hasGuide: () => boolean, openTool: (id: string) => void, updateGuide: () => void, newGuide: () => void, openGuide: () => void, closeGuide: () => void, search: () => void, keys: () => void, about: () => void, updates?: () => void }} ctx
+ * @param {{ edit?: EditApi, insert?: (name: string) => unknown, saveWord?: () => unknown, saveTemplate?: () => unknown, saveBackup?: () => unknown, restoreBackup?: () => unknown, importWord?: () => unknown, pasteText?: () => unknown, importStyles?: () => unknown, zoom?: { more: () => unknown, less: () => unknown, actual: () => unknown, can: () => boolean }, hasGuide: () => boolean, openTool: (id: string) => void, updateGuide: () => void, newGuide: () => void, openGuide: () => void, closeGuide: () => void, search: () => void, keys: () => void, about: () => void, updates?: () => void }} ctx
  * @returns {{ menus: MenuDef[], quick: MenuCommand[] }}  the menus, and the commands of the navy bar while a guide is open
  */
 export function buildMenus(ctx) {
@@ -126,6 +126,9 @@ export function buildMenus(ctx) {
       { label: "New guide...", icon: "file-plus", title: "Start a new guide", run: ctx.newGuide },
       { label: "Open guide...", icon: "folder-open", title: "Open a guide you made before", run: ctx.openGuide },
       { label: "Close guide", icon: "x", title: "Close this guide and go back to the welcome page", run: ctx.closeGuide, enabled: ctx.hasGuide },
+      "-",
+      { label: "Import a Word file...", icon: "file-input", title: "Make a new guide from a Word document that this program or the Word add-in made; no guide you have is changed", run: () => void ctx.importWord?.() },
+      { label: "Paste text...", icon: "clipboard-paste", title: "Make a new guide from pasted lines: Module and Lesson lines become modules and lessons", run: () => void ctx.pasteText?.() },
       "-",
       { label: "Save as Word file...", icon: "file-down", title: "Make a Word document from the guide, with its styles, pictures and a contents table. Word can save it as a PDF", run: () => void ctx.saveWord?.(), enabled: ctx.hasGuide },
       { label: "Save styles as a Word template...", icon: "swatch-book", title: "Make a Word template that has the guide's styles, so other documents can look like the guide", run: () => void ctx.saveTemplate?.(), enabled: ctx.hasGuide },
