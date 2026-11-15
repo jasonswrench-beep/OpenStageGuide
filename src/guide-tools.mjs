@@ -30,7 +30,7 @@ export const GROUPS=Object.freeze([
 export const PROGRAM_MENUS=Object.freeze([
   {id:'start',label:'Start',tools:['openDesigner','courseSettings','courseOutline']},
   {id:'sections',label:'Sections',tools:['addModule','learningOutcomes','addLesson']},
-  {id:'activities',label:'Activities',tools:['addActivity','instructionalCues','activityLibrary']},
+  {id:'activities',label:'Activities',tools:['addActivity','instructionalCues','activityLibrary','forms']},
   {id:'slides',label:'Slides',tools:['importSlides','updateFromSlides']},
   {id:'assessment',label:'Assessment',tools:['assessments','learningAlignment']},
   {id:'elearning',label:'eLearning',tools:['eLearningScreens','eLearningCues']},
@@ -43,7 +43,7 @@ export const GUIDE_SECTIONS=Object.freeze([
   'guide-sec-module','guide-sec-lesson','guide-sec-block','guide-sec-owncues',
   'guide-sec-import','guide-sec-update',
   'guide-sec-look','guide-sec-standard','guide-sec-built',
-  'guide-sec-move','guide-sec-keeptidy','guide-sec-contents','guide-sec-library','guide-sec-agenda','guide-sec-align','guide-sec-versions',
+  'guide-sec-move','guide-sec-keeptidy','guide-sec-contents','guide-sec-library','guide-sec-agenda','guide-sec-forms','guide-sec-align','guide-sec-versions',
   'guide-sec-backup','guide-sec-restore'
 ]);
 
@@ -67,7 +67,7 @@ export const TOOLS=Object.freeze(Object.fromEntries([
     tip:'Insert a teaching icon and its words into the guide.',related:['addActivity','addModule','activityLibrary','importSlides']}),
   tool('activityLibrary',{label:'Activity Library',icon:'ActivityLibrary',group:'bring',kind:'guide',part:'add',sections:['guide-sec-library'],selected:true,
     title:'Activity library',note:'Ready-made activities to put into your guide, and the ones you save.',
-    tip:'Put a ready-made activity into your guide, or save your own to use again.',related:['addActivity','instructionalCues','importSlides']}),
+    tip:'Put a ready-made activity into your guide, or save your own to use again.',related:['addActivity','instructionalCues','importSlides','forms']}),
   tool('courseOutline',{label:'Course Outline',icon:'CourseOutline',group:'start',kind:'guide',part:'organize',sections:['guide-sec-move','guide-sec-contents'],
     title:'Course outline',note:'Choose a line to go there. Move or delete the lesson or module your cursor is in.',
     tip:'See modules, activities and timing; jump to their text in Word.',related:['addModule','openDesigner']}),
@@ -128,7 +128,10 @@ export const PROGRAM_TOOLS=Object.freeze(Object.fromEntries([
     tip:'Insert a screen title, visual direction, on-screen text, narration or another e-learning block.',related:['eLearningScreens','instructionalCues','assessments']}),
   tool('accessibility',{label:'Accessibility',icon:'Accessibility',group:'check',kind:'screen',screen:'review',ownHeading:true,
     title:'Accessibility',note:'The document checks: title, language, headings, pictures, tables, color and size of text.',
-    tip:'Check the guide for what a screen reader and a reader with low vision need: heading levels, picture descriptions, table headers, color contrast and text size.',related:['reviewGuide','appearance','timingAndAgenda']})
+    tip:'Check the guide for what a screen reader and a reader with low vision need: heading levels, picture descriptions, table headers, color contrast and text size.',related:['reviewGuide','appearance','timingAndAgenda']}),
+  tool('forms',{label:'Forms',icon:'Forms',group:'activities',kind:'guide',part:'organize',sections:['guide-sec-forms'],
+    title:'Forms',note:'The handouts, worksheets and forms in your guide, how they are numbered and how many copies to make.',
+    tip:'See every form in the guide with its number and print line, start a new one, choose how forms are numbered, and say how many people, teams and tables there will be to work out the copies to make.',related:['addActivity','instructionalCues','reviewGuide']})
 ]));
 
 export const TOOL_IDS=Object.freeze(Object.keys(TOOLS));
@@ -147,6 +150,7 @@ export const PROGRAM_NAMES=Object.freeze({
   addActivity:'Add activity',
   instructionalCues:'Instructional cues',
   activityLibrary:'Activity library',
+  forms:'Forms',
   importSlides:'Import slides',
   updateFromSlides:'Update from slides',
   eLearningScreens:'E-learning screens',

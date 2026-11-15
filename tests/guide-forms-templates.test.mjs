@@ -15,7 +15,7 @@ async function add(a,spec){
 }
 
 test('there are templates for the forms the author is likely to want, each with a name, a kind, a note and a body',()=>{
-  assert.deepEqual(FORM_TEMPLATES.map(t=>t.id),['reading','worksheet','notes','checklist','rating','observer','action','commitment']);
+  assert.deepEqual(FORM_TEMPLATES.map(t=>t.id),['reading','worksheet','notes','checklist','rating','instrument','observer','evaluation','action','commitment','rolecards','matchup','twobytwo','forcefield','planning']);
   for(const t of FORM_TEMPLATES){
     assert.ok(t.label&&t.note.length>10,t.id);
     assert.ok(LABELS.includes(t.kind),`${t.id}: ${t.kind} is a kind of form the guide knows`);

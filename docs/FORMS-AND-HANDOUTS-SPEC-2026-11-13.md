@@ -158,3 +158,20 @@ Built and tested. The full suite passes except the one test that already failed 
 - 9 tests.
 
 **Still to build:** the Forms tool and its templates (F3, waits for the program's shell: adding a tool to the add-in's tool list would change its ribbon, so the program needs a tool list of its own), orientation sections and handout packs (F8), the Forms used column (F1b).
+
+## As built, slice F3, the Forms tool (2026-11-15)
+
+Built and tested in the working tree (not yet in a published setup). The full suite passes (1,842 tests; the program's browser check is 124, with the Forms tool opened in a real browser).
+
+- **The tool** is in the Activities menu, after Activity library (the spec said the Write menu, which became Sections and Activities on 2026-11-14), `forms` in `PROGRAM_TOOLS`, section `guide-sec-forms` of the Guide screen. It is a program-only tool: the add-in's ribbon is unchanged.
+- **The list**: every form in the guide, as written on the page, with who it is for and its print line, and a Go there link. A guide with none says so and points to New form.
+- **New form...** asks the program's page for its own New form dialog (the page's `osg-run` message; the same dialog as Insert > Form...), which puts the form where the cursor is.
+- **Numbering**: the scheme (by unit when the guide has modules otherwise letters, by unit, letters, numbers, none) is chosen in the tool, kept in the guide's form settings, and Update guide uses it.
+- **Copies to make**: how many people, teams and tables (each optional, 1 to 9999) are kept in the same settings; the print lines are added up in a table, and a form that cannot be added up is listed with the reason. The Review's FORM-PRINT-GROUP warnings now say where to give the number, and clear when it is given.
+- **Fifteen templates** (the spec's list): the eight there were, and the self-scored instrument, evaluation form, role cards, match-up cards, two-by-two, force-field and planning checklist.
+- **Found while building this**: every form made from a template carries a print line "1 per person", so the Review's "how many people there will be" warning appeared for every new form with no way to answer it. That was the manual author's second finding on alpha 5.
+
+- **Which form** (the Handout cue): choosing the Handout cue shows a "Which form" list of the guide's forms (a form for the facilitator is marked as such). A block cites the form chosen: the words typed come first, then the form's name as a citation (a content control tagged with the form's id), then the minutes. A form alone is enough for a block. Update guide keeps the name and number in the block right when the form is renumbered, moved or renamed (tested through a change of scheme). **Edit this block** on such a block shows the form and the words before it, and Update block keeps the citation, changes it to another form, or takes it away with No form. A block that cites a form anywhere else (in the middle of its words, in its notes, in a block that is not a Handout) is not rewritten by the pane, which says so instead, so the link is never lost quietly.
+
+**Still to build:** the Forms used column (F1b), orientation sections and the handout pack (F8).
+

@@ -6,7 +6,8 @@ import {moduleHeading,lessonHeading,timeBlock,cueBlock,startGuide as startGuideB
 import {cueFromText,updatePlan,guideIssues,outline,lessonMinutes,describeAt,blockAnchor,blockSpan,kindOf,transitionAnchor,lessonPlacement,modulePlacement,contentsState,readGuide,standardPageState,missingStandardPages,appendixPlacement,tidyTarget,tidyMove,tidyDeletion} from './guide-model.mjs';
 import {glanceBody,glanceState,glancePlacement,glanceRows,cuesBody,cuesState,cuesPlacement,cuesUsed,moduleAt,overviewFacts,overviewBody,overviewState,overviewPlacement,overviewsSummary} from './guide-pages.mjs';
 import {checkParts} from './guide-check.mjs';
-import {readSettings as readFormSettings} from './guide-forms.mjs';
+import {citationControl} from './guide-forms-ooxml.mjs';
+import {readSettings as readFormSettings,writeSettings as writeFormSettings,readForms,copiesToMake,resolveScheme,printText} from './guide-forms.mjs';
 import {itemPlacement,sectionPlacement,itemSpan,itemTarget} from './guide-model.mjs';
 import {ITEM_TYPES,itemTypeById,LEVELS,levelById,parsePairs,parseLines,parseLabels,parseCriteria,parseRubricRows,DEFAULT_RUBRIC_LEVELS} from './guide-items.mjs';
 import {itemBlock,sectionBlock} from './guide-assess-ooxml.mjs';
@@ -147,7 +148,7 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
     $('guide-sec-selected').hidden=guide&&!t.selected;
     // A piece whose own heading says what the strip above already says (Add a module or lesson, E-Learning screens, Update from slides)
     // leaves the saying to the strip, so a screen reader does not read the same heading twice.
-    for(const id of ['guide-module-heading','guide-lesson-heading','guide-el-heading','guide-upd-heading','guide-lib-heading','guide-agenda-heading','guide-align-heading','guide-ver-heading','guide-bk-heading','guide-rs-heading']){
+    for(const id of ['guide-module-heading','guide-lesson-heading','guide-el-heading','guide-upd-heading','guide-lib-heading','guide-agenda-heading','guide-forms-heading','guide-align-heading','guide-ver-heading','guide-bk-heading','guide-rs-heading']){
       const heading=$(id);
       if(heading)heading.hidden=!!t&&clean(heading.textContent).toLowerCase()===t.title.toLowerCase();
     }
@@ -239,6 +240,7 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
     paras=list;at=here;
     plan=updatePlan(list,{forms:formSettings});
     contents=contentsState(list);
+    drawFormChoice();
     connected=true;
     $('guide-retry-box').hidden=true;
     // A guide carrying the reopen request an earlier build left behind has it removed, once, so Word stops complaining.
@@ -352,7 +354,27 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
     // Any block can carry a picture; a Picture block must.
     $('guide-pic-box').open=id==='picture'||!!pictureReady;
     $('guide-pic-summary').textContent=id==='picture'?'Picture (needed for this block)':'Add a picture to this block (optional)';
+    // A Handout block cites a form by choosing it.
+    $('guide-block-which-part').hidden=id!=='handout';
+    if(id==='handout')drawFormChoice();
     syncParts();
+  }
+  // "Which form" on a Handout block: the forms in the guide, so a block cites one by choosing it, and Update guide keeps its number and name right.
+  function drawFormChoice(){
+    const sel=$('guide-block-which'),keep=sel.value,forms=readForms(paras).forms.filter(f=>f.id);
+    const none=doc.createElement('option');none.value='';none.textContent=forms.length?'No form (type the words yourself)':'There are no forms in the guide yet';
+    sel.replaceChildren(none,...forms.map(f=>{const o=doc.createElement('option');o.value=f.id;o.textContent=f.audience==='facilitator'?`${f.text} (for the facilitator only)`:f.text;return o;}));
+    sel.value=forms.some(f=>f.id===keep)?keep:'';
+  }
+  const withCite=(block,ctx)=>block.form?{...block,cite:citationControl(block.form,ctx)}:block;
+  // The citations a block holds. One citation at the end of its first line, in a Handout block, is what the form choice writes, so it can be edited; any other
+  // (in the middle of the words, in the notes, in another kind of block) the pane cannot rewrite without losing the link.
+  function blockCitations(b){
+    const refs=[];
+    for(let i=b.span.start;i<=b.span.end;i++)for(const r of paras[i]?.marks?.refs||[])refs.push({at:i,id:String(r.id),text:String(r.text).trim()});
+    const first=String(b.text).split('\n')[0];
+    const one=refs.length===1&&b.cue==='handout'&&refs[0].at===b.span.start&&first.endsWith(refs[0].text)?refs[0]:null;
+    return {count:refs.length,single:one};
   }
   // ---- a picture in a block: choose the file, describe it, and the block carries it
   // The file is chosen in a window of its own (a file chooser cannot be opened from inside the pane); the picture comes back already read and, if large, shrunk.
@@ -521,16 +543,20 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
   function readBlockForm(){
     const cue=cueById(selectedCue),text=$('guide-block-text').value;
     const picture=editing?undefined:readPictureForm();
-    // A block that carries a picture may have no words of its own: the picture is its content.
-    if(!text.trim()&&!picture)throw new Error(partsMode()?'Type a title for the activity first.':'Type the text for this block first.');
+    const formId=selectedCue==='handout'?$('guide-block-which').value:'';
+    const found=formId?readForms(paras).byId.get(formId):null;
+    if(formId&&!found)throw new Error('That form is not in the guide any more. Choose another, or choose No form.');
+    const form=found?{id:formId,text:found.text}:null;
+    // A block that carries a picture or cites a form may have no words of its own: the picture or the form is its content.
+    if(!text.trim()&&!picture&&!form)throw new Error(partsMode()?'Type a title for the activity first.':'Type the text for this block first.');
     const minutes=parseMinutes($('guide-block-minutes').value),notes=$('guide-block-notes').value;
     const audience=(AUDIENCES.find(a=>$(`guide-audience-${a.id}`).checked)||{}).id||cue.audience;
     const parts=partsMode()?Object.fromEntries(ACTIVITY_PARTS.map(p=>[p.id,$(`guide-act-${p.id}`).value])):undefined;
-    return {cue,text,notes,minutes,audience,parts,picture};
+    return {cue,text,notes,minutes,audience,parts,picture,form};
   }
   function clearBlockForm(){
     clearPicture();
-    for(const id of ['guide-block-text','guide-block-notes','guide-block-minutes',...ACTIVITY_PARTS.map(p=>`guide-act-${p.id}`)])$(id).value='';
+    for(const id of ['guide-block-text','guide-block-notes','guide-block-minutes','guide-block-which',...ACTIVITY_PARTS.map(p=>`guide-act-${p.id}`)])$(id).value='';
     editing=null;
     $('guide-block-heading').textContent='Add a block';
     $('guide-block-go').textContent='Insert block';
@@ -543,7 +569,7 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
     const list=await adapter.paragraphs(),here=await adapter.cursorIndex();
     // A Transition leads out of its module, so it always goes at the module's end; any other block goes after the block the cursor is in.
     const anchor=block.cue.id==='transition'?transitionAnchor(list,here).anchor:blockAnchor(list,here);
-    await adapter.insert(ctx=>cueBlock(block,ctx),{where:'after',after:anchor,select:'last'});
+    await adapter.insert(ctx=>cueBlock(withCite(block,ctx),ctx),{where:'after',after:anchor,select:'last'});
     clearBlockForm();
     await keepOpen();
     await load();
@@ -663,6 +689,79 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
     agendaRowsInto($('guide-agenda-body'),a.rows);
     $('guide-agenda-notes').replaceChildren(...a.notes.map(n=>listItem(n.text)));
     try{storage?.setItem(AGENDA_START_KEY,start);}catch{/* the start time is just not remembered */}
+  }
+  // -- forms: the guide's forms with their numbers and print lines, how they are numbered, and the copies to make
+  const SCHEME_WORDS={unit:'by unit, each form taking the number of its module and its place in it (1.1, 1.2, 2.1)',letter:'by letter (A, B, C)',sequence:'by number (1, 2, 3)'};
+  const copiesWord=n=>`${n} ${n===1?'copy':'copies'}`;
+  const printWords=r=>r.per==='fixed'?`${r.n} ${r.n===1?'copy':'copies'}`:`${r.n} per ${r.per}`;
+  function drawForms(){
+    const read=readForms(paras),forms=read.forms;
+    const everyone=forms.filter(f=>f.audience==='everyone').length,facilitator=forms.length-everyone;
+    $('guide-forms-summary').textContent=forms.length
+      ?`${plural(forms.length,'form')}: ${everyone} for everyone${facilitator?`, ${facilitator} for the facilitator only (left out of the participant workbook)`:''}.`
+      :'There are no forms in this guide yet. Choose New form to start one from a template. The Insert menu puts lines, a table or a check list on the page.';
+    $('guide-forms-list').replaceChildren(...forms.map(f=>{
+      const li=doc.createElement('li'),name=doc.createElement('span');
+      name.textContent=f.text||'(a form with no title)';
+      const bits=[f.audience==='facilitator'?'for the facilitator':'for everyone'];
+      if(f.print){try{bits.push(printText(f.print).replace(/\.$/,''));}catch{/* a print line with nothing to say is left out */}}
+      else bits.push('no print line');
+      const how=doc.createElement('span');how.className='hint';how.textContent=` (${bits.join('; ')})`;
+      li.append(name,how);
+      const b=doc.createElement('button');
+      b.type='button';b.className='guide-link';b.textContent='Go there';b.setAttribute('aria-label',`Go to ${f.text||'a form with no title'}`);
+      b.onclick=()=>act(async()=>{await adapter.go(f.index,f.text);await load();status(`Moved to ${f.text||'the form'}.`);});
+      li.append(b);
+      return li;
+    }));
+    const scheme=formSettings.scheme||'auto',mode=resolveScheme(scheme,read.hasModules);
+    $('guide-forms-scheme').value=scheme;
+    $('guide-forms-scheme-note').textContent=mode==='none'
+      ?'Forms are not numbered.'
+      :`Forms are numbered ${SCHEME_WORDS[mode]}. Update guide writes the numbers and corrects every citation.`;
+    const g=formSettings.group||{};
+    $('guide-forms-people').value=g.people??'';$('guide-forms-teams').value=g.teams??'';$('guide-forms-tables').value=g.tables??'';
+    const c=copiesToMake(paras,formSettings),known=c.rows.length-c.missing.length;
+    $('guide-forms-copies-summary').textContent=!c.rows.length
+      ?'No form has a print line yet. A print line goes directly under a form\'s title, for example "Print: 1 per person, Letter, portrait."'
+      :c.missing.length
+        ?`${plural(known,'form')} added up so far, ${copiesWord(c.total)}. ${plural(c.missing.length,'form')} cannot be added up yet.`
+        :`${copiesWord(c.total)} to make in all.`;
+    $('guide-forms-copies-table').hidden=!c.rows.length;
+    $('guide-forms-copies-body').replaceChildren(...c.rows.map(r=>{
+      const tr=doc.createElement('tr');
+      tr.append(cellOf('td',r.text),cellOf('td',printWords(r)),cellOf('td',r.total===null?'Not known yet':String(r.total)));
+      return tr;
+    }));
+    $('guide-forms-copies-missing').replaceChildren(...c.missing.map(m=>listItem(`${m.text}: ${m.reason}`)));
+  }
+  // The settings are kept with the guide; the pane reads them again (which also draws the Review's warnings again) after each change.
+  async function saveFormSettings(next){
+    await adapter.setFormSettings(writeFormSettings(next));
+    await load();
+    drawForms();
+  }
+  const groupBox=id=>{
+    const v=$(id).value.trim();
+    if(v==='')return null;
+    const n=Number(v);
+    if(!Number.isInteger(n)||n<1||n>9999)throw new Error('Type a whole number from 1 to 9999, or leave the box empty.');
+    return n;
+  };
+  async function changeGroup(){
+    const group={people:groupBox('guide-forms-people'),teams:groupBox('guide-forms-teams'),tables:groupBox('guide-forms-tables')};
+    await saveFormSettings({...formSettings,group:Object.values(group).some(v=>v!==null)?group:undefined});
+    status('The copies to make are added up again.');
+  }
+  async function changeScheme(){
+    await saveFormSettings({...formSettings,scheme:$('guide-forms-scheme').value});
+    status('How forms are numbered is changed. Choose Update guide to renumber the forms and every citation of them.');
+  }
+  // A new form is asked for in the program's own page (its Insert > Form dialog), which puts it where the author's cursor is.
+  function newFormFromTool(){
+    const w=doc.defaultView;
+    if(w&&w.parent&&w.parent!==w){w.parent.postMessage({type:'osg-run',command:'form'},w.location.origin);return;}
+    status('Choose Insert, then Form, to start a form from a template.');
   }
   async function makeAgenda(){
     const list=await adapter.paragraphs(),start=$('guide-agenda-start').value||'09:00',a=guideAgenda(list,start);
@@ -793,6 +892,7 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
   async function paintPlanning(){
     try{
       if(tool==='timingAndAgenda')drawAgenda();
+      else if(tool==='forms')drawForms();
       else if(tool==='learningAlignment')drawAlignment();
       else if(tool==='deliveryVersions'){await readVersionsNow();drawVersions();}
     }catch{/* the panel stays as it was */}
@@ -1284,9 +1384,18 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
     if(here.type==='block'){
       const b=here.block;
       if(b.hasPicture)throw new Error('This block has a picture, and the pane cannot rewrite a block that holds one. To change its words, type in Word. To change the picture, select the block\'s lines in Word, press Delete, and add the block again. (Move or delete works on a whole lesson, not on one block.)');
+      const cites=blockCitations(b);
+      if(cites.count&&!cites.single)throw new Error('This block cites a form in the middle of its words, in its notes, or is not a Handout block, and the pane cannot rewrite it without losing the link to the form. To change its words, type on the page. (Move or delete works on a whole lesson, not on one block.)');
       editing={type:'block',block:b};
       chooseCue(b.cue,{audience:false});
-      $('guide-block-text').value=b.text;$('guide-block-notes').value=b.notes;$('guide-block-minutes').value=b.minutes;
+      let words=b.text;
+      if(cites.single){
+        // The form is shown in Which form, and the words before it in Text.
+        drawFormChoice();
+        $('guide-block-which').value=cites.single.id;
+        if($('guide-block-which').value===cites.single.id){const [first,...others]=words.split('\n');words=[first.slice(0,first.length-cites.single.text.length).trimEnd(),...others].join('\n');}
+      }
+      $('guide-block-text').value=words;$('guide-block-notes').value=b.notes;$('guide-block-minutes').value=b.minutes;
       // An activity written as labelled parts opens with its parts filled in; any other activity opens as plain text.
       if(b.cue==='activity'){
         $('guide-activity-parts').checked=!!b.parts;
@@ -1338,7 +1447,7 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
     const hits=list.map((p,i)=>kindOf(p)==='cue'&&clean(p.text)===b.firstText?i:-1).filter(i=>i>=0).sort((x,y)=>Math.abs(x-b.span.start)-Math.abs(y-b.span.start));
     const span=hits.length?blockSpan(list,hits[0]):null;
     if(!span)throw new Error('That block has changed since you chose it. Select it in your document again, then choose Edit this block.');
-    await adapter.insert(ctx=>cueBlock(block,ctx),{where:'after',after:span.end,select:'last',remove:{start:span.start,end:span.end,guard:b.firstText}});
+    await adapter.insert(ctx=>cueBlock(withCite(block,ctx),ctx),{where:'after',after:span.end,select:'last',remove:{start:span.start,end:span.end,guard:b.firstText}});
     endEdit();
     await load();
     status(`${block.cue.label} block updated.${tidy()} ${UNDO}`);
@@ -1925,6 +2034,9 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
   $('guide-agenda-start').onchange=()=>drawAgenda();
   $('guide-agenda-refresh').onclick=()=>act(async()=>{await load();drawAgenda();});
   $('guide-agenda-download').onclick=()=>act(makeAgenda);
+  $('guide-forms-new').onclick=()=>newFormFromTool();
+  $('guide-forms-scheme').onchange=()=>act(changeScheme);
+  for(const id of ['guide-forms-people','guide-forms-teams','guide-forms-tables'])$(id).onchange=()=>act(changeGroup);
   $('guide-bk-save').onclick=()=>act(saveBackup);
   $('guide-bk-file').onchange=()=>act(chooseBackup);
   $('guide-bk-open').onclick=()=>act(openBackup);

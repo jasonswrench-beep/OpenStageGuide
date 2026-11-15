@@ -2,7 +2,7 @@
 // Pure functions that give Word-format XML, built from the same element builders everything else uses (guide-forms-ooxml.mjs), so a form
 // made from a template is the same as one made element by element. Every template is a start to write over, not a finished form: its
 // words say what to type where.
-import {formTitleBlock,printLine,formText,writingLines,fieldRow,checkList,formTable,ratingGrid,cardSet,sourceLine} from './guide-forms-ooxml.mjs';
+import {formTitleBlock,printLine,formText,writingLines,fieldRow,checkList,formTable,ratingGrid,cardSet,sourceLine,scoreInstrument} from './guide-forms-ooxml.mjs';
 import {LABELS,DEFAULT_LABEL} from './guide-forms.mjs';
 
 /** @typedef {{id:string,label:string,kind:string,note:string,body:(ctx:object)=>string}} FormTemplate */
@@ -19,14 +19,32 @@ export const FORM_TEMPLATES=Object.freeze([
     body:ctx=>checkList({items:['First item','Second item','Third item'],columns:['Who','When'],ctx})},
   {id:'rating',label:'Rating form with evidence',kind:'Form',note:'Statements to rate from 1 to 5, with a column for the evidence.',
     body:ctx=>formText('Rate each statement from 1 (not at all) to 5 (completely), and write what you saw or heard.')+ratingGrid({statements:['First statement','Second statement','Third statement'],evidence:true,ctx,caption:'Ratings'})},
+  {id:'instrument',label:'Self-scored instrument',kind:'Form',note:'Statements to score, a grid to add the scores up by scale, and what each total means.',
+    body:()=>scoreInstrument({statements:['First statement','Second statement','Third statement','Fourth statement'],groups:[{name:'First scale',items:[1,2]},{name:'Second scale',items:[3,4]}],
+      bands:[{from:2,to:5,meaning:'Say here what a low total means.'},{from:6,to:10,meaning:'Say here what a high total means.'}],scale:'1 (never) to 5 (always)',caption:'Self-scored instrument'})},
   {id:'observer',label:'Observer form',kind:'Form',note:'Behaviors that were met or not met, comments, signature and date.',
     body:ctx=>fieldRow([{label:'Observer',width:'full'},{label:'Date',width:'short'}])
       +formTable({columns:[{name:'Behavior',weight:4},{name:'Met',weight:1,kind:'check'},{name:'Not met',weight:1,kind:'check'},{name:'Comments',weight:4}],rows:[['First behavior'],['Second behavior'],['Third behavior']],ctx,caption:'Observed behaviors'})
       +fieldRow([{label:'Signature',width:'full'}])},
+  {id:'evaluation',label:'Evaluation form',kind:'Form',note:'Session and date, statements to rate from 1 to 5, and two questions to answer in words.',
+    body:ctx=>fieldRow([{label:'Session',width:'full'},{label:'Date',width:'short'}])
+      +formText('Rate each statement from 1 (disagree) to 5 (agree).')
+      +ratingGrid({statements:['The session met its goals.','The activities helped me learn.','I can use what I learned.'],ctx,caption:'Ratings'})
+      +writingLines({label:'What worked well?',count:3})+writingLines({label:'What would you change?',count:3})},
   {id:'action',label:'Action plan',kind:'Template',note:'What, who, by when, and a check box for done.',
     body:ctx=>formTable({columns:[{name:'Action',weight:4},{name:'Who',weight:2},{name:'By when',weight:2},{name:'Done',weight:1,kind:'check'}],blankRows:6,ctx,caption:'Action plan'})},
   {id:'commitment',label:'Commitment card',kind:'Cards',note:'A card to fill in and keep.',
-    body:()=>cardSet({cards:['I will:\n\nBy when:\n\nSigned:'],perPage:4})}
+    body:()=>cardSet({cards:['I will:\n\nBy when:\n\nSigned:'],perPage:4})},
+  {id:'rolecards',label:'Role cards',kind:'Cards',note:'One card for each role in a role play, to cut apart.',
+    body:()=>cardSet({cards:['First role\nWho you are and what you want.','Second role\nWho you are and what you want.','Third role\nWho you are and what you want.'],perPage:4})},
+  {id:'matchup',label:'Match-up cards',kind:'Cards',note:'Pairs of cards to match, such as a term and its meaning, to cut apart.',
+    body:()=>cardSet({cards:['First term','Meaning of the first term','Second term','Meaning of the second term','Third term','Meaning of the third term'],perPage:6})},
+  {id:'twobytwo',label:'Two-by-two',kind:'Template',note:'Two rows and two columns to sort ideas into, with a name for each side.',
+    body:ctx=>formTable({columns:[{name:'Impact',weight:1},{name:'Low effort',weight:2},{name:'High effort',weight:2}],rows:[['High impact'],['Low impact']],ctx,caption:'Two-by-two'})},
+  {id:'forcefield',label:'Force-field',kind:'Template',note:'The goal, the forces that help and the forces that hold back.',
+    body:ctx=>fieldRow([{label:'The change we want',width:'full'}])+formTable({columns:[{name:'Forces that help',weight:1},{name:'Forces that hold back',weight:1}],blankRows:6,ctx,caption:'Force-field'})},
+  {id:'planning',label:'Planning checklist',kind:'Checklist',note:'Tasks before, on the day and after, with who and by when.',
+    body:ctx=>checkList({items:['Before: first task','Before: second task','On the day: first task','After: first task'],columns:['Who','By when'],ctx,caption:'Planning checklist'})}
 ]);
 
 export const templateById=id=>FORM_TEMPLATES.find(t=>t.id===id)||null;

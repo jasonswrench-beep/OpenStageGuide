@@ -78,14 +78,16 @@ function activityParts(parts,ctx){
   return out;
 }
 
-export function cueBlock({cue,text,notes,slideText,minutes,audience,parts,picture},ctx){
+// `cite` is a citation of a form (guide-forms-ooxml.mjs citationControl), built by the caller from the insert's context: it goes after the first line's words.
+export function cueBlock({cue,text,notes,slideText,minutes,audience,parts,picture,cite},ctx){
   const c=typeof cue==='string'?cueById(cue):cue;
   if(!c)throw new Error('Choose a cue first.');
   if(c.id==='picture'&&!picture)throw new Error('Choose a picture file for a Picture block.');
   const body=lines(text),first=body.shift()||'';
   const facilitatorOnly=(audience||c.audience)==='facilitator';
   const when=minutes?` (${minutes} min)`:'';
-  const out=[para(facilitatorOnly?STYLE_IDS.cueFacilitator:STYLE_IDS.cue,iconRun(c.icon,ctx)+run(` ${c.label}`,STYLE_IDS.cueLabel)+TAB+run(first+when))];
+  const firstLine=cite?run(first?`${first} `:'')+cite+(when?run(when):''):run(first+when);
+  const out=[para(facilitatorOnly?STYLE_IDS.cueFacilitator:STYLE_IDS.cue,iconRun(c.icon,ctx)+run(` ${c.label}`,STYLE_IDS.cueLabel)+TAB+firstLine)];
   // The picture sits in its own paragraph straight under the cue line, in the block's body style, so it belongs to the block.
   if(picture)out.push(para(STYLE_IDS.body,pictureRun(picture,ctx)));
   if(parts){

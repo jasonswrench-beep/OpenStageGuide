@@ -368,6 +368,9 @@ window.addEventListener("message", (e) => {
       wantedTool = null;
       void openTool(id);
     }
+  } else if (data.type === "osg-run" && data.command === "form") {
+    // The Forms tool's New form button: the same dialog as Insert > Form.
+    void insertCommand("form");
   } else if (data.type === "osg-zoom" && ["more", "less", "actual"].includes(data.action)) {
     if (zoom.can()) void zoom[/** @type {"more" | "less" | "actual"} */ (data.action)]();
   } else if (data.type === "osg-key" && typeof data.key === "string" && ["k", "K", "/", "F10"].includes(data.key)) {

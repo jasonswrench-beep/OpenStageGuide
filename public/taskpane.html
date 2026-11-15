@@ -148,6 +148,11 @@
 <div id="guide-activity-box" hidden>
 <label class="guide-check" for="guide-activity-parts"><input id="guide-activity-parts" type="checkbox"> Write it as labelled parts <span class="hint">Objective, materials, preparation, instructions, case study</span></label>
 </div>
+<div id="guide-block-which-part" hidden>
+<label for="guide-block-which">Which form</label>
+<select id="guide-block-which"></select>
+<p class="hint">The block names the form with its number. Update guide keeps the name right when the form is renumbered, moved or renamed. Words typed below come before the name.</p>
+</div>
 <label id="guide-block-text-label" for="guide-block-text">Text</label>
 <textarea id="guide-block-text" rows="3"></textarea>
 <div id="guide-activity-fields" hidden>
@@ -331,6 +336,39 @@
 </table>
 <ul id="guide-agenda-notes" class="guide-issues"></ul>
 <div class="guide-actions"><button id="guide-agenda-refresh" type="button">Work it out again</button><button id="guide-agenda-download" type="button" class="primary">Make the agenda in Word</button></div>
+</div>
+
+<div id="guide-sec-forms">
+<h2 id="guide-forms-heading">Forms</h2>
+<p class="hint">A form starts with a title such as "Handout 5.4: Standards in depth", written on the page like the rest of the guide. Update guide numbers them.</p>
+<p id="guide-forms-summary" class="hint" role="status" aria-live="polite"></p>
+<ul id="guide-forms-list" class="guide-forms-list"></ul>
+<div class="guide-actions"><button id="guide-forms-new" type="button" class="primary">New form...</button></div>
+<h3 id="guide-forms-numbering-heading">Numbering</h3>
+<label for="guide-forms-scheme">How forms are numbered</label>
+<select id="guide-forms-scheme">
+<option value="auto">By unit when the guide has modules, otherwise letters</option>
+<option value="unit">By unit: 1.1, 1.2, 2.1</option>
+<option value="letter">Letters: A, B, C</option>
+<option value="sequence">Numbers: 1, 2, 3</option>
+<option value="none">No numbers</option>
+</select>
+<p id="guide-forms-scheme-note" class="hint"></p>
+<h3 id="guide-forms-copies-heading">Copies to make</h3>
+<p class="hint">Say how many people, teams and tables there will be. The print line under each form (for example "Print: 1 per person, Letter, portrait.") is then added up. Leave a box empty when it does not apply.</p>
+<label for="guide-forms-people">People</label>
+<input id="guide-forms-people" type="number" min="1" max="9999" step="1" inputmode="numeric">
+<label for="guide-forms-teams">Teams</label>
+<input id="guide-forms-teams" type="number" min="1" max="9999" step="1" inputmode="numeric">
+<label for="guide-forms-tables">Tables</label>
+<input id="guide-forms-tables" type="number" min="1" max="9999" step="1" inputmode="numeric">
+<p id="guide-forms-copies-summary" class="hint" role="status" aria-live="polite"></p>
+<table id="guide-forms-copies-table" class="guide-agenda-table" hidden>
+<caption>Copies to make</caption>
+<thead><tr><th scope="col">Form</th><th scope="col">Print line</th><th scope="col">Copies</th></tr></thead>
+<tbody id="guide-forms-copies-body"></tbody>
+</table>
+<ul id="guide-forms-copies-missing" class="guide-issues"></ul>
 </div>
 
 <div id="guide-sec-align">

@@ -186,9 +186,9 @@ export function formPlan(paras,settings={}){
     for(const at of f.headerless)issues.push({level:'fail',rule:'FORM-TABLE-HEADER',message:`A table in ${f.text} has no header row, so a screen reader cannot say what its columns hold.`,paragraph:at});
     if(f.printUnreadable)issues.push({level:'warn',rule:'FORM-PRINT-NAME',message:`The print line of ${f.text} does not read as "Print: 1 per person, Letter, landscape."`,paragraph:f.printIndex});
     const c=f.print?.copies;
-    if(c&&c.per==='person'&&!group.people)issues.push({level:'warn',rule:'FORM-PRINT-GROUP',message:`${f.text} is printed for each person, but the guide does not say how many people there will be.`,paragraph:f.index});
-    if(c&&c.per==='team'&&!group.teams&&!(c.size&&group.people))issues.push({level:'warn',rule:'FORM-PRINT-GROUP',message:`${f.text} is printed for each team, but the guide does not say how many teams there will be.`,paragraph:f.index});
-    if(c&&c.per==='table'&&!group.tables)issues.push({level:'warn',rule:'FORM-PRINT-GROUP',message:`${f.text} is printed for each table, but the guide does not say how many tables there will be.`,paragraph:f.index});
+    if(c&&c.per==='person'&&!group.people)issues.push({level:'warn',rule:'FORM-PRINT-GROUP',message:`${f.text} is printed for each person, but the guide does not say how many people there will be. Say how many in Forms, in the Activities menu.`,paragraph:f.index});
+    if(c&&c.per==='team'&&!group.teams&&!(c.size&&group.people))issues.push({level:'warn',rule:'FORM-PRINT-GROUP',message:`${f.text} is printed for each team, but the guide does not say how many teams there will be. Say how many in Forms, in the Activities menu.`,paragraph:f.index});
+    if(c&&c.per==='table'&&!group.tables)issues.push({level:'warn',rule:'FORM-PRINT-GROUP',message:`${f.text} is printed for each table, but the guide does not say how many tables there will be. Say how many in Forms, in the Activities menu.`,paragraph:f.index});
     if(f.id&&f.audience==='everyone'&&citedIds.has(f.id)&&!f.print&&!f.printUnreadable)issues.push({level:'warn',rule:'FORM-PRINT-NONE',message:`${f.fullText} is given out but has no print line (how many copies, which paper).`,paragraph:f.index});
   });
   for(const f of read.duplicates)issues.push({level:'warn',rule:'FORM-DUPLICATE',message:`"${f.text}" shares its identity with an earlier form, so citations point to the earlier one.`,paragraph:f.index});

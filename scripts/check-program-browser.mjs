@@ -151,7 +151,7 @@ try{
   ok(!!(await iconOf()),'and is there again afterwards');
 
   // ---- the menus of the tools, as the author listed them (2026-11-14), and the tools that are new
-  const MENUS={Start:['Guide overview','Course settings','Course outline'],Sections:['Add module','Learning outcomes','Add lesson'],Activities:['Add activity','Instructional cues','Activity library'],Slides:['Import slides','Update from slides'],Assessment:['Assessments','Learning alignment'],eLearning:['E-learning screens','E-learning cues'],'Check & Plan':['Review guide','Timing and agenda','Accessibility'],Make:['Delivery versions','Appearance','Generate materials','Participant workbook']};
+  const MENUS={Start:['Guide overview','Course settings','Course outline'],Sections:['Add module','Learning outcomes','Add lesson'],Activities:['Add activity','Instructional cues','Activity library','Forms'],Slides:['Import slides','Update from slides'],Assessment:['Assessments','Learning alignment'],eLearning:['E-learning screens','E-learning cues'],'Check & Plan':['Review guide','Timing and agenda','Accessibility'],Make:['Delivery versions','Appearance','Generate materials','Participant workbook']};
   for(const [menu,names] of Object.entries(MENUS)){
     await page.getByRole('menuitem',{name:new RegExp('^'+menu.replace(/[&]/g,'\\$&'))}).click();
     const got=(await page.locator('[role=menu]:visible [role=menuitem]').allInnerTexts()).map(t=>t.replace(/\s+/g,' ').trim());
@@ -421,6 +421,59 @@ try{
   ok((await long.getByRole('menuitem',{name:/Zoom in/}).getAttribute('aria-disabled'))==='true','with no guide open the zoom commands are dimmed');
   await long.keyboard.press('Escape');
   await long.close();
+
+  // ---- the Forms tool, in a guide of its own so nothing above depends on it
+  const fpage=await browser.newPage({viewport:{width:1360,height:900}});
+  await fpage.goto(`http://127.0.0.1:${PORT}/`);
+  await fpage.click('#welcome-new');
+  await fpage.fill('#dlg-name','Forms check');
+  await fpage.press('#dlg-name','Enter');
+  await fpage.waitForSelector('#tools-frame');
+  const ff=fpage.frameLocator('#tools-frame');
+  await ff.locator('#guide-title').fill('Forms check');
+  await ff.locator('#guide-title').press('Enter');
+  await ff.locator('#guide-build').waitFor({state:'visible',timeout:15000});
+  await fpage.getByRole('menuitem',{name:/^Activities/}).click();
+  ok((await fpage.locator('[role=menu]:visible [role=menuitem]').allInnerTexts()).map(t=>t.replace(/\s+/g,' ').trim()).includes('Forms'),'Forms is in the Activities menu');
+  await fpage.getByRole('menuitem',{name:/^Forms$/}).click();
+  await ff.locator('#guide-forms-summary').waitFor({state:'visible',timeout:10000});
+  await fpage.waitForTimeout(500);
+  ok(/^There are no forms in this guide yet/.test(await ff.locator('#guide-forms-summary').innerText()),'the Forms tool opens from the menu and says the guide has no forms');
+  ok((await ff.locator('#tool-title').innerText())==='Forms','its heading says what its menu says');
+  await ff.locator('#guide-forms-new').click();
+  const dlg=fpage.locator('dialog[open]');
+  await dlg.waitFor({timeout:10000});
+  ok(/New form/.test(await dlg.innerText()),'New form in the tool opens the New form dialog of the program');
+  await dlg.getByLabel('Title of the form').fill('Goals');
+  await dlg.getByRole('button',{name:'Insert'}).click();
+  await ff.locator('#guide-forms-list li').first().waitFor({timeout:15000});
+  ok(/Goals/.test(await ff.locator('#guide-forms-list li').first().innerText()),'the new form is listed: '+(await ff.locator('#guide-forms-list li').first().innerText()).replace(/\s+/g,' '));
+  ok(/Print: 1 per person/.test(await ff.locator('#guide-forms-list li').first().innerText()),'with the print line the template gave it');
+  ok(/cannot be added up yet/.test(await ff.locator('#guide-forms-copies-summary').innerText()),'which cannot be added up until the number of people is said');
+  await ff.locator('#guide-forms-people').fill('18');
+  await ff.locator('#guide-forms-people').press('Tab');
+  await ff.locator('#guide-forms-copies-summary',{hasText:/18 copies to make in all/}).waitFor({timeout:10000});
+  ok(true,'saying there will be 18 people adds the print line up to 18 copies');
+  await fpage.screenshot({path:path.join(SHOTS,'forms-panel.png')});
+  // a Handout block cites the form by choosing it
+  await fpage.getByRole('menuitem',{name:/^Activities/}).click();
+  await fpage.getByRole('menuitem',{name:/Instructional cues/}).click();
+  await ff.locator('#guide-cue-toggle').click();
+  await ff.locator('#guide-cue-group').selectOption('');
+  await ff.locator('label.guide-cue:has(#guide-cue-handout)').click();
+  await ff.locator('#guide-block-which-part').waitFor({state:'visible',timeout:10000});
+  ok((await ff.locator('#guide-block-which option').allInnerTexts()).some(t=>/Goals/.test(t)),'the Handout block offers the form to cite');
+  await ff.locator('#guide-block-which').selectOption({index:1});
+  await ff.locator('#guide-block-text').fill('Give out');
+  await ff.locator('#guide-block-go').click();
+  await fpage.waitForFunction(()=>/Give out\s+Handout: Goals/.test(document.querySelector('#work-guide')?.innerText||''),null,{timeout:15000});
+  ok(true,'and the block on the page says Give out, then the name of the form');
+  await fpage.getByRole('menuitem',{name:/^Check/}).click();
+  await fpage.getByRole('menuitem',{name:/Review guide/}).click();
+  await ff.locator('#guide-review-heading',{hasText:/^Review guide$/}).waitFor({timeout:15000});
+  ok(!/how many people there will be/.test(await ff.locator('#guide-review-look').innerText()),'and the Review no longer asks how many people there will be');
+  await fpage.screenshot({path:path.join(SHOTS,'forms-tool.png')});
+  await fpage.close();
 }finally{
   if(browser)await browser.close();
   server.kill();
