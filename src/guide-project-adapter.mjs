@@ -25,7 +25,8 @@ const READ_ONLY=new Set([
 ]);
 
 // onChange() is called after every change to the guide, before it is saved, so what shows the guide can draw it again at once.
-export function createProjectAdapter(document,{read,write,delayMs=400,soon=(fn,ms)=>setTimeout(fn,ms),cancel=t=>clearTimeout(t),onStatus=()=>{},onChange=()=>{}}={}){
+// `exportPdf` is how the program makes a PDF (File > Save as PDF; it gives the PDF as base64): without it the document says the program makes none.
+export function createProjectAdapter(document,{read,write,delayMs=400,soon=(fn,ms)=>setTimeout(fn,ms),cancel=t=>clearTimeout(t),onStatus=()=>{},onChange=()=>{},exportPdf}={}){
   let timer=null,inFlight=Promise.resolve(),dirty=false,blocked=false,loaded=false,state='new',message='';
   const set=(s,m='')=>{state=s;message=m;onStatus({state:s,message:m});};
   const save=()=>{
@@ -81,7 +82,7 @@ export function createProjectAdapter(document,{read,write,delayMs=400,soon=(fn,m
   })();
   ready.catch(()=>{});
   // The program has no Word to ask for a PDF (the stand-in document would give an empty file), so it says so instead of saving one that is not real.
-  const own={ready,flush,status:()=>({state,message}),blocked:()=>blocked,exportPdf:async()=>{throw new Error(NO_PDF);}};
+  const own={ready,flush,status:()=>({state,message}),blocked:()=>blocked,exportPdf:exportPdf?async()=>exportPdf():async()=>{throw new Error(NO_PDF);}};
   return new Proxy(document,{
     get(target,prop){
       if(Object.hasOwn(own,prop))return own[prop];

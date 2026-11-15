@@ -194,3 +194,21 @@ test('the real adapter reads Word\'s PDF slice by slice, closes the file, and sa
   await assert.rejects(createWordAdapter({Office:{context:{}},DOMParserClass:DOMParser}).exportPdf(),/Word is not ready yet/);
   assert.equal(Buffer.from(await createWordAdapter({Office:fakeOffice({closeFails:true}).office,DOMParserClass:DOMParser}).exportPdf(),'base64').length,6,'a failure to close does not lose the PDF');
 });
+
+test('in the program, with a way to make a PDF, the Review screen\'s button saves it and says it is tagged; when the program cannot, the screen shows its own words whole',async()=>{
+  const tagged=Buffer.from('%PDF-1.4\n1 0 obj << /Type /Catalog /MarkInfo << /Marked true >> /StructTreeRoot 2 0 R /Lang (en) >> endobj\n2 0 obj << /Type /StructTreeRoot >> endobj\n/Title (Reframing conflict)\n'+'x'.repeat(40)).toString('base64');
+  const make=exportPdf=>createProjectAdapter(createDemoAdapter({...xml,quirks:WORD_QUIRKS}),{read:async()=>null,write:async()=>{},soon:()=>0,cancel:()=>{},exportPdf});
+  const ok=make(async()=>tagged);await ok.ready;
+  const a=await guide(WORD_QUIRKS,{adapter:ok});
+  await a.adapter.setTitle('Reframing conflict');
+  await click(a,'guide-open-review');await click(a,'guide-review-pdf');
+  assert.equal(a.adapter.downloads().length,1,'the PDF is offered to be saved');
+  assert.equal(a.n('guide-review-pdf-ok').hidden,false);assert.match(a.n('guide-review-pdf-ok').textContent,/The PDF is tagged and has a language and a title/);
+  const refused=make(async()=>{throw new Error('The program could not make the PDF. Edge is not on this computer. You can save the Word file (File > Save as Word file) and make the PDF in Word.');});await refused.ready;
+  const b=await guide(WORD_QUIRKS,{adapter:refused});
+  await b.adapter.setTitle('Reframing conflict');
+  await click(b,'guide-open-review');await click(b,'guide-review-pdf');
+  assert.equal(b.adapter.downloads().length,0);
+  assert.match(b.n('guide-review-pdf-problem').textContent,/^The program could not make the PDF\. Edge is not on this computer\./);
+  assert.doesNotMatch(b.n('guide-review-pdf-problem').textContent,/Word could not make the PDF/);
+});

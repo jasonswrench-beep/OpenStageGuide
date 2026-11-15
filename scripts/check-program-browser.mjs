@@ -12,6 +12,7 @@ import os from 'node:os';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {serializeProject} from '../src/guide-project.mjs';
+import {findEdge} from './pdf-maker.mjs';
 const require=createRequire(import.meta.url);
 if(!process.env.PLAYWRIGHT_DIR){console.error('Set PLAYWRIGHT_DIR to the playwright package folder.');process.exit(2);}
 const {chromium}=require(process.env.PLAYWRIGHT_DIR);
@@ -517,7 +518,16 @@ try{
   // What a PDF holds, read with pypdf when Python has it: its pages, its words, and whether it is tagged (has a structure tree) and says its language.
   const NL=String.fromCharCode(10);
   const pdfReader=['import sys,json','from pypdf import PdfReader','r=PdfReader(sys.argv[1]);root=r.trailer["/Root"]',
-    'print(json.dumps({"pages":len(r.pages),"text":" ".join((p.extract_text() or "") for p in r.pages),"markinfo":"/MarkInfo" in root,"struct":"/StructTreeRoot" in root,"lang":str(root.get("/Lang",""))}))'].join(NL);
+    'def kinds(n,out):',
+    '    n=n.get_object() if hasattr(n,"get_object") else n',
+    '    if isinstance(n,dict):',
+    '        if n.get("/S"): out.add(str(n["/S"]))',
+    '        k=n.get("/K")',
+    '        for c in (k if isinstance(k,list) else ([k] if k is not None else [])):',
+    '            if hasattr(c,"get_object") or isinstance(c,dict): kinds(c,out)',
+    '    return out',
+    'tags=sorted(kinds(root["/StructTreeRoot"],set())) if "/StructTreeRoot" in root else []',
+    'print(json.dumps({"pages":len(r.pages),"text":" ".join((p.extract_text() or "") for p in r.pages),"markinfo":"/MarkInfo" in root,"struct":"/StructTreeRoot" in root,"lang":str(root.get("/Lang","")),"title":str((r.metadata or {}).get("/Title","")),"tags":tags}))'].join(NL);
   const readPdf=file=>{const r=spawnSync(process.env.PYTHON||'python',['-I','-c',pdfReader,file],{encoding:'utf8'});return r.status===0?JSON.parse(r.stdout):{unread:String(r.stderr).split(NL).filter(Boolean).pop()||'Python did not run'};};
   const webText=fs.readFileSync(webPath,'utf8');
   ok(!/(?:src|href)="(?:https?:)?\/\//i.test(webText)&&!/url\(/.test(webText),'the page holds no address of anywhere else');
@@ -556,6 +566,23 @@ try{
   else{
     ok(info.pages>=1&&/Goals/.test(info.text)&&!/Guide tools|Search for a command/.test(info.text),'the printed PDF has the guide ('+info.pages+' page'+(info.pages===1?'':'s')+') and not the menus or the tools');
     console.log(`INFO the PDF this engine makes by itself is ${info.markinfo&&info.struct?'tagged':'NOT tagged'} (MarkInfo ${info.markinfo}, StructTreeRoot ${info.struct}, language "${info.lang}"); this is the engine's own PDF call, not the window's print dialog`);
+  }
+  // File > Save as PDF: a PDF made on this computer, tagged: its headings and paragraphs are marked, and it says its language and its title
+  if(!findEdge())console.log('INFO File > Save as PDF was not tried: Edge is not on this computer');
+  else{
+    await fpage.getByRole('menuitem',{name:/^File/}).click();
+    const [pdfDownload]=await Promise.all([fpage.waitForEvent('download',{timeout:120000}),fpage.getByRole('menuitem',{name:/Save as PDF/}).click()]);
+    const madePdf=path.join(RUN,'made.pdf');
+    await pdfDownload.saveAs(madePdf);
+    ok(/\.pdf$/.test(pdfDownload.suggestedFilename()),'Save as PDF gives a .pdf file: '+pdfDownload.suggestedFilename());
+    const made=readPdf(madePdf);
+    if(made.unread)console.log('INFO the PDF the program made was not read: '+made.unread);
+    else{
+      ok(made.markinfo&&made.struct&&made.lang==='en'&&made.title.length>0,'the PDF is tagged, names its language and has a title: '+JSON.stringify({lang:made.lang,title:made.title,tags:made.tags}));
+      ok(/Goals/.test(made.text)&&!/Guide tools|Search for a command/.test(made.text),'it holds the guide ('+made.pages+' page'+(made.pages===1?'':'s')+') and not the menus');
+      ok(made.tags.includes('/H1')||made.tags.includes('/H2'),'its headings are marked as headings: '+made.tags.join(' '));
+    }
+    await fpage.waitForFunction(()=>/is tagged/.test(document.querySelector('#status')?.innerText||''),null,{timeout:10000}).then(()=>ok(true,'and the program says the PDF is tagged'),()=>ok(false,'and the program says the PDF is tagged'));
   }
   // File > Save as Word file, then File > Import a Word file opens that file as a new guide beside the others, and nothing is written over
   await fpage.getByRole('menuitem',{name:/^File/}).click();
@@ -628,7 +655,8 @@ try{
   await ff.locator('#guide-build-materials').click();
   await guideHas(/Materials list[\s\S]*Name tags and markers/);
   ok(true,'the materials list gathers what the lesson names');
-  await fpage.waitForTimeout(800);
+  // (the Word file is made from the guide as it is saved: wait until the footer words the Layout tool was given are in the guide's file)
+  for(let i=0;i<40&&!fs.readFileSync(path.join(GUIDES,'Pasted workshop.guide-project.json'),'utf8').includes('Acme Training');i++)await fpage.waitForTimeout(250);
   await fpage.getByRole('menuitem',{name:/^File/}).click();
   const [layoutDownload]=await Promise.all([fpage.waitForEvent('download',{timeout:30000}),fpage.getByRole('menuitem',{name:/Save as Word file/}).click()]);
   const layoutPath=path.join(RUN,'layout.docx');

@@ -1731,7 +1731,7 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
     catch(e){
       const said=(e&&e.message)||'';
       // The program (no Word behind it) says its own whole message, with how to get a PDF.
-      if(/^The program does not make PDFs yet\./.test(said)){pdfMessage('problem',said);return;}
+      if(/^The program /.test(said)){pdfMessage('problem',said);return;}
       pdfMessage('problem',`Word could not make the PDF. ${said} You can make one yourself: File > Export > Create PDF/XPS, with "Document structure tags for accessibility" ticked.`.trim());return;
     }
     const tags=checkPdfTags(Uint8Array.from(atob(base64),ch=>ch.charCodeAt(0)));
@@ -2195,7 +2195,12 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
   for(const [id,fn] of [['guide-ref-term-form',addTerm],['guide-ref-form',addReference],['guide-cap-form',addCaption],['guide-quote-form',addQuote],['guide-licence-form',buildLicence]])$(id).onsubmit=e=>{e?.preventDefault?.();return act(fn);};
   $('guide-forms-pack').onclick=()=>packFromTool();
   $('guide-forms-scheme').onchange=()=>act(changeScheme);
-  for(const id of ['guide-layout-dividers','guide-layout-header','guide-layout-footer','guide-layout-footertext'])$(id).onchange=()=>act(changeLayout);
+  // A choice made while the last one is still being kept is not lost: it is tried again a moment later, and reads every box as it is by then.
+  const onLayoutChange=async(tries=0)=>{
+    if(busy){if(tries<40)setTimeout(()=>void onLayoutChange(tries+1),150);return;}
+    await act(changeLayout);
+  };
+  for(const id of ['guide-layout-dividers','guide-layout-header','guide-layout-footer','guide-layout-footertext'])$(id).onchange=()=>onLayoutChange();
   $('guide-build-summary').onclick=async()=>{await act(buildSummaryPage);focus('guide-build-summary');};
   for(const id of ['guide-forms-people','guide-forms-teams','guide-forms-tables'])$(id).onchange=()=>act(changeGroup);
   $('guide-bk-save').onclick=()=>act(async()=>saveBackup());

@@ -15,6 +15,7 @@ import {createBuildSnapshot} from './build-snapshot.mjs';
 import {createHandler} from './http-handler.mjs';
 import {PROGRAM_CSP,PANE_CSP,pageHeaders,stripOfficeScript} from './security-headers.mjs';
 import {checkForUpdates,fetchReleases,versionKey} from './updates.mjs';
+import {makePdf,PdfError,PDF_MAX_HTML} from './pdf-maker.mjs';
 import {parseProject,serializeProject,cleanGuide,LIMITS} from '../src/guide-project.mjs';
 import {parseSettings,serializeSettings,SETTINGS_FILE,SETTING_KEYS,SETTING_MAX_CHARS,SETTINGS_MAX_CHARS} from '../src/program-settings.mjs';
 import http from 'node:http';
@@ -74,10 +75,10 @@ export function fileNameFor(raw){
 
 // `release` is the release this copy is (a tag such as v0.1.0-alpha.1; the window gives it from the installer's build), `updateCheck` false turns
 // Check for updates off, and `releases` is how GitHub's list is fetched (replaced in tests, which never reach the network). See scripts/updates.mjs.
-export async function startProjectServer({file,folder,port=3850,snapshot,maxBytes=LIMITS.fileCharacters*4,release,updateCheck=true,releases=fetchReleases,onClosing}={}){
+export async function startProjectServer({file,folder,port=3850,snapshot,maxBytes=LIMITS.fileCharacters*4,release,updateCheck=true,releases=fetchReleases,onClosing,pdfMaker=makePdf}={}){
   if(!file&&!folder)throw new Error('Name the guides folder with --folder, or one project file with --file.');
   const dir=path.resolve(folder||path.dirname(file));
-  let current=file?path.basename(file):null,backedUp=false,token=null;
+  let current=file?path.basename(file):null,backedUp=false,token=null,pdfBusy=false;
   const snap=snapshot||await createBuildSnapshot(root);
   const handler=createHandler(snap);
   const target=()=>current?path.join(dir,current):null;
@@ -219,10 +220,25 @@ export async function startProjectServer({file,folder,port=3850,snapshot,maxByte
     if(req.method!=='POST'){send(res,405,'Method not allowed');return;}
     if(!allowed(req,res,/^application\/json\b/i))return;
     // Only a setting may weigh more than a name does (the saved activities).
-    const raw=await readBody(req,name==='settings'?SETTING_MAX_CHARS*4+1024:API_MAX_BYTES);
+    const raw=await readBody(req,name==='settings'?SETTING_MAX_CHARS*4+1024:name==='pdf'?PDF_MAX_HTML+1024:API_MAX_BYTES);
     if(raw===null){json(res,413,{error:'That request is larger than this program takes.'});return;}
     let body={};
     try{body=raw?JSON.parse(raw):{};}catch{json(res,400,{error:'That request was not readable.'});return;}
+    // A PDF of the guide's web page, made on this computer by Edge (scripts/pdf-maker.mjs): the page sends its own web page, one PDF is made at a time, and the
+    // answer says whether the PDF is tagged. A page that holds a script is refused.
+    if(name==='pdf'){
+      if(typeof body?.html!=='string'||!body.html.trim()){json(res,400,{error:'There is nothing to make a PDF of.'});return;}
+      if(pdfBusy){json(res,409,{error:'A PDF is already being made. Wait for it, then try again.'});return;}
+      pdfBusy=true;
+      try{
+        const made=await pdfMaker(body.html);
+        send(res,200,made.bytes,'application/pdf',{'X-Pdf-Tagged':made.tagged?'yes':'no'});
+      }catch(e){
+        const code=e instanceof PdfError?e.code:'failed';
+        json(res,code==='no-edge'?501:code==='refused'||code==='empty'||code==='too-large'?400:500,{error:e instanceof PdfError?e.message:'The PDF could not be made.',code});
+      }finally{pdfBusy=false;}
+      return;
+    }
     if(name==='new'){
       let file;
       try{file=fileNameFor(body.name);}catch(e){json(res,400,{error:e.message});return;}

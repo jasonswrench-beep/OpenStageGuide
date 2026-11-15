@@ -21,6 +21,25 @@ export async function get(path) {
   return read(await fetch(`/api/${path}`, { cache: "no-store" }));
 }
 
+/**
+ * A file the server makes (a PDF), as bytes, with what it said about it in its headers.
+ * @param {string} path @param {Record<string, unknown>} body
+ * @returns {Promise<{ bytes: Uint8Array, header: (name: string) => string | null }>}
+ */
+export async function postForFile(path, body) {
+  const r = await fetch(`/api/${path}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), cache: "no-store" });
+  if (!r.ok) {
+    let message = `The program answered ${r.status}`;
+    try {
+      message = (await r.json()).error || message;
+    } catch {
+      /* the answer was not words: the status stays */
+    }
+    throw new Error(message);
+  }
+  return { bytes: new Uint8Array(await r.arrayBuffer()), header: (name) => r.headers.get(name) };
+}
+
 /** @param {string} path @param {Record<string, unknown>} [body] */
 export async function post(path, body = {}) {
   return read(await fetch(`/api/${path}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), cache: "no-store" }));

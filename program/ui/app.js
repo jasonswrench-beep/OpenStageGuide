@@ -21,7 +21,7 @@ import { askParagraphFormat, askTextFormat } from "./format.js";
 import { openStylesPanel } from "./styles-panel.js";
 import { INSERTS, newForm } from "./forms.js";
 import { drawWelcome } from "./welcome.js";
-import { saveWebPage } from "./web-page.js";
+import { pdfBase64, savePdfFile, saveWebPage } from "./web-page.js";
 import { downloadFile, importStylesFromWord, readGuideFromText, readGuideFromWord, safeFileName, saveHandoutPack, saveWordFile } from "./word-files.js";
 
 const doc = document;
@@ -143,6 +143,12 @@ async function saveWeb() {
   await saveWebPage(doc, guideDoc, { name: (state.current ?? "guide").replace(/\.guide-project\.json$/i, ""), say });
 }
 
+/** The guide as a PDF, made on this computer. */
+async function savePdf() {
+  if (!(await guideReady())) return;
+  await savePdfFile(doc, guideDoc, { name: (state.current ?? "guide").replace(/\.guide-project\.json$/i, ""), say });
+}
+
 /** The window's print dialog, with the page set up to print the guide only (program/style.css, "@media print"). What is waiting to be saved is saved first. */
 async function printGuide() {
   if (!(await guideReady()) || !(await settle())) return;
@@ -252,6 +258,7 @@ const frame = startFrame(doc, {
   restoreBackup: () => restoreBackup(),
   importWord: () => importGuide("word"),
   saveWeb: () => saveWeb(),
+  savePdf: () => savePdf(),
   print: () => printGuide(),
   pasteText: () => importGuide("text"),
   saveTemplate: () => saveWord(true),
@@ -356,6 +363,7 @@ function openDocument() {
       if (s.state === "error") say(s.message, true);
     },
     onChange: scheduleDraw,
+    exportPdf: () => pdfBase64(made, (state.current ?? "guide").replace(/\.guide-project\.json$/i, "")),
   });
   guideDoc = made;
   made.ready.then(

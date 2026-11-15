@@ -116,6 +116,7 @@ test('the page can be read in the dark, in forced colors and on paper, and holds
   assert.ok(!/(?:src|href)="(?:https?:)?\/\//i.test(html),'no link or picture reaches anywhere else');
   assert.ok(!/@import|url\(/.test(WEB_CSS),'the style sheet loads nothing');
   assert.ok(html.length<80000,'one small file: '+html.length);
+  assert.match(html,/<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; style-src 'unsafe-inline'">/,'and it tells the browser to load nothing but its own words and pictures, and to run nothing');
 });
 
 test('an empty tree gives a page that says so, and a table of only headings still has a body',()=>{

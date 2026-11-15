@@ -30,7 +30,7 @@ copy("program");
 const addInOnly = (path) => /[\\/]picker\.html$/.test(path) || /[\\/]vendor[\\/](pdf\.|pdfjs-)/.test(path);
 cpSync(join(repo, "public"), join(out, "app", "public"), { recursive: true, filter: (source) => !addInOnly(source) });
 // Every script the server loads, and the ones those load (tests/shell-prepare.test.mjs checks that this list is complete).
-for (const script of ["project-server.mjs", "build-snapshot.mjs", "http-handler.mjs", "security-headers.mjs", "updates.mjs"]) copy(join("scripts", script));
+for (const script of ["project-server.mjs", "build-snapshot.mjs", "http-handler.mjs", "security-headers.mjs", "updates.mjs", "pdf-maker.mjs"]) copy(join("scripts", script));
 copy(join("node_modules", "acorn"));
 copy("LICENSE");
 copy("NOTICE");
