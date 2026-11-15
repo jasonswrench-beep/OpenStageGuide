@@ -1,6 +1,6 @@
 # OpenStage Guide: what is finished and what is not (checklist)
 
-Made 2026-11-15, at the author's request ("do we have a formal checklist for what is finished in this build and what still needs to be finished?"). There was none: the facts were spread over the plan, the slice records in the specs, the release notes and the author's notes. This file collects them in one place. Keep it up to date at every release (section 9 says how).
+Brought up to date 2026-11-15 after the whole kit was built (the author's decision: no build, signing or push until the kit is done). Made 2026-11-15, at the author's request ("do we have a formal checklist for what is finished in this build and what still needs to be finished?"). There was none: the facts were spread over the plan, the slice records in the specs, the release notes and the author's notes. This file collects them in one place. Keep it up to date at every release (section 9 says how).
 
 **Reading it.** `[x]` is finished and has a test or a check that fails if it breaks. `[~]` is partly done, and the line says which part is missing. `[ ]` is not done. *(per docs)* means it comes from a record written when the piece was built and was not looked at again for this list. The newest published setup is alpha 5; alpha 6 is built and signed but not published; the Forms tool below is in the working tree and in no setup yet.
 
@@ -15,7 +15,7 @@ Made 2026-11-15, at the author's request ("do we have a formal checklist for wha
 - [x] One guides folder for the window and the browser version (`Documents\OpenStage Guides`).
 - [ ] The setup has not been tried on a second computer, or by anyone but its author.
 - [ ] A virtual-machine check of the installer and the uninstaller (clean Windows) has not been done.
-- [ ] Alpha 6 is not published (built and signed; the setup is in `installers-signed-2026-11-14-alpha6`).
+- [ ] Alpha 6 is not published (built and signed; the setup is in `installers-signed-2026-11-14-alpha6`). **It will not be: the next build, alpha 7, holds alpha 6's fixes and the whole kit, and waits for the author's go.** Nothing of the kit is committed to the public repository yet: the commits are local only.
 
 ## 2. The suite look and the shell
 
@@ -24,7 +24,7 @@ Made 2026-11-15, at the author's request ("do we have a formal checklist for wha
 - [x] Zoom for the guide's page (View menu, formatting bar, Ctrl+Alt+= and friends, Ctrl and the wheel), 50% to 300%, kept for next time.
 - [x] Menu lists stay inside the window (alpha 6) and every tool has one name in its menu, in More tools and as its heading (alpha 6).
 - [~] The menu row fits on one line from about 1366 pixels of window width; narrower, the last menus move to a second line (they still work).
-- [ ] Windows high contrast mode: the plan requires it to keep working; no check of it in the program is recorded.
+- [~] Windows high contrast mode: looked at here with the browser engine's forced-colors emulation (the program, the Layout tool, the web page): borders, black on white, every control outlined. Also looked at in the dark setting, which found and fixed headings that were navy on navy. *Not tried in Windows' own high contrast mode on a real PC.* The tools beside the guide stay a light panel in the dark setting (readable, but not matched to the dark page).
 - [ ] **A screen-reader pass (NVDA) of the whole program has not been done.** It waits for the author's go (it records everything spoken on the computer).
 
 ## 3. Writing in the program (the editing surface)
@@ -34,14 +34,14 @@ Made 2026-11-15, at the author's request ("do we have a formal checklist for wha
 - [x] Looks for a paragraph (alignment) and for words inside a sentence (the formatting bar's bold, italic, underline, strike, sub, super, color and clear), the Styles panel, styles taken from a Word file, a Word template made from the guide's styles.
 - [x] Four families of free fonts shipped and embedded in Word files; OpenDyslexic is offered by name only.
 - [x] The Review checks how words look (color contrast, tiny text, bold lines that look like headings), in **Accessibility**.
-- [ ] Adding and deleting a table's columns, merged cells, editing a table's caption and description after it is in.
-- [ ] Changing a picture's description, size or caption after it is in (delete and insert again); pictures inside table cells; copying a picture between guides.
+- [x] **Edit > Add table column right, Delete table column, Join cell with the next, Split joined cell, Table title and description...**: columns keep the table as wide as it was, the header row is not joined, cells merged downwards are left alone with the reason; checked in a real browser.
+- [~] **Edit > Picture details...** changes a picture's description, whether it is only decoration, its width (one of three) and its caption after it is in. Not done: pictures inside table cells, copying a picture between guides, a free size.
 - [ ] A bullet toggle; dragging a whole module or lesson (the Course outline tool moves them).
 - [ ] The editing surface is not finished: new blocks are added and changed with the tools beside the page.
 
-## 4. The tools (26: 21 from the add-in, 5 only in the program)
+## 4. The tools (29: 21 from the add-in, 8 only in the program)
 
-- [x] All 26 open from their menus, show the piece of the Guide screen they name, and have a test and a browser check. Add lesson, Learning outcomes, E-learning cues, Accessibility and Forms exist only in the program.
+- [x] All 29 open from their menus, show the piece of the Guide screen they name, and have a test and a browser check. Add lesson, Learning outcomes, E-learning cues, Accessibility, Forms, Lesson details, Reference pages and Layout exist only in the program.
 - [x] Review guide (what the guide says) and Accessibility (the document's checks) are two screens.
 - [x] Timing and agenda, Learning alignment, Delivery versions, Appearance, Generate materials (Training at a Glance, Graphic Cues page, module overview), Participant workbook with its leak check, Assessments, E-learning screens, Slides import and update, Activity library.
 - [x] **File > Save a backup...** gives a copy of the guide's own project file (words, pictures, styles, settings) named for the guide and the day; **Restore a backup...** reads one and opens it as a new guide of its own, so nothing is written over. Both are the program's own commands, and the tools of the same names ask the program to do them.
@@ -65,32 +65,36 @@ Made 2026-11-15, at the author's request ("do we have a formal checklist for wha
 
 ## 6. The rest of the kit the plan calls for (plan section 3)
 
-- [ ] Segment, module and unit headers (purpose, materials, method, minute range, optional flag, "choose n of m").
-- [ ] A wider time model (ranges, clock start plus duration, set-up before and clean-up after, a start time for each day, group-size rules, interaction mode, a stated programme total, Review of typed times against it).
-- [ ] Script mechanics (an expected-answer line after Ask and Debrief, an optional flag, "slide or flip chart" as one instruction, a library of named techniques).
-- [ ] Reference pages (glossary, references, figure captions with source credits, pull quote, licence or permission page).
-- [ ] The planning kit (timeline and checklists, a materials list by person and team, room set-up, roles grid).
-- [ ] Layouts for the outputs (slide thumbnail beside the notes, dividers, running headers, margin icons, mixed orientation, mirrored footers, one-page summaries).
-- [ ] Import of a guide made with the add-in; pasted text.
+Built 2026-11-15; what each slice does is in `docs/KIT-SPEC-2026-11-15.md` ("As built"). Each has unit tests; the ones with a screen have browser checks.
+
+- [x] **K1** Lesson details: purpose, materials, method, range of minutes, interaction, group size, new day, optional and "choose n of m", facilitator only, read by the Review.
+- [x] **K2** A wider time model: a stated length, days with a clock that starts again, ranges, set-up and clean-up; the Review compares typed times with the stated length.
+- [x] **K3** Script mechanics: expected answer, optional, "slide or flip chart" as one instruction, five more blocks and five more techniques (their icons are stand-ins drawn here, the author's to replace).
+- [x] **K4** Reference pages: glossary and references kept in order, figure captions with source numbered by Update guide, pull quotes, the licence and permissions page.
+- [x] **K5** The planning kit: timeline, technology and materials, room set-up, roles grid (facilitator only), pre-work, follow-up; the built Materials list page.
+- [~] **K6** Layouts for the Word file: each module on a new page, a running header (title or module), mirrored footers with the author's words, a one-page summary, and mixed orientation (from F8). **Not done:** a slide picture beside the script and a column of icons in the margin. *Checked as zip and markup and through the program; never opened in a real Word.*
+- [x] **K7** Import: **File > Import a Word file...** (a file this program or the add-in made) and **File > Paste text...**, each as a new guide beside the others.
 
 ## 7. Outputs
 
 - [x] The participant workbook and the facilitator's copy, made from the guide; the handout pack (section 5).
 - [x] A guide and a workbook saved as Word files (File > Save as Word file), passing the Word schema validator and opening in a real Word (one machine's Word, read-only) *(per docs)*.
-- [ ] A web page made from the guide.
-- [ ] **A PDF made by the program.** Whether the window's print-to-PDF gives a tagged (accessible) PDF has not been checked; PDFRemediator is the fallback.
-- [ ] A tagged-PDF check of anything the program produces.
+- [x] **File > Save as web page...**: one file with its style sheet and pictures inside, no address of anywhere else, a language, a skip link, one main region, headings with addresses and a contents that links to them, table headers, a dark setting, forced colors and a print style; printed to a tagged PDF it keeps its structure and language *(measured here)*.
+- [~] **File > Print...** (Ctrl+P) opens the window's print dialog with a print style (the guide alone, on white, over as many sheets as it needs). *Measured here:* the PDF Chromium makes by itself is **not tagged**; asked to tag, it is. *Not checked:* what the window's own print dialog saves. The checked route to a tagged PDF stays: save the Word file, then make the PDF in Word. The program does not make a PDF of its own.
+- [~] A tagged-PDF check: done for the engine's PDF call and the web page (above) with pypdf; not done for a PDF made from the program's Word files, and PDFRemediator remains the fallback.
 
 ## 8. Words, testing and release process
 
-- [x] 1,862 automatic tests (one opt-in test skipped) and 5 window tests; browser checks of the program (135, with the Forms tool, the handout pack, backup and restore, and undo from the tools), of saving a guide (29), of the editor (217), of settings (7) and of closing (6). All pass on the working tree of 2026-11-15.
+- [x] 1,932 automatic tests (one opt-in test skipped) and 5 window tests; browser checks of the program (162, with the Forms tool, the handout pack, backup and restore, undo from the tools, Word import, pasted text, the web page, print and the kit's tools), of saving a guide (29), of the editor (234, with table columns, joined cells and picture details), of settings (7) and of closing (6). All pass on the working tree of 2026-11-15.
 - [x] Every build is run through the steps in section 9 before it is published.
+- [ ] Flaky checks seen while building and made steadier: the editor check's "Update guide numbers it" (the button is pressed again), the program check's wait after a restore (it waits for the restored guide). A real race was found and fixed: a restore or an import was put into the new guide before it had finished opening (the program now waits for it, and the save, web page, print and backup commands wait for the guide to open).
 - [ ] The program has been used by nobody but its author (apart from the manual's author, who tried every tool in a scratch copy and found the problems listed in the release notes).
 - [ ] The program manual (written by the manual session) is on alpha 3; it will be refreshed for alpha 5 and 6 when the author says.
 - [ ] Questions waiting for the author: the file name ending, whether the add-in stays maintained next to the program, and where a public download page would live.
 
 ## 9. The steps every build goes through (the release checklist)
 
+0. **The kit is finished and the author has said go** (this build: alpha 7, which includes alpha 6's fixes).
 1. All automatic tests and the five browser checks pass on the source.
 2. The release label is bumped and committed; the signed setup is built from the committed code (`shell/tools/build_installer.py --sign`).
 3. The setup's signature, and the window's and the uninstaller's, are valid and timestamped.
