@@ -15,7 +15,7 @@ Brought up to date 2026-11-15 after the whole kit was built (the author's decisi
 - [x] One guides folder for the window and the browser version (`Documents\OpenStage Guides`).
 - [ ] The setup has not been tried on a second computer, or by anyone but its author.
 - [ ] A virtual-machine check of the installer and the uninstaller (clean Windows) has not been done.
-- [ ] Alpha 6 is not published (built and signed; the setup is in `installers-signed-2026-11-14-alpha6`). **It will not be: the next build, alpha 7, holds alpha 6's fixes and the whole kit, and waits for the author's go.** Nothing of the kit is committed to the public repository yet: the commits are local only.
+- [ ] Alpha 6 is not published (built and signed; the setup is in `installers-signed-2026-11-14-alpha6`). **It will not be.** Alpha 7 holds alpha 6's fixes and the whole kit; it was built and signed on 2026-11-15 on the author's go (setup SHA-256 `3fc537c5...a8a0`, build `0bd2e09a`, in `installers-signed-2026-11-15-alpha7`) and checked as in section 9 steps 2 to 6; it is not pushed or published yet. Nothing of the kit is committed to the public repository yet: the commits are local only.
 
 ## 2. The suite look and the shell
 
