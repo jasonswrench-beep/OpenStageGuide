@@ -26,8 +26,8 @@ test('the interface reaches nothing but its own server: the only addresses in it
     for(const m of code(f).matchAll(/https?:\/\/([^/"'`\s)]+)/g))assert.match(m[1],allowed,`${path.basename(f)}: ${m[0]}`);
     assert.doesNotMatch(code(f),/\b(XMLHttpRequest|WebSocket|EventSource|sendBeacon|navigator\.geolocation|document\.cookie|localStorage|sessionStorage)\b/,path.basename(f));
   }
-  // fetch is only to /api and /project, and to the fonts that come with the program (/program/fonts, to put them in a Word file), on this server
-  for(const f of uiFiles)for(const m of code(f).matchAll(/fetch\(\s*([^,)]+)/g))assert.match(m[1],/^(`\/api\/\$\{path\}`|"\/project"|`\$\{FONT_URL\}\$\{file\}`)$/,`${path.basename(f)}: fetch(${m[1]}`);
+  // fetch is only to /api and /project, to the fonts that come with the program (/program/fonts, to put them in a Word file) and to its own icons (/assets/icons-doc, to put them in a web page), on this server
+  for(const f of uiFiles)for(const m of code(f).matchAll(/fetch\(\s*([^,)]+)/g))assert.match(m[1],/^(`\/api\/\$\{path\}`|"\/project"|`\$\{FONT_URL\}\$\{file\}`|`\$\{ICON_DIR\}\$\{src\.slice\(ICON_DIR\.length\)\}`)$/,`${path.basename(f)}: fetch(${m[1]}`);
 });
 
 test('every icon the interface names is one the program has, and the icon file is the one its list makes',()=>{
