@@ -5,7 +5,7 @@
 // root. It starts its own server on port 3852 with a scratch guides folder, and stops it again. Screenshots go to a temporary folder named
 // in the last line.
 import {createRequire} from 'node:module';
-import {spawn} from 'node:child_process';
+import {spawn,spawnSync} from 'node:child_process';
 import fs from 'node:fs';
 import JSZip from 'jszip';
 import os from 'node:os';
@@ -504,10 +504,59 @@ try{
   await fpage.locator('dialog[open] #dlg-name').waitFor({timeout:10000});
   ok(/restored/.test(await fpage.locator('dialog[open] #dlg-name').inputValue()),'the restored guide is offered a name of its own: '+await fpage.locator('dialog[open] #dlg-name').inputValue());
   await fpage.locator('dialog[open]').getByRole('button',{name:'Restore'}).click();
-  await fpage.waitForFunction(()=>/Goals/.test(document.querySelector('#work-guide')?.innerText||''),null,{timeout:20000});
+  await fpage.waitForFunction(()=>/\(restored\)/.test(document.title)&&/Goals/.test(document.querySelector('#work-guide')?.innerText||''),null,{timeout:20000});
   ok(files(GUIDES).some(f=>/\(restored\)\.guide-project\.json$/.test(f))&&files(GUIDES).some(f=>f==='Forms check.guide-project.json'),'the backup is a new guide beside the first, which is not changed');
   const nowOpen=await fpage.evaluate(()=>fetch('/api/state').then(r=>r.json()));
   ok(/\(restored\)\.guide-project\.json$/.test(String(nowOpen.current)),'and it is the one that is open: '+nowOpen.current);
+  // File > Save as web page is one page with its pictures inside it: it opens on its own, reaches nowhere, and has the structure a screen reader needs
+  await fpage.getByRole('menuitem',{name:/^File/}).click();
+  const [webDownload]=await Promise.all([fpage.waitForEvent('download',{timeout:30000}),fpage.getByRole('menuitem',{name:/Save as web page/}).click()]);
+  const webPath=path.join(RUN,'made.html');
+  await webDownload.saveAs(webPath);
+  ok(/\.html$/.test(webDownload.suggestedFilename()),'Save as web page gives an .html file: '+webDownload.suggestedFilename());
+  // What a PDF holds, read with pypdf when Python has it: its pages, its words, and whether it is tagged (has a structure tree) and says its language.
+  const NL=String.fromCharCode(10);
+  const pdfReader=['import sys,json','from pypdf import PdfReader','r=PdfReader(sys.argv[1]);root=r.trailer["/Root"]',
+    'print(json.dumps({"pages":len(r.pages),"text":" ".join((p.extract_text() or "") for p in r.pages),"markinfo":"/MarkInfo" in root,"struct":"/StructTreeRoot" in root,"lang":str(root.get("/Lang",""))}))'].join(NL);
+  const readPdf=file=>{const r=spawnSync(process.env.PYTHON||'python',['-I','-c',pdfReader,file],{encoding:'utf8'});return r.status===0?JSON.parse(r.stdout):{unread:String(r.stderr).split(NL).filter(Boolean).pop()||'Python did not run'};};
+  const webText=fs.readFileSync(webPath,'utf8');
+  ok(!/(?:src|href)="(?:https?:)?\/\//i.test(webText)&&!/url\(/.test(webText),'the page holds no address of anywhere else');
+  const wp=await browser.newPage({viewport:{width:900,height:700}});
+  const webRequests=[];
+  wp.on('request',r=>webRequests.push(r.url()));
+  await wp.goto('file:///'+webPath.replace(/\\/g,'/'));
+  ok(webRequests.every(u=>/^(file|data):/.test(u)),'opened on its own, it asks for nothing but itself: '+webRequests.length+' requests');
+  ok(await wp.locator('html[lang=en]').count()===1&&await wp.locator('main#main').count()===1&&await wp.locator('a.skip[href="#main"]').count()===1,'a language, one main region and a way past the top');
+  ok(/Goals/.test(await wp.locator('main').innerText()),'the guide\'s words are in it');
+  const picturesLoaded=await wp.evaluate(()=>Array.from(document.images).map(i=>i.complete&&i.naturalWidth>0));
+  ok(picturesLoaded.every(Boolean),'the '+picturesLoaded.length+' pictures it has are inside it and draw');
+  await wp.emulateMedia({colorScheme:'dark'});
+  const dark=await wp.evaluate(()=>getComputedStyle(document.body).backgroundColor);
+  ok(dark!=='rgb(255, 255, 255)','it follows a dark setting: '+dark);
+  // Made into a PDF with the tags asked for, the page's structure and its language go into the PDF
+  const webPdf=path.join(RUN,'web-tagged.pdf');
+  fs.writeFileSync(webPdf,await wp.pdf({format:'Letter',tagged:true}));
+  const webPdfInfo=readPdf(webPdf);
+  if(webPdfInfo.unread)console.log('INFO the web page as a PDF was not read: '+webPdfInfo.unread);
+  else ok(webPdfInfo.markinfo&&webPdfInfo.struct&&webPdfInfo.lang==='en'&&/Goals/.test(webPdfInfo.text),'printed to a tagged PDF, the web page keeps its structure and its language ('+webPdfInfo.pages+' page'+(webPdfInfo.pages===1?'':'s')+')');
+  await wp.close();
+  // File > Print: with the print style the guide prints alone, over as many sheets as it needs; the PDF the engine makes of it is looked at, not assumed
+  await fpage.emulateMedia({media:'print'});
+  const printed=await fpage.evaluate(()=>{
+    const cs=sel=>getComputedStyle(document.querySelector(sel));
+    return {top:cs('.top').display,tools:cs('.work-tools').display,overflow:cs('.work-guide').overflowY,border:cs('.page').borderTopWidth,bg:cs('body').backgroundColor};
+  });
+  ok(printed.top==='none'&&printed.tools==='none','printing leaves off the menus and the tools beside the guide');
+  ok(printed.overflow==='visible'&&printed.border==='0px'&&printed.bg==='rgb(255, 255, 255)','the guide flows over the sheets on plain white paper: '+JSON.stringify(printed));
+  const pdfPath=path.join(RUN,'printed.pdf');
+  fs.writeFileSync(pdfPath,await fpage.pdf({format:'Letter'}));
+  await fpage.emulateMedia({media:null});
+  const info=readPdf(pdfPath);
+  if(info.unread)console.log('INFO the printed PDF was not read: '+info.unread);
+  else{
+    ok(info.pages>=1&&/Goals/.test(info.text)&&!/Guide tools|Search for a command/.test(info.text),'the printed PDF has the guide ('+info.pages+' page'+(info.pages===1?'':'s')+') and not the menus or the tools');
+    console.log(`INFO the PDF this engine makes by itself is ${info.markinfo&&info.struct?'tagged':'NOT tagged'} (MarkInfo ${info.markinfo}, StructTreeRoot ${info.struct}, language "${info.lang}"); this is the engine's own PDF call, not the window's print dialog`);
+  }
   // File > Save as Word file, then File > Import a Word file opens that file as a new guide beside the others, and nothing is written over
   await fpage.getByRole('menuitem',{name:/^File/}).click();
   const [wordDownload]=await Promise.all([fpage.waitForEvent('download',{timeout:30000}),fpage.getByRole('menuitem',{name:/Save as Word file/}).click()]);
@@ -538,7 +587,7 @@ try{
   await fpage.locator('dialog[open]').getByRole('button',{name:'Make the guide'}).click();
   await fpage.waitForFunction(()=>/^Pasted workshop/.test(document.title)&&/Module 1: Welcome/.test(document.querySelector('#work-guide')?.innerText||''),null,{timeout:20000});
   const pasted=await fpage.locator('#work-guide').innerText();
-  ok(/Lesson 1\.1: Hello/.test(pasted)&&/Say hello to everyone\./.test(pasted),'the pasted lines are the guide: a module, a lesson and a plain line');
+  ok(/Lesson 1\.1: Hello/.test(pasted)&&/Say hello to everyone\./.test(pasted),'the pasted lines are the guide: a module, a lesson and a plain line: '+pasted.replace(/\s+/g,' ').slice(0,160));
   ok(files(GUIDES).some(f=>/^Pasted workshop\.guide-project\.json$/.test(f))&&files(GUIDES).some(f=>f==='Forms check.guide-project.json'),'it is a new guide beside the first, which is not changed');
   await fpage.screenshot({path:path.join(SHOTS,'forms-tool.png')});
   await fpage.close();

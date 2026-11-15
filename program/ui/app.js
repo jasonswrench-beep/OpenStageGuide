@@ -20,6 +20,7 @@ import { askParagraphFormat, askTextFormat } from "./format.js";
 import { openStylesPanel } from "./styles-panel.js";
 import { INSERTS, newForm } from "./forms.js";
 import { drawWelcome } from "./welcome.js";
+import { saveWebPage } from "./web-page.js";
 import { downloadFile, importStylesFromWord, readGuideFromText, readGuideFromWord, safeFileName, saveHandoutPack, saveWordFile } from "./word-files.js";
 
 const doc = document;
@@ -114,15 +115,42 @@ async function insertCommand(name) {
   }
 }
 
+/**
+ * True once the open guide has been read from its file. A guide that is still opening has nothing in it yet, so a file made from it then would be empty: the
+ * command waits for it, and says so when the guide could not be opened at all.
+ */
+async function guideReady() {
+  if (!guideDoc) return false;
+  try {
+    await guideDoc.ready;
+    return true;
+  } catch {
+    say("The guide could not be opened, so there is nothing to save yet.", true);
+    return false;
+  }
+}
+
 /** The guide as a Word document, or its styles as a Word template. @param {boolean} template */
 async function saveWord(template) {
-  if (!guideDoc) return;
+  if (!(await guideReady())) return;
   await saveWordFile(doc, guideDoc, { name: (state.current ?? "guide").replace(/\.guide-project\.json$/i, ""), template, say });
+}
+
+/** The guide as one web page. */
+async function saveWeb() {
+  if (!(await guideReady())) return;
+  await saveWebPage(doc, guideDoc, { name: (state.current ?? "guide").replace(/\.guide-project\.json$/i, ""), say });
+}
+
+/** The window's print dialog, with the page set up to print the guide only (program/style.css, "@media print"). What is waiting to be saved is saved first. */
+async function printGuide() {
+  if (!(await guideReady()) || !(await settle())) return;
+  window.print();
 }
 
 /** A backup of the guide: a copy of its project file (words, pictures, styles, settings) saved wherever the author chooses. */
 async function saveBackup() {
-  if (!guideDoc) return;
+  if (!(await guideReady())) return;
   try {
     const text = serializeProject(guideDoc.exportState());
     const name = (state.current ?? "guide").replace(/\.guide-project\.json$/i, "");
@@ -202,7 +230,7 @@ async function importGuide(kind) {
 
 /** The forms for everyone from a lesson, a module or the whole guide, as one Word file. @param {"lesson" | "module" | "guide"} scope */
 async function savePack(scope) {
-  if (!guideDoc) return;
+  if (!(await guideReady())) return;
   await saveHandoutPack(doc, guideDoc, { scope, name: (state.current ?? "guide").replace(/\.guide-project\.json$/i, ""), say });
 }
 
@@ -222,6 +250,8 @@ const frame = startFrame(doc, {
   saveBackup: () => saveBackup(),
   restoreBackup: () => restoreBackup(),
   importWord: () => importGuide("word"),
+  saveWeb: () => saveWeb(),
+  print: () => printGuide(),
   pasteText: () => importGuide("text"),
   saveTemplate: () => saveWord(true),
   importStyles: () => importStyles(),

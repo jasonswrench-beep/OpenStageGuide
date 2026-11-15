@@ -17,6 +17,7 @@ export const KEY_GROUPS = [
     rows: [
       { keys: "Ctrl+K", does: "Search for a command by its name" },
       { keys: "Ctrl+/", does: "This list of keys" },
+      { keys: "Ctrl+P", does: "Print the guide (File > Print)" },
       { keys: "F10, or Alt pressed and let go on its own", does: "Go to the menus, and pressed again, back to where you were" },
       { keys: "Tab, Shift+Tab", does: "The next or the last control; the first Tab stop on a screen is the link that skips to its content" },
       { keys: "Ctrl+Alt+=, Ctrl+Alt+-, Ctrl+Alt+0, or the mouse wheel with Ctrl held", does: "Zoom the guide's page: bigger, smaller, back to the actual size (the mouse wheel works over the guide)" },

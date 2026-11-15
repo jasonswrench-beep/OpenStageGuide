@@ -106,7 +106,7 @@ const FORMAT_ITEMS = /** @type {({ name: string, label: string, icon: UiIconName
  * (undo, redo, cut, copy, paste, add, kind, moveUp, moveDown, delete) and state() says what can be done now.
  * `ctx.insert(name)` makes one of the INSERT_ITEMS (a form, lines, a table...) after the row the author is on.
  * @typedef {{ command: (name: string) => unknown, state: () => { canUndo: boolean, canRedo: boolean, hasRows: boolean, inTable: boolean } }} EditApi
- * @param {{ edit?: EditApi, insert?: (name: string) => unknown, saveWord?: () => unknown, saveTemplate?: () => unknown, saveBackup?: () => unknown, restoreBackup?: () => unknown, importWord?: () => unknown, pasteText?: () => unknown, importStyles?: () => unknown, zoom?: { more: () => unknown, less: () => unknown, actual: () => unknown, can: () => boolean }, hasGuide: () => boolean, openTool: (id: string) => void, updateGuide: () => void, newGuide: () => void, openGuide: () => void, closeGuide: () => void, search: () => void, keys: () => void, about: () => void, updates?: () => void }} ctx
+ * @param {{ edit?: EditApi, insert?: (name: string) => unknown, saveWord?: () => unknown, saveTemplate?: () => unknown, saveBackup?: () => unknown, restoreBackup?: () => unknown, importWord?: () => unknown, pasteText?: () => unknown, saveWeb?: () => unknown, print?: () => unknown, importStyles?: () => unknown, zoom?: { more: () => unknown, less: () => unknown, actual: () => unknown, can: () => boolean }, hasGuide: () => boolean, openTool: (id: string) => void, updateGuide: () => void, newGuide: () => void, openGuide: () => void, closeGuide: () => void, search: () => void, keys: () => void, about: () => void, updates?: () => void }} ctx
  * @returns {{ menus: MenuDef[], quick: MenuCommand[] }}  the menus, and the commands of the navy bar while a guide is open
  */
 export function buildMenus(ctx) {
@@ -131,6 +131,8 @@ export function buildMenus(ctx) {
       { label: "Paste text...", icon: "clipboard-paste", title: "Make a new guide from pasted lines: Module and Lesson lines become modules and lessons", run: () => void ctx.pasteText?.() },
       "-",
       { label: "Save as Word file...", icon: "file-down", title: "Make a Word document from the guide, with its styles, pictures and a contents table. Word can save it as a PDF", run: () => void ctx.saveWord?.(), enabled: ctx.hasGuide },
+      { label: "Save as web page...", icon: "file-down", title: "Make one web page of the guide, with its pictures inside it, that opens in any browser", run: () => void ctx.saveWeb?.(), enabled: ctx.hasGuide },
+      { label: "Print...", icon: "printer", keys: "Ctrl+P", title: "Print the guide, or save it as a PDF if your printer list offers that. For a PDF with its structure tagged for screen readers, save the Word file and make the PDF in Word", run: () => void ctx.print?.(), enabled: ctx.hasGuide },
       { label: "Save styles as a Word template...", icon: "swatch-book", title: "Make a Word template that has the guide's styles, so other documents can look like the guide", run: () => void ctx.saveTemplate?.(), enabled: ctx.hasGuide },
       "-",
       { label: TOOL_NAMES.saveBackup, icon: TOOL_ICONS.saveBackup, title: "Save a copy of the guide as it is now, with its pictures and settings, wherever you choose", run: () => void ctx.saveBackup?.(), enabled: ctx.hasGuide },

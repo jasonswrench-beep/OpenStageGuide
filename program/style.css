@@ -400,3 +400,18 @@ dialog:has(.si-table) { width: min(900px, 96vw); max-width: 96vw; }
 @font-face { font-family: "Source Serif 4"; font-weight: 700; font-style: normal; font-display: swap; src: url("/program/fonts/SourceSerif4-Bold.ttf") format("truetype"); }
 @font-face { font-family: "Source Serif 4"; font-weight: 400; font-style: italic; font-display: swap; src: url("/program/fonts/SourceSerif4-It.ttf") format("truetype"); }
 @font-face { font-family: "Source Serif 4"; font-weight: 700; font-style: italic; font-display: swap; src: url("/program/fonts/SourceSerif4-BoldIt.ttf") format("truetype"); }
+
+/* Printing (File > Print, Ctrl+P): the guide's own page and nothing else, on paper that is white with black words, flowing over as many sheets as it needs.
+   The menus, the tools beside the guide and the messages are left off; the page's colors are made plain with the variables it draws with. */
+@media print {
+  @page { margin: 18mm 16mm; }
+  html, body { height: auto; min-height: 0; display: block; background: #fff; color: #000; }
+  .skip, .top, .toast, .work-tools, dialog, #status { display: none !important; }
+  main, main:focus { padding: 0; }
+  .work { display: block; height: auto; min-height: 0; }
+  .work-guide { overflow: visible; max-height: none; height: auto; padding: 0; background: #fff; }
+  .page { --card: #fff; --subtle: #fff; --text: #000; --muted: #222; --line: #777; --edge: #444; --accent: #000; --os-shell: #000; --tint: #fff;
+          border: 0; box-shadow: none; border-radius: 0; max-width: none; margin: 0; padding: 0; background: #fff; color: #000; }
+  .page h1, .page h2, .page h3, .page h4 { break-after: avoid; }
+  .page table, .page .g-card, .page .g-notes, .page .g-quote, .page img { break-inside: avoid; }
+}
