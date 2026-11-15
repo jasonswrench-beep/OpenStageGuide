@@ -639,6 +639,32 @@ try{
   ok(/Acme Training/.test(await layoutZip.file('word/footerLayout1.xml').async('string')),'and the author\'s words are in the footer');
   ok(/OSGModule"\/><w:pageBreakBefore\/>/.test(layoutDoc),'and each module starts on a page of its own');
   ok(/One-page summary/.test(layoutDoc)&&/Materials list/.test(layoutDoc),'and it holds the pages the tools built');
+  // ---- the home screen: Clear previous guides leaves the guides off the list and deletes nothing; Open guide still lists them; the list can be brought back
+  await fpage.getByRole('menuitem',{name:/^File/}).click();
+  await fpage.getByRole('menuitem',{name:/Close guide/}).click();
+  await fpage.waitForSelector('#welcome-new');
+  const listedGuides=()=>fpage.locator('.recent li button').count();
+  const filesBeforeClear=guideFiles().length,sizeBefore=guideFiles().map(f=>fs.statSync(path.join(GUIDES,f)).size).join(',');
+  ok(await listedGuides()===filesBeforeClear&&filesBeforeClear>=5,'the home screen lists the '+filesBeforeClear+' guides');
+  ok(await fpage.locator('#welcome-clear').count()===1&&/Clear previous guides/.test(await fpage.locator('#welcome-clear').innerText()),'a "Clear previous guides" button is on the home screen');
+  ok(await fpage.locator('#welcome-show-all').count()===0,'and no button to bring guides back while none is left off');
+  await fpage.locator('#welcome-clear').click();
+  await fpage.locator('.recent-empty').waitFor({timeout:10000});
+  ok(await listedGuides()===0&&/The list is cleared/.test(await fpage.locator('.recent-empty').innerText()),'the list is empty and says it was cleared: '+await fpage.locator('.recent-empty').innerText());
+  ok(/No guide was deleted/.test(await fpage.locator('#status').innerText()),'and the program says no guide was deleted');
+  ok(guideFiles().length===filesBeforeClear&&guideFiles().map(f=>fs.statSync(path.join(GUIDES,f)).size).join(',')===sizeBefore,'every guide file is still in the folder, as it was');
+  ok(await fpage.evaluate(()=>document.activeElement?.id)==='recent-title','the keyboard is on the list\'s heading');
+  await fpage.reload();
+  await fpage.waitForSelector('#welcome-new');
+  ok(await listedGuides()===0,'the list stays cleared when the program is started again');
+  await fpage.locator('#welcome-open').click();
+  await fpage.locator('dialog[open] .dialog-list li').first().waitFor({timeout:10000});
+  ok(await fpage.locator('dialog[open] .dialog-list li').count()===filesBeforeClear,'Open guide still lists all '+filesBeforeClear+' guides');
+  await fpage.locator('dialog[open]').getByRole('button',{name:'Cancel'}).click();
+  ok(new RegExp('^Show the '+filesBeforeClear+' guides left off$').test((await fpage.locator('#welcome-show-all').innerText()).trim()),'a button offers to show the guides left off: '+(await fpage.locator('#welcome-show-all').innerText()).trim());
+  await fpage.locator('#welcome-show-all').click();
+  await fpage.waitForFunction(n=>document.querySelectorAll('.recent li button').length===n,filesBeforeClear,{timeout:10000});
+  ok(await fpage.locator('#welcome-show-all').count()===0&&await fpage.locator('#welcome-clear').count()===1,'the guides are on the list again, and the clear button is back');
   await fpage.screenshot({path:path.join(SHOTS,'forms-tool.png')});
   await fpage.close();
 }finally{

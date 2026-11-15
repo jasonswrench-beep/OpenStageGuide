@@ -14,6 +14,7 @@ import { parseProject, serializeProject } from "../../src/guide-project.mjs";
 import { checkForUpdates } from "./updates.js";
 import { get, post } from "./api.js";
 import { ZOOM_KEY, cleanZoom, nextZoom, zoomWords } from "../../src/zoom.mjs";
+import { GUIDES_CLEARED_KEY, cleanClearedAt, splitGuides } from "../../src/program-settings.mjs";
 import { startFrame } from "./frame.js";
 import { mountEditor } from "./editor.js";
 import { askParagraphFormat, askTextFormat } from "./format.js";
@@ -296,7 +297,41 @@ async function showWelcome() {
   doc.title = "OpenStage Guide";
   await loadState();
   frame.refresh();
-  drawWelcome(doc, main, { guides: state.guides, folder: state.folder, when, onNew: () => void newGuide(), onOpen: () => void openGuide(), onOpenNamed: (n) => void openNamed(n) });
+  // The list may have been cleared (a setting of the program): the guides it leaves off are still in the folder, and Open guide lists every one.
+  /** @type {string | null} */
+  let clearedAt = null;
+  try {
+    clearedAt = cleanClearedAt((await get("settings"))?.values?.[GUIDES_CLEARED_KEY]);
+  } catch {
+    clearedAt = null;
+  }
+  const { shown, hidden } = splitGuides(state.guides, clearedAt);
+  drawWelcome(doc, main, {
+    guides: shown,
+    hidden,
+    folder: state.folder,
+    when,
+    onNew: () => void newGuide(),
+    onOpen: () => void openGuide(),
+    onOpenNamed: (n) => void openNamed(n),
+    onClear: () => void clearList(true),
+    onShowAll: () => void clearList(false),
+  });
+}
+
+/**
+ * "Clear previous guides" on the welcome page leaves the guides off its list, and the button that follows brings them back. Only a time is kept (a setting of
+ * the program); no guide file is deleted, moved or changed. @param {boolean} clear
+ */
+async function clearList(clear) {
+  try {
+    await post("settings", { key: GUIDES_CLEARED_KEY, value: clear ? new Date().toISOString() : null });
+    await showWelcome();
+    say(clear ? "The list is cleared. No guide was deleted: Open guide still lists every one of them." : "The guides are on the list again.");
+    doc.getElementById("recent-title")?.focus();
+  } catch (e) {
+    say(/** @type {Error} */ (e).message, true);
+  }
 }
 
 /** Draw again soon: a burst of changes is drawn once. */

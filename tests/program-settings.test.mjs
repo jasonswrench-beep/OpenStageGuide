@@ -7,7 +7,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {startProjectServer,documentsFolder,defaultGuidesFolder,PROJECT_EXTENSION} from '../scripts/project-server.mjs';
-import {parseSettings,serializeSettings,createProgramStorage,SETTING_KEYS,SETTINGS_FILE,SETTING_MAX_CHARS,AGENDA_START_KEY,LOOK_KEY} from '../src/program-settings.mjs';
+import {parseSettings,serializeSettings,createProgramStorage,SETTING_KEYS,SETTINGS_FILE,SETTING_MAX_CHARS,AGENDA_START_KEY,LOOK_KEY,GUIDES_CLEARED_KEY,cleanClearedAt,splitGuides} from '../src/program-settings.mjs';
 import {STORE_KEY} from '../src/activity-library.mjs';
 import {ZOOM_KEY} from '../src/zoom.mjs';
 
@@ -28,8 +28,8 @@ async function withServer(fn,{folder:given}={}){
   try{await fn({folder,dir,start});}finally{fs.rmSync(dir,{recursive:true,force:true});}
 }
 
-test('the names the program keeps are the three the pane uses and the zoom, and the file reads back only those, as text',()=>{
-  assert.deepEqual([...SETTING_KEYS],[STORE_KEY,AGENDA_START_KEY,LOOK_KEY,ZOOM_KEY]);
+test('the names the program keeps are the three the pane uses, the zoom and the time the list of guides was cleared, and the file reads back only those, as text',()=>{
+  assert.deepEqual([...SETTING_KEYS],[STORE_KEY,AGENDA_START_KEY,LOOK_KEY,ZOOM_KEY,GUIDES_CLEARED_KEY]);
   const text=serializeSettings({[STORE_KEY]:'[1]',[AGENDA_START_KEY]:'13:30',other:'x',[LOOK_KEY]:5});
   assert.deepEqual(parseSettings(text),{[STORE_KEY]:'[1]',[AGENDA_START_KEY]:'13:30'},'an unknown name and a value that is not text are not kept');
   for(const bad of ['','not json','[]','{"format":"other","values":{}}',`{"format":"openstage-guide-settings","values":[]}`,'null'])assert.deepEqual(parseSettings(bad),{},`${bad}`);
@@ -190,4 +190,38 @@ test('on this computer the registry answers with an absolute folder that ends in
   const folder=documentsFolder();
   assert.ok(path.isAbsolute(folder),folder);
   assert.match(folder,/Documents$/i);
+});
+
+test('clearing the list of guides keeps only a time: the guides changed since then are listed, the others are left off, and none is touched',()=>{
+  const guides=[{name:'New.guide-project.json',when:'2026-11-15T12:00:00.000Z'},{name:'Old.guide-project.json',when:'2026-11-10T09:00:00.000Z'},{name:'Older.guide-project.json',when:'2026-11-01T09:00:00.000Z'}];
+  assert.deepEqual(splitGuides(guides,null),{shown:guides,hidden:0},'never cleared: every guide is listed');
+  const cleared=splitGuides(guides,'2026-11-11T00:00:00.000Z');
+  assert.deepEqual(cleared.shown.map(g=>g.name),['New.guide-project.json']);assert.equal(cleared.hidden,2);
+  assert.deepEqual(splitGuides(guides,'2026-11-16T00:00:00.000Z'),{shown:[],hidden:3},'cleared after all of them: none is listed');
+  assert.equal(splitGuides(guides,'2026-11-15T12:00:00.000Z').hidden,3,'a guide changed at the very moment of clearing is left off; a later change lists it again');
+  assert.equal(guides.length,3,'the list the page was given is not changed');
+  const now=new Date().toISOString();
+  assert.equal(cleanClearedAt(now),now);
+  assert.equal(cleanClearedAt('2026-11-11T00:00:00Z'),'2026-11-11T00:00:00.000Z');
+  for(const bad of [null,undefined,'',7,'not a time','x'.repeat(41),new Date(Date.now()+3*24*3600*1000).toISOString()])assert.equal(cleanClearedAt(bad),null,String(bad));
+});
+
+test('the time the list was cleared is kept like any other setting, beside the guides, and a guide file is never changed by it',async()=>{
+  await withServer(async({folder,start})=>{
+    const guide=path.join(folder,'Keep me.guide-project.json');
+    fs.mkdirSync(folder,{recursive:true});fs.writeFileSync(guide,'{"kept":true}');
+    const before=fs.readFileSync(guide,'utf8'),at=fs.statSync(guide).mtimeMs;
+    const a=await start();
+    try{
+    const stamp=new Date().toISOString();
+    const set=await a.set(GUIDES_CLEARED_KEY,stamp);
+    assert.equal(set.status,200);
+    const read=await a.call('GET','/api/settings');
+    assert.equal(JSON.parse(read.text).values[GUIDES_CLEARED_KEY],stamp);
+    assert.equal(fs.readFileSync(guide,'utf8'),before,'the guide file is as it was');assert.equal(fs.statSync(guide).mtimeMs,at,'and was not even touched');
+    assert.equal((await a.set(GUIDES_CLEARED_KEY,null)).status,200);
+    assert.equal(GUIDES_CLEARED_KEY in JSON.parse((await a.call('GET','/api/settings')).text).values,false,'bringing the guides back takes the setting away');
+    assert.deepEqual(JSON.parse((await a.call('GET','/api/state')).text).guides.map(g=>g.name),['Keep me.guide-project.json'],'and the server still lists every guide');
+    }finally{await a.s.close();}
+  });
 });

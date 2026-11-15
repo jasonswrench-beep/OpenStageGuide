@@ -7,15 +7,41 @@ import {STORE_KEY as LIBRARY_KEY} from './activity-library.mjs';
 import {ZOOM_KEY} from './zoom.mjs';
 
 export const AGENDA_START_KEY='osg.agendaStart.v1';
+/** When the author last chose "Clear previous guides" on the welcome page: guides not changed since then are left off that list (the files are never touched). */
+export const GUIDES_CLEARED_KEY='osg.guidesClearedAt.v1';
 export const LOOK_KEY='openstage-guide.workbook-look';
 /** The only settings the program keeps (the zoom of the window is kept by the server itself: src/zoom.mjs). */
-export const SETTING_KEYS=Object.freeze([LIBRARY_KEY,AGENDA_START_KEY,LOOK_KEY,ZOOM_KEY]);
+export const SETTING_KEYS=Object.freeze([LIBRARY_KEY,AGENDA_START_KEY,LOOK_KEY,ZOOM_KEY,GUIDES_CLEARED_KEY]);
 export const SETTINGS_FORMAT='openstage-guide-settings';
 export const SETTINGS_FILE='OpenStage Guide settings.json';
 export const SETTINGS_PATH='/api/settings';
 /** The most one setting may hold, in characters (50 activities of 4,000 letters a part come to well under this), and the most the file may hold. */
 export const SETTING_MAX_CHARS=1024*1024;
 export const SETTINGS_MAX_CHARS=2*1024*1024;
+
+/**
+ * The time a setting holds, as the text the program writes (an ISO time), or null when it is empty, not a time, or a day or more in the future.
+ * @param {unknown} value
+ * @returns {string | null}
+ */
+export function cleanClearedAt(value){
+  if(typeof value!=='string'||value.length>40)return null;
+  const t=Date.parse(value);
+  if(!Number.isFinite(t)||t>Date.now()+24*3600*1000)return null;
+  return new Date(t).toISOString();
+}
+
+/**
+ * The guides the welcome page lists: the ones changed after the list was last cleared (or all of them, if it never was), and how many are left off.
+ * A guide that is changed or made after the clearing is listed again by itself. The Open guide window always lists every guide.
+ * @param {{ name: string, when: string }[]} guides @param {string | null} clearedAt
+ * @returns {{ shown: { name: string, when: string }[], hidden: number }}
+ */
+export function splitGuides(guides,clearedAt){
+  if(!clearedAt)return {shown:guides,hidden:0};
+  const shown=guides.filter(g=>String(g.when)>clearedAt);
+  return {shown,hidden:guides.length-shown.length};
+}
 
 /**
  * The settings in the text of the file: only the known names, only text values, and nothing at all when the file is not readable (a
