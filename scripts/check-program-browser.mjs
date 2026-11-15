@@ -412,7 +412,9 @@ try{
   ok((await zlevel.innerText())==='110%','(and on again)');
   await long.keyboard.press('Control+Alt+0');
   z=await zoomSizes();
-  ok(z.zoom==='1'&&z.pageWidth===s100.pageWidth&&await settingsNow()===null,'Ctrl+Alt+0 is back to the actual size, which is not kept as a setting');
+  // the page is drawn at once, and the setting is cleared a moment later (the program asks its server to forget it): wait for that, as the other steps do
+  let zoomKept=await settingsNow();for(let i=0;i<20&&zoomKept!==null;i++){await long.waitForTimeout(150);zoomKept=await settingsNow();}
+  ok(z.zoom==='1'&&z.pageWidth===s100.pageWidth&&zoomKept===null,'Ctrl+Alt+0 is back to the actual size, which is not kept as a setting'+(z.zoom==='1'&&z.pageWidth===s100.pageWidth&&zoomKept===null?'':' (zoom '+z.zoom+', page '+z.pageWidth+' of '+s100.pageWidth+', kept '+zoomKept+')'));
   await menuView(/Zoom out/);
   ok((await zoomSizes()).zoom==='0.9','View, Zoom out draws the page smaller');
   await long.getByRole('menuitem',{name:/^File/}).click();
