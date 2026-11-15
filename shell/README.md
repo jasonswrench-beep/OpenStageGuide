@@ -52,16 +52,16 @@ The icons in `src-tauri/icons` are made from the product icon (`public/assets/ri
 
 ## State (2026-11-15)
 
-**Built and signed, not published: v0.1.0-alpha.7** (2026-11-15, release label on 3baba18; `OpenStage Guide_0.1.0_x64-setup.exe`, 29,168,344 bytes, SHA-256
+**Latest: v0.1.0-alpha.7**, published the same day as a pre-release (tag on 3baba18; on GitHub `OpenStage-Guide-0.1.0-alpha.7-Setup.exe`, the same bytes) (release label on 3baba18; `OpenStage Guide_0.1.0_x64-setup.exe`, 29,168,344 bytes, SHA-256
 `3fc537c56221da757d90c284e4c8d747b99d57293812b0c23e733951ffe4a8a0`, About reads build `0bd2e09a`), built with `python -I tools/build_installer.py --sign`. It holds alpha 6's
 fixes (menus stay inside the window, one name per tool) and the whole kit written on 2026-11-15 (lesson details, a wider time model, script mechanics, reference pages, the
 planning kit and Materials list, the Layout tool and one-page summary, import of a Word file and pasted text, Save as web page, Print, table columns and joined cells,
 table titles, picture details; see `docs/KIT-SPEC-2026-11-15.md`). Signed and timestamped as below (8 of our files by Jason Wrench; Node keeps its makers' signature),
 unpacked: 272 files of the program identical to the commit, `release.txt` says `v0.1.0-alpha.7`, the five browser checks pass on the unpacked files with the setup's own
 Node (162, 29, 234, 7, 6), and its signed window, started from the unpacked folder, answered with version 0.1.0 and build `0bd2e09a` and its menus held the new File
-and Make items. Not pushed, not published, not installed or seen by the author. Alpha 6 (built and signed, `installers-signed-2026-11-14-alpha6`) is skipped: it will not be published.
+and Make items. Downloaded again from GitHub without signing in, the file has the same hash and a valid, timestamped signature, and a copy that says it is alpha 5 asked Check for updates and was told alpha 7 is out (a copy that says alpha 7 was told it is the newest). Not yet installed or seen by the author. Alpha 6 (built and signed, `installers-signed-2026-11-14-alpha6`) is skipped: it will not be published.
 
-**Latest published: v0.1.0-alpha.5**, published the same day as a pre-release (tag on 8bd69c8; on GitHub `OpenStage-Guide-0.1.0-alpha.5-Setup.exe`, 29,099,424 bytes,
+**v0.1.0-alpha.5**, published the same day as a pre-release (tag on 8bd69c8; on GitHub `OpenStage-Guide-0.1.0-alpha.5-Setup.exe`, 29,099,424 bytes,
 SHA-256 `68fa136c63bec5883f13bfda14b10bf9811631d094b1aaae7bb9925b7bcbd028`, About reads build `b1b05fdd`), built with `python -I tools/build_installer.py --sign`. It adds
 only the new wording of the Accessibility screen (the Word check is advised for a Word file saved from the guide; Go there says "in the guide"). Signed and timestamped as below
 (8 of our files by Jason Wrench; Node keeps its makers' signature), unpacked: 259 files of the program identical to the commit, `release.txt` says `v0.1.0-alpha.5`, the five
