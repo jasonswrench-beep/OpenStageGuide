@@ -45,6 +45,13 @@ const SELECTION_DELAY = 250;
  * @param {any} guide the guide's document, with its saving
  * @param {{ zoom?: { more: () => unknown, less: () => unknown, actual: () => unknown, level: () => number }, say: (message: string, bad?: boolean) => void, askText: (current: any, validate: (change: any) => void) => Promise<any>, openStyles: (startId?: string) => Promise<void>, askName: (options: any) => Promise<string | null>, ask?: (options: any) => Promise<any>, askFormat: (current: any, validate: (fmt: any) => void) => Promise<any>, choose: (options: { title: string, intro?: string, confirm: string, options: { id: string, label: string, note?: string }[], current?: string }) => Promise<string | null> }} ui
  */
+/**
+ * What was last cut or copied: whole paragraphs, to be pasted back as they were, with the pictures they name (so they can be pasted into another guide, which
+ * does not have them). It belongs to the page, not to one guide's editor: the guide may be closed and another opened before it is pasted.
+ * @type {{ paragraphs: { xml: string, style: string }[], text: string, pictures: { rid: string, mime: string, base64: string }[] } | null}
+ */
+let clip = null;
+
 export function mountEditor(doc, host, guide, ui) {
   const page = doc.createElement("article");
   page.className = "page";
@@ -86,8 +93,6 @@ export function mountEditor(doc, host, guide, ui) {
   let cellGroups = 0;
   /** Where words were last chosen in a paragraph, kept for a command chosen from a menu (which takes the focus from the box). @type {{ index: number, start: number, end: number, at: number } | null} */
   let textSel = null;
-  /** What was last cut or copied inside the guide: whole paragraphs, to be pasted back as they were. @type {{ paragraphs: { xml: string, style: string }[], text: string } | null} */
-  let clip = null;
 
   /** @param {Row} row */
   const idx = (row) => Number(row.el.dataset.index);
@@ -1178,7 +1183,14 @@ export function mountEditor(doc, host, guide, ui) {
       paragraphs.push({ xml: e.xml ?? "", style: e.style ?? "Normal" });
     }
     const text = rows.map((r) => (entryOf(r).text ?? "").trim()).join("\n");
-    clip = { paragraphs, text };
+    /** @type {{ rid: string, mime: string, base64: string }[]} */
+    const pictures = [];
+    for (const p of paragraphs)
+      for (const m of p.xml.matchAll(/r:embed="(rIdPic[A-Za-z0-9_-]+)"/g)) {
+        const have = pictures.some((x) => x.rid === m[1]) ? null : guide.mediaOf(m[1]);
+        if (have) pictures.push({ rid: m[1], mime: have.mime, base64: have.base64 });
+      }
+    clip = { paragraphs, text, pictures };
     // The system clipboard is a courtesy (it may refuse): the guide keeps its own copy.
     navigator.clipboard?.writeText(text).catch(() => {});
     if (cut) await remove();
@@ -1206,7 +1218,16 @@ export function mountEditor(doc, host, guide, ui) {
     if (!xmls.length) return ui.say("There is nothing to paste. Copy or cut some paragraphs first.");
     const at = idx(last) + spanOf(last);
     stopEdit();
-    await guide.replaceParagraphs({ start: at, count: 0, guard: "", xmls, select: at });
+    // A picture this guide does not have (copied in another guide) comes with the paragraphs; one it has already is shared, as it always was.
+    const bring = (clip?.pictures ?? []).filter((p) => {
+      const have = guide.mediaOf(p.rid);
+      return !have || have.base64 !== p.base64 || have.mime !== p.mime;
+    }).filter((p) => xmls.some((x) => x.includes(`r:embed="${p.rid}"`)));
+    try {
+      await guide.replaceParagraphs({ start: at, count: 0, guard: "", xmls, select: at, ...(bring.length ? { pictures: bring } : {}) });
+    } catch (e) {
+      return ui.say(messageOf(e), true);
+    }
     render();
     select(at, at + xmls.length - 1);
     focusRow(rowNear(at));

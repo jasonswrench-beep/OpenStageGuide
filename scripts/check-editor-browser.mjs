@@ -31,8 +31,10 @@ await new Promise((res,rej)=>{let t='';server.stdout.on('data',d=>{t+=d;if(/Open
 
 // What is on disk: the guide's paragraphs, once the page says it is saved.
 const tableIo={parse:x=>new DOMParser().parseFromString(x,'application/xml'),serialize:e=>new XMLSerializer().serializeToString(e)};
+// (the check makes a second guide, Copy target, for the paste between guides: the editor's own guide is named, not found)
+const EDITOR_FILE='Editor guide.guide-project.json';
 const onDisk=()=>{
-  const f=fs.readdirSync(GUIDES).find(n=>n.endsWith('.guide-project.json'));
+  const f=EDITOR_FILE;
   return parseProject(fs.readFileSync(path.join(GUIDES,f),'utf8')).guide.paragraphs;
 };
 
@@ -485,7 +487,7 @@ try{
   const pictureParas=onDisk().filter(p=>/r:embed="rIdPic/.test(p.xml));
   ok(pictureParas.length===1&&/descr="A tiny test picture"/.test(pictureParas[0].xml),'on disk the paragraph names the picture and holds its description');
   ok(order().includes('Figure 1. A tiny test picture.'),'and the caption is a paragraph under it');
-  const projectText=fs.readFileSync(path.join(GUIDES,fs.readdirSync(GUIDES).find(n=>n.endsWith('.guide-project.json'))),'utf8');
+  const projectText=fs.readFileSync(path.join(GUIDES,EDITOR_FILE),'utf8');
   ok(/"media"/.test(projectText)&&projectText.includes(TINY_PNG),'the picture itself is in the project file');
   await page.getByRole('menuitem',{name:/^File/}).click();
   await page.getByRole('menuitem',{name:/Close guide/}).click();
@@ -546,7 +548,7 @@ try{
   ok(/<w:drawing/.test(sessionXml())&&/descr="A picture in a cell"/.test(sessionXml()),'the picture is in the table, with its description, on disk');
   ok(await subjectTable().locator('td img.g-picture').count()===1,'and it is drawn inside a cell of the table');
   ok(/The picture is in the cell/.test(await status()),'and the program says so');
-  ok(/"media"/.test(fs.readFileSync(path.join(GUIDES,fs.readdirSync(GUIDES).find(n=>n.endsWith('.guide-project.json'))),'utf8'))&&fs.readFileSync(path.join(GUIDES,fs.readdirSync(GUIDES).find(n=>n.endsWith('.guide-project.json'))),'utf8').includes(TINY_PNG),'the picture itself is in the project file');
+  ok(/"media"/.test(fs.readFileSync(path.join(GUIDES,EDITOR_FILE),'utf8'))&&fs.readFileSync(path.join(GUIDES,EDITOR_FILE),'utf8').includes(TINY_PNG),'the picture itself is in the project file');
   await page.getByRole('menuitem',{name:/^Edit/}).click();
   await page.getByRole('menuitem',{name:/Picture in this cell/}).click();
   ok(/already has a picture/.test(await status()),'a second picture in the same cell is refused, and the program says why');
@@ -566,6 +568,37 @@ try{
   await saved();
   ok(!/<w:drawing/.test(sessionXml()),'taking the picture out leaves the cell without it');
   ok(await subjectTable().locator('td img.g-picture').count()===0,'and the page draws none in the table');
+
+  // ---- a picture copied in one guide and pasted in another: it comes with its picture, and the first guide keeps its own
+  const editorGuideFile='Editor guide.guide-project.json';
+  await pictureRow.focus();
+  await page.keyboard.press('Control+c');
+  ok(/Copied/.test(await status()),'Ctrl+C on a paragraph that holds a picture copies it');
+  await page.getByRole('menuitem',{name:/^File/}).click();
+  await page.getByRole('menuitem',{name:/Paste text/}).click();
+  await page.locator('dialog[open] textarea').fill(['Copy target','Module 1: Target','Lesson 1.1: Place (5 min)','Some plain words.'].join(String.fromCharCode(10)));
+  await page.locator('dialog[open]').getByRole('button',{name:'Make the guide'}).click();
+  await page.locator('dialog[open] #dlg-name').waitFor({timeout:15000});
+  await page.locator('dialog[open]').getByRole('button',{name:'Make the guide'}).click();
+  await page.waitForFunction(()=>/^Copy target/.test(document.title)&&/Some plain words\./.test(document.querySelector('#work-guide')?.innerText||''),null,{timeout:20000});
+  ok(await page.locator('#work-guide img.g-picture').count()===0,'the other guide has no picture yet');
+  await row(/^Some plain words\./).focus();
+  await page.keyboard.press('Control+v');
+  await page.waitForFunction(()=>document.querySelectorAll('#work-guide img.g-picture').length===1,null,{timeout:10000});
+  ok(await page.locator('#work-guide img.g-picture').count()===1,'Ctrl+V in the other guide puts the picture in it');
+  await page.waitForTimeout(700);
+  await page.waitForFunction(()=>document.querySelector('.bar-context-state')?.getAttribute('data-state')==='saved',null,{timeout:10000});
+  const targetFile=JSON.parse(fs.readFileSync(path.join(GUIDES,'Copy target.guide-project.json'),'utf8')).guide;
+  const targetIds=Object.keys(targetFile.media);
+  ok(targetIds.length===1&&targetFile.media[targetIds[0]].base64===TINY_PNG&&targetFile.paragraphs.some(p=>p.xml.includes(`r:embed="${targetIds[0]}"`)),'the other guide holds the picture, under an id its paragraph names');
+  ok(await page.locator('#work-guide img.g-picture').evaluate(i=>i.complete&&i.naturalWidth>0),'and draws it');
+  await page.getByRole('menuitem',{name:/^File/}).click();
+  await page.getByRole('menuitem',{name:/Close guide/}).click();
+  await page.waitForSelector('#welcome-new');
+  await page.locator(`.recent li button[data-guide="${editorGuideFile}"]`).click();
+  await page.waitForSelector('#work-guide img.g-picture',{timeout:10000});
+  ok(await page.locator('#work-guide img.g-picture').count()===1,'the first guide still has its own picture, and only one');
+  ok(onDisk().filter(p=>/r:embed="rIdPic/.test(p.xml)).length===1,'on disk too');
 
   // ---- how a paragraph sits: alignment, space, line spacing and indents
   const sayRow=row(/^Say where this program fits/);
@@ -649,7 +682,7 @@ try{
   ok(!onDisk().some(p=>/Getting Started/.test(p.text)&&/numId/.test(p.xml)),'and is not changed');
 
   // ---- styles: change one, make one, give it to a paragraph, make one from a paragraph
-  const projectStyles=()=>{const f=fs.readdirSync(GUIDES).find(n=>n.endsWith('.guide-project.json'));return parseProject(fs.readFileSync(path.join(GUIDES,f),'utf8')).guide.styles;};
+  const projectStyles=()=>{const f=EDITOR_FILE;return parseProject(fs.readFileSync(path.join(GUIDES,f),'utf8')).guide.styles;};
   const formatMenu=async label=>{await page.getByRole('menuitem',{name:/^Format/}).click();await page.getByRole('menuitem',{name:label}).click();};
   const panelChoose=async name=>{await page.locator('#sp-list').selectOption({label:name});};
   const notesRow=row(/Facilitator notes: Listen for blame\./);
