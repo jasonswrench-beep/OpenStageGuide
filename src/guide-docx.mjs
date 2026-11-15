@@ -6,6 +6,7 @@
 import {STYLES as FONT_STYLES,obfuscateFont,newGuid,packFontsUsed,namedOnlyUsed} from './guide-fonts.mjs';
 import {cleanParagraphXml} from './guide-xml-clean.mjs';
 import {landscapeFlags} from './guide-forms.mjs';
+import {layoutParts,layoutBody,bodyWithLayoutRefs,withEvenAndOdd,SUMMARY_HEADING} from './guide-output-layout.mjs';
 const W='http://schemas.openxmlformats.org/wordprocessingml/2006/main';
 const REL='http://schemas.openxmlformats.org/officeDocument/2006/relationships';
 const CT={main:'application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml',template:'application/vnd.openxmlformats-officedocument.wordprocessingml.template.main+xml',settings:'application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml',fontTable:'application/vnd.openxmlformats-officedocument.wordprocessingml.fontTable+xml',font:'application/vnd.openxmlformats-officedocument.obfuscatedFont'};
@@ -18,7 +19,7 @@ const SECTION=`<w:sectPr><w:pgSz w:w="12240" w:h="15840"/>${PAGE_MARGINS}</w:sec
 const SECTION_LANDSCAPE=`<w:sectPr><w:pgSz w:w="15840" w:h="12240" w:orient="landscape"/>${PAGE_MARGINS}</w:sectPr>`;
 // A paragraph that ends a section: Word takes the page setup of the section from the last paragraph it holds.
 const sectionBreak=sect=>`<w:p><w:pPr>${sect}</w:pPr></w:p>`;
-const settingsXml=embed=>`<w:settings xmlns:w="${W}"><w:zoom w:percent="100"/>${embed?'<w:embedTrueTypeFonts/>':''}<w:defaultTabStop w:val="720"/><w:compat><w:compatSetting w:name="compatibilityMode" w:uri="http://schemas.microsoft.com/office/word" w:val="15"/></w:compat></w:settings>`;
+const settingsXml=(embed,evenOdd)=>`<w:settings xmlns:w="${W}"><w:zoom w:percent="100"/>${embed?'<w:embedTrueTypeFonts/>':''}<w:defaultTabStop w:val="720"/>${evenOdd?'<w:evenAndOddHeaders/>':''}<w:compat><w:compatSetting w:name="compatibilityMode" w:uri="http://schemas.microsoft.com/office/word" w:val="15"/></w:compat></w:settings>`;
 const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 const EXTENSIONS={png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',gif:'image/gif',odttf:CT.font};
 
@@ -101,10 +102,12 @@ const partsOf=(pkgXml,io)=>{
  *   `fonts` gives the files of the program's own fonts (src/guide-fonts.mjs) by family; the ones the guide uses are carried inside the file.
  *   `onNamed` is told which of the fonts that are only named (no file comes with the program) the guide uses; the file only names them.
  */
-export async function docxFromPackage(pkgXml,JSZipClass,io,{template=false,entries,title,fonts,onEmbedded,onNamed}={}){
+export async function docxFromPackage(pkgXml,JSZipClass,io,{template=false,entries,title,fonts,onEmbedded,onNamed,layout}={}){
   const parts=partsOf(pkgXml,io);
   const docPart=parts.find(p=>p.name==='/word/document.xml')?.xml??'';
-  const bodyOf=template?'':withSection(entries?bodyWithContents(entries,xml=>cleanParagraphXml(xml,io).xml):/<w:body>([\s\S]*)<\/w:body>/.exec(docPart)?.[1]??'');
+  // The layout the author chose for the Word file (kit slice K6): page breaks, and the header and footer every section points at. A template carries none of it.
+  const spec=template?null:layoutParts(layout,{title});
+  const bodyOf=template?'':bodyWithLayoutRefs(layoutBody(withSection(entries?bodyWithContents(entries,xml=>cleanParagraphXml(xml,io).xml):/<w:body>([\s\S]*)<\/w:body>/.exec(docPart)?.[1]??''),layout,{summaryHeading:SUMMARY_HEADING}),spec);
   onNamed?.(namedOnlyUsed(parts.find(p=>p.name==='/word/styles.xml')?.xml,bodyOf).map(f=>({family:f.family})));
   const zip=new JSZipClass();
   // No entries for folders: some services that open Word files refuse a file that has them.
@@ -146,6 +149,8 @@ export async function docxFromPackage(pkgXml,JSZipClass,io,{template=false,entri
       let xml=part.xml;
       if(part.name==='/word/styles.xml'&&!template)xml=withContentsStyles(xml,bodyOf);
       if(part.name==='/word/_rels/document.xml.rels'&&!/settings\.xml/.test(xml))xml=xml.replace('</Relationships>',`<Relationship Id="rIdSettings" Type="${REL}/settings" Target="settings.xml"/></Relationships>`);
+      if(part.name==='/word/_rels/document.xml.rels'&&spec?.rels.length)xml=xml.replace('</Relationships>',`${spec.rels.map(r=>`<Relationship Id="${r.id}" Type="${r.type}" Target="${r.target}"/>`).join('')}</Relationships>`);
+      if(part.name==='/word/settings.xml'&&spec?.evenOdd)xml=withEvenAndOdd(xml);
       if(part.name==='/word/_rels/document.xml.rels'&&embedded.length)xml=xml.replace('</Relationships>',`<Relationship Id="rIdFontTable" Type="${REL}/fontTable" Target="fontTable.xml"/></Relationships>`);
       put(name,DECLARATION+xml);
       if(/\.rels$/.test(name)){/* the default for rels covers it */}else overrides.push([part.name,part.type]);
@@ -157,7 +162,10 @@ export async function docxFromPackage(pkgXml,JSZipClass,io,{template=false,entri
       if(EXTENSIONS[ext])extensions.add(ext);
     }
   }
-  if(!hasSettings){put('word/settings.xml',DECLARATION+settingsXml(embedded.length>0));overrides.push(['/word/settings.xml',CT.settings]);}
+  // The header and footer parts the layout asks for, with their relationships and content types.
+  for(const p of spec?.parts??[]){put(p.name.replace(/^\//,''),p.xml);overrides.push([p.name,p.type]);}
+  if(spec?.rels.length&&!parts.some(p=>p.name==='/word/_rels/document.xml.rels'))throw new Error('The package has no relationships for the document, so the header and footer cannot be linked.');
+  if(!hasSettings){put('word/settings.xml',DECLARATION+settingsXml(embedded.length>0,spec?.evenOdd));overrides.push(['/word/settings.xml',CT.settings]);}
   if(embedded.length){
     const tag={regular:'embedRegular',bold:'embedBold',italic:'embedItalic',boldItalic:'embedBoldItalic'};
     const attr=v=>esc(v).replace(/"/g,'&quot;');

@@ -4,11 +4,12 @@
 import {allCues,CUE_GROUPS,AUDIENCES,ACTIVITY_PARTS,cueById,iconUrl,setCustomCues,customCueNames,checkCustomCueNames,CUSTOM_CUE_SLOTS} from './guide-cues.mjs';
 import {moduleHeading,lessonHeading,timeBlock,cueBlock,startGuide as startGuideBody,sampleGuide,acknowledgementsBody,perspectiveBody,appendixBody} from './guide-ooxml.mjs';
 import {cueFromText,updatePlan,guideIssues,outline,lessonMinutes,describeAt,blockAnchor,blockSpan,kindOf,transitionAnchor,lessonPlacement,modulePlacement,contentsState,readGuide,standardPageState,missingStandardPages,appendixPlacement,tidyTarget,tidyMove,tidyDeletion} from './guide-model.mjs';
-import {glanceBody,glanceState,glancePlacement,glanceRows,lessonForms,lessonMethods,materialsRows,materialsBody,materialsState,materialsPlacement,cuesBody,cuesState,cuesPlacement,cuesUsed,moduleAt,overviewFacts,overviewBody,overviewState,overviewPlacement,overviewsSummary} from './guide-pages.mjs';
+import {glanceBody,glanceState,glancePlacement,glanceRows,lessonForms,lessonMethods,materialsRows,materialsBody,materialsState,materialsPlacement,summaryRows,summaryBody,summaryState,summaryPlacement,cuesBody,cuesState,cuesPlacement,cuesUsed,moduleAt,overviewFacts,overviewBody,overviewState,overviewPlacement,overviewsSummary} from './guide-pages.mjs';
 import {checkParts} from './guide-check.mjs';
 import {citationControl} from './guide-forms-ooxml.mjs';
 import {readFacts,checkFacts,factsBlock,hoursWords,METHODS,MODES} from './guide-facts.mjs';
 import {planTerm,planReference,captionLine,quoteBlock,licenceBody,findLicence,LICENCES} from './guide-reference.mjs';
+import {cleanLayout,describeLayout,HEADER_LABELS,FOOTER_LABELS} from './guide-output-layout.mjs';
 import {readSettings as readFormSettings,writeSettings as writeFormSettings,readForms,copiesToMake,resolveScheme,printText} from './guide-forms.mjs';
 import {itemPlacement,sectionPlacement,itemSpan,itemTarget} from './guide-model.mjs';
 import {ITEM_TYPES,itemTypeById,LEVELS,levelById,parsePairs,parseLines,parseLabels,parseCriteria,parseRubricRows,DEFAULT_RUBRIC_LEVELS} from './guide-items.mjs';
@@ -148,7 +149,7 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
     $('guide-sec-selected').hidden=guide&&!t.selected;
     // A piece whose own heading says what the strip above already says (Add a module or lesson, E-Learning screens, Update from slides)
     // leaves the saying to the strip, so a screen reader does not read the same heading twice.
-    for(const id of ['guide-module-heading','guide-lesson-heading','guide-el-heading','guide-upd-heading','guide-lib-heading','guide-agenda-heading','guide-forms-heading','guide-details-heading','guide-reference-heading','guide-align-heading','guide-ver-heading','guide-bk-heading','guide-rs-heading']){
+    for(const id of ['guide-module-heading','guide-lesson-heading','guide-el-heading','guide-upd-heading','guide-lib-heading','guide-agenda-heading','guide-forms-heading','guide-details-heading','guide-reference-heading','guide-layout-heading','guide-align-heading','guide-ver-heading','guide-bk-heading','guide-rs-heading']){
       const heading=$(id);
       if(heading)heading.hidden=!!t&&clean(heading.textContent).toLowerCase()===t.title.toLowerCase();
     }
@@ -289,6 +290,7 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
   }
   // Whether each generated Getting Started page is in the document and still says what the guide says now. Nothing rebuilds
   // them by itself, so this is the only sign that one has fallen out of date.
+  const pageNote=(name,s,waiting='')=>s.built?(s.stale?`${name} is out of date. Choose its button to build it again.`:`${name} matches your guide.`):`${name} has not been built yet.${waiting}`;
   async function buildMaterialsPage(){
     const list=await adapter.paragraphs(),guide=readGuide(list),rows=materialsRows(list,guide,formSettings),place=materialsPlacement(list);
     await adapter.insert(()=>materialsBody(rows,{withHeading:place.withHeading}),pageInsert(place));
@@ -298,7 +300,7 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
   }
   function drawPages(){
     // A page that cannot be built yet says what it is waiting for, here beside its button, so nothing depends on a message elsewhere.
-    const note=(name,s,waiting='')=>s.built?(s.stale?`${name} is out of date. Choose its button to build it again.`:`${name} matches your guide.`):`${name} has not been built yet.${waiting}`;
+    const note=pageNote;
     const lessons=plan.guide.modules.reduce((n,m)=>n+m.lessons.length,0);
     $('guide-glance-note').textContent=note('Training at a Glance',glanceState(paras),lessons?'':' It needs a module and a lesson: add them first.');
     $('guide-cues-note').textContent=note('The Graphic Cues page',cuesState(paras),cuesUsed(paras).length?'':' It needs some blocks: add them first.');
@@ -840,6 +842,37 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
     drawReference();
     status(`The licence page is ${found?'built again':'built at the end of the guide'}.${tidy()} ${UNDO}`);
   }
+  // -- layout of the Word file: kept with the guide, used when it is saved as a Word file (guide-output-layout.mjs), and the one-page summary page
+  function drawLayout(){
+    const fill=(id,labels)=>{
+      const sel=$(id);
+      if(sel.children.length)return;
+      sel.replaceChildren(...Object.entries(labels).map(([v,t])=>{const o=doc.createElement('option');o.value=v;o.textContent=t;return o;}));
+    };
+    fill('guide-layout-header',HEADER_LABELS);fill('guide-layout-footer',FOOTER_LABELS);
+    const l=cleanLayout(formSettings.layout);
+    $('guide-layout-dividers').checked=l.dividers;
+    $('guide-layout-header').value=l.header;
+    $('guide-layout-footer').value=l.footer;
+    if($('guide-layout-footertext').value!==l.footerText)$('guide-layout-footertext').value=l.footerText;
+    $('guide-layout-footertext').disabled=l.footer==='none';
+    $('guide-layout-says').textContent=describeLayout(l)||'No layout is chosen, so the Word file is made as it always was.';
+    $('guide-summary-note').textContent=pageNote('The one-page summary',summaryState(paras),summaryRows(paras,plan.guide).length?'':' It needs a module: add one first.');
+  }
+  async function changeLayout(){
+    const next=cleanLayout({dividers:$('guide-layout-dividers').checked,header:$('guide-layout-header').value,footer:$('guide-layout-footer').value,footerText:$('guide-layout-footertext').value});
+    await saveFormSettings({...formSettings,layout:next});
+    drawLayout();
+    status('The layout is kept with the guide. It is used when you save the guide as a Word file.');
+  }
+  async function buildSummaryPage(){
+    const list=await adapter.paragraphs(),rows=summaryRows(list,readGuide(list)),place=summaryPlacement(list);
+    await adapter.insert(()=>summaryBody(rows,{withHeading:place.withHeading}),pageInsert(place));
+    await keepOpen();
+    await load();
+    drawLayout();
+    status(`The one-page summary is built with ${plural(rows.length,'module')}. ${pageHow(place,'One-page summary')}${tidy()} ${UNDO}`);
+  }
   // -- lesson details: the facts under a lesson's time line (guide-facts.mjs), for the lesson the cursor is in
   let detailsFor='';
   // The lesson the cursor is in: the last lesson heading at or above it, unless a module, an assessment or another heading comes between.
@@ -1056,6 +1089,7 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
       else if(tool==='forms')drawForms();
       else if(tool==='lessonDetails')drawDetails();
       else if(tool==='referencePages')drawReference();
+      else if(tool==='layout')drawLayout();
       else if(tool==='learningAlignment')drawAlignment();
       else if(tool==='deliveryVersions'){await readVersionsNow();drawVersions();}
     }catch{/* the panel stays as it was */}
@@ -2161,6 +2195,8 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
   for(const [id,fn] of [['guide-ref-term-form',addTerm],['guide-ref-form',addReference],['guide-cap-form',addCaption],['guide-quote-form',addQuote],['guide-licence-form',buildLicence]])$(id).onsubmit=e=>{e?.preventDefault?.();return act(fn);};
   $('guide-forms-pack').onclick=()=>packFromTool();
   $('guide-forms-scheme').onchange=()=>act(changeScheme);
+  for(const id of ['guide-layout-dividers','guide-layout-header','guide-layout-footer','guide-layout-footertext'])$(id).onchange=()=>act(changeLayout);
+  $('guide-build-summary').onclick=async()=>{await act(buildSummaryPage);focus('guide-build-summary');};
   for(const id of ['guide-forms-people','guide-forms-teams','guide-forms-tables'])$(id).onchange=()=>act(changeGroup);
   $('guide-bk-save').onclick=()=>act(async()=>saveBackup());
   $('guide-bk-open').onclick=()=>act(async()=>openBackup());

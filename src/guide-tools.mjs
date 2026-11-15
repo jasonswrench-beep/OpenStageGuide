@@ -35,7 +35,7 @@ export const PROGRAM_MENUS=Object.freeze([
   {id:'assessment',label:'Assessment',tools:['assessments','learningAlignment']},
   {id:'elearning',label:'eLearning',tools:['eLearningScreens','eLearningCues']},
   {id:'check',label:'Check & Plan',tools:['reviewGuide','timingAndAgenda','accessibility']},
-  {id:'make',label:'Make',tools:['deliveryVersions','appearance','generateMaterials','referencePages','participantWorkbook']}
+  {id:'make',label:'Make',tools:['deliveryVersions','appearance','generateMaterials','referencePages','layout','participantWorkbook']}
 ]);
 
 // The pieces of the Guide screen that a tool can show on its own. Anything not listed for a tool is hidden while it is open.
@@ -43,7 +43,7 @@ export const GUIDE_SECTIONS=Object.freeze([
   'guide-sec-module','guide-sec-lesson','guide-sec-block','guide-sec-owncues',
   'guide-sec-import','guide-sec-update',
   'guide-sec-look','guide-sec-standard','guide-sec-built',
-  'guide-sec-move','guide-sec-keeptidy','guide-sec-contents','guide-sec-library','guide-sec-agenda','guide-sec-forms','guide-sec-details','guide-sec-reference','guide-sec-align','guide-sec-versions',
+  'guide-sec-move','guide-sec-keeptidy','guide-sec-contents','guide-sec-library','guide-sec-agenda','guide-sec-forms','guide-sec-details','guide-sec-reference','guide-sec-layout','guide-sec-align','guide-sec-versions',
   'guide-sec-backup','guide-sec-restore'
 ]);
 
@@ -137,7 +137,10 @@ export const PROGRAM_TOOLS=Object.freeze(Object.fromEntries([
     tip:'Write down a lesson\'s purpose, materials and method, the minutes the facilitator may take, how people work together, the size of the group, and whether it is optional or one to choose from.',related:['addLesson','timingAndAgenda','reviewGuide']}),
   tool('referencePages',{label:'Reference Pages',icon:'ReferencePages',group:'make',kind:'guide',part:'organize',sections:['guide-sec-reference'],selected:true,
     title:'Reference pages',note:'The glossary, the references, figure captions, pull quotes and the licence page.',
-    tip:'Add terms to a glossary and sources to a list of references, put a numbered caption and its source under a figure, set a pull quote, and build the licence and permissions page.',related:['generateMaterials','appearance','reviewGuide']})
+    tip:'Add terms to a glossary and sources to a list of references, put a numbered caption and its source under a figure, set a pull quote, and build the licence and permissions page.',related:['generateMaterials','appearance','reviewGuide']}),
+  tool('layout',{label:'Layout',icon:'Layout',group:'make',kind:'guide',part:'organize',sections:['guide-sec-layout'],selected:true,
+    title:'Layout of the Word file',note:'Each module on a new page, a running header, a footer with the page number, and a one-page summary.',
+    tip:'Choose how the Word file looks when it is made: whether each module starts a page, what runs along the top and the foot of each page, and a summary of the whole guide on one page.',related:['appearance','generateMaterials','referencePages']})
 ]));
 
 export const TOOL_IDS=Object.freeze(Object.keys(TOOLS));
@@ -159,6 +162,7 @@ export const PROGRAM_NAMES=Object.freeze({
   forms:'Forms',
   lessonDetails:'Lesson details',
   referencePages:'Reference pages',
+  layout:'Layout',
   importSlides:'Import slides',
   updateFromSlides:'Update from slides',
   eLearningScreens:'E-learning screens',

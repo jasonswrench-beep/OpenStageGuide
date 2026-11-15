@@ -31,14 +31,16 @@ const clean=t=>String(t??'').replace(/[\r\n\u0007]+$/,'').trim();
 const count=v=>Number.isInteger(v)&&v>=1&&v<=9999?v:null;
 // The stated length of the programme, in minutes (kit slice K2). The settings are kept with the guide under the name the form settings always had.
 const length=v=>Number.isInteger(v)&&v>=1&&v<=99999?v:null;
+import {cleanLayout,isDefaultLayout} from './guide-output-layout.mjs';
 export function readSettings(text){
   let d=null;
   try{d=text?JSON.parse(text):null;}catch{d=null;}
   const group={people:count(d?.group?.people),teams:count(d?.group?.teams),tables:count(d?.group?.tables)};
   const minutes=length(d?.time?.minutes);
-  return {scheme:SCHEMES.includes(d?.scheme)?d.scheme:'auto',...(Object.values(group).some(v=>v!==null)?{group}:{}),...(minutes!==null?{time:{minutes}}:{})};
+  const layout=cleanLayout(d?.layout);
+  return {scheme:SCHEMES.includes(d?.scheme)?d.scheme:'auto',...(Object.values(group).some(v=>v!==null)?{group}:{}),...(minutes!==null?{time:{minutes}}:{}),...(isDefaultLayout(layout)?{}:{layout})};
 }
-export const writeSettings=s=>JSON.stringify({scheme:SCHEMES.includes(s?.scheme)?s.scheme:'auto',...(s?.group?{group:{people:count(s.group.people),teams:count(s.group.teams),tables:count(s.group.tables)}}:{}),...(length(s?.time?.minutes)!==null?{time:{minutes:length(s.time.minutes)}}:{})});
+export const writeSettings=s=>JSON.stringify({scheme:SCHEMES.includes(s?.scheme)?s.scheme:'auto',...(s?.group?{group:{people:count(s.group.people),teams:count(s.group.teams),tables:count(s.group.tables)}}:{}),...(length(s?.time?.minutes)!==null?{time:{minutes:length(s.time.minutes)}}:{}),...(s?.layout&&!isDefaultLayout(s.layout)?{layout:cleanLayout(s.layout)}:{})});
 
 // ---- the words of a form's title
 const TITLE=/^([A-Za-z][A-Za-z ]{0,30}?)(?:\s+(\d+(?:\.\d+)?|[A-Za-z]{1,2}))?\s*:\s*(\S.*)$/s;

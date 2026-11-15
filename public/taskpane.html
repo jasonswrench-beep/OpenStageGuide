@@ -490,6 +490,32 @@
 </details>
 </div>
 
+<div id="guide-sec-layout">
+<h2 id="guide-layout-heading">Layout of the Word file</h2>
+<p class="hint">These choices are used when you save the guide as a Word file. They are kept with the guide and do not change the guide on the page.</p>
+<fieldset>
+<legend>Pages</legend>
+<label class="inline"><input id="guide-layout-dividers" type="checkbox"> Start each module on a new page</label>
+</fieldset>
+<fieldset>
+<legend>Along the top and the foot</legend>
+<label for="guide-layout-header">Along the top of each page</label>
+<select id="guide-layout-header"></select>
+<label for="guide-layout-footer">At the foot of each page</label>
+<select id="guide-layout-footer"></select>
+<label for="guide-layout-footertext">Words in the footer (optional)</label>
+<input id="guide-layout-footertext" type="text" maxlength="120" placeholder="for example the name of your organization">
+<p id="guide-layout-says" class="hint" role="status" aria-live="polite"></p>
+</fieldset>
+<fieldset>
+<legend>One-page summary</legend>
+<p class="hint">The whole guide on one page: each module, its minutes, its lessons and what they set out to do. The Word file puts it on a sheet of its own, so it prints on one side.</p>
+<div class="guide-actions"><button id="guide-build-summary" type="button">Build the one-page summary</button></div>
+<p id="guide-summary-note" class="hint" role="status" aria-live="polite"></p>
+</fieldset>
+<p class="hint">Not part of this layout: a picture of each slide beside the script, and a column of icons in the margin. Each needs a different layout for every block, so they are left for a later version.</p>
+</div>
+
 <div id="guide-sec-align">
 <h2 id="guide-align-heading">Learning alignment</h2>
 <p class="hint">Which objectives have an activity and an assessment item. Your objectives are the Objective blocks in your lessons. An Activity is tied to an objective when its Objective part says the same thing, and an assessment item when its Learning objective does.</p>

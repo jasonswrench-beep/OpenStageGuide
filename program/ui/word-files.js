@@ -7,6 +7,8 @@
  */
 import { DOCX_LIMITS, docxFromPackage, readDocxStyles } from "../../src/guide-docx.mjs";
 import { packEntries } from "../../src/guide-handouts.mjs";
+import { readSettings } from "../../src/guide-forms.mjs";
+import { describeLayout } from "../../src/guide-output-layout.mjs";
 import { FONT_URL, STYLES as FONT_STYLES, packFont } from "../../src/guide-fonts.mjs";
 import { listStyles, niceName, specCss } from "../../src/guide-styles-edit.mjs";
 import { AS_NEW, candidates, importSummary, planImport } from "../../src/guide-styles-import.mjs";
@@ -70,6 +72,8 @@ export async function saveWordFile(doc, guide, { name, template, say }) {
     const state = guide.exportState();
     const pkg = await guide.sourcePackage();
     const title = String(state.title || name);
+    // The layout the author chose (the Layout tool) is kept with the guide's settings and applied to the Word file, not to a template.
+    const layout = template ? undefined : readSettings(await guide.formSettings?.()).layout;
     /** @type {{ family: string }[]} */
     let carried = [];
     /** @type {{ family: string }[]} */
@@ -77,6 +81,7 @@ export async function saveWordFile(doc, guide, { name, template, say }) {
     const options = {
       ...(template ? { template: true } : { entries: state.paragraphs }),
       title,
+      ...(layout ? { layout } : {}),
       fonts: loadPackFonts,
       onEmbedded: (/** @type {{ family: string }[]} */ list) => (carried = list),
       onNamed: (/** @type {{ family: string }[]} */ list) => (named = list),
@@ -92,7 +97,7 @@ export async function saveWordFile(doc, guide, { name, template, say }) {
     say(
       template
         ? `${file} has the guide's styles. In Word, start a document from it, or copy it to your templates folder. The styles are real Word styles, so they appear in Word's Styles gallery.${fonts}`
-        : `${file} was made from the guide. Open it in Word, press Ctrl+A and then F9 to fill in the page numbers of the contents.${fonts}`,
+        : `${file} was made from the guide. Open it in Word, press Ctrl+A and then F9 to fill in the page numbers of the contents.${layout ? ` ${describeLayout(layout)}` : ""}${fonts}`,
     );
   } catch (e) {
     say(/** @type {Error} */ (e).message, true);

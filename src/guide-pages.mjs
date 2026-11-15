@@ -8,6 +8,7 @@ import {STYLE_IDS} from './guide-styles.mjs';
 import {allCues,TIME_ICON} from './guide-cues.mjs';
 import {readGuide,lessonMinutes,kindOf,cueFromText,readBlock} from './guide-model.mjs';
 import {readForms,copiesToMake} from './guide-forms.mjs';
+import {SUMMARY_HEADING} from './guide-output-layout.mjs';
 import {readFacts} from './guide-facts.mjs';
 
 const alnum=s=>String(s??'').replace(/[^\p{L}\p{N}]+/gu,'').toLowerCase();
@@ -174,6 +175,54 @@ export function glancePlacement(paras){
   const end=sectionEnd(paras,gi);
   for(let i=gi+1;i<end;i++)
     if(kindOf(paras[i])==='other'&&alnum(paras[i].text)===alnum(GLANCE_PROMPT))return {withHeading:false,after:i,remove:{start:i,end:i,guard:paras[i].text},replaces:'placeholder'};
+  return {withHeading:false,after:gi,remove:null,replaces:null};
+}
+
+// ---- the one-page summary (kit slice K6)
+// The whole guide on one page: each module with its minutes, its lessons and what those lessons set out to do. Built when the author asks, like the pages above.
+// The Word file puts it on a sheet of its own, so it prints on one side (src/guide-output-layout.mjs).
+export {SUMMARY_HEADING};
+export const SUMMARY_INTRO='The whole guide on one page: each module with its minutes, its lessons and what its lessons set out to do.';
+export const SUMMARY_HEAD=['Module','Minutes','Lessons','What learners will do'];
+const SUMMARY_WIDTHS=[2500,1000,1000,PAGE-4500];
+const SUMMARY_SHAPE={intro:SUMMARY_INTRO,firstHead:SUMMARY_HEAD[0],closing:'Total'};
+// Up to this many aims for a module are written out; the rest are counted, so that the page stays one page.
+const SUMMARY_MAX=4;
+export function summaryRows(paras,guide){
+  return guide.modules.filter(m=>m.index>=0).map(mod=>{
+    const f=overviewFacts(paras,mod);
+    const goals=[...new Set(f.lessons.map(l=>l.objective).filter(o=>o&&o!==NO_OBJECTIVE))];
+    const shown=goals.slice(0,SUMMARY_MAX).join('; ')+(goals.length>SUMMARY_MAX?`; and ${goals.length-SUMMARY_MAX} more`:'');
+    return {name:f.name,minutes:f.total,lessons:f.lessons.length,goals:shown||NO_OBJECTIVE};
+  });
+}
+const summaryTotal=rows=>`Total: ${plural(rows.reduce((n,r)=>n+r.minutes,0),'minute')} in ${plural(rows.length,'module')}.`;
+const summaryWords=rows=>[SUMMARY_INTRO,...SUMMARY_HEAD,...rows.flatMap(r=>[r.name,String(r.minutes),String(r.lessons),r.goals]),summaryTotal(rows)];
+export function summaryBody(rows,{withHeading=false}={}){
+  if(!rows.length)throw new Error('Add a module first. The one-page summary lists the modules.');
+  const w=SUMMARY_WIDTHS;
+  const trs=[
+    row(SUMMARY_HEAD.map((t,i)=>head(t,w[i],i===1||i===2)),{header:true}),
+    ...rows.map(r=>row([
+      cell(w[0],para(STYLE_IDS.tableCell,run(r.name))),
+      cell(w[1],para(STYLE_IDS.tableCell,run(String(r.minutes)),CENTRED)),
+      cell(w[2],para(STYLE_IDS.tableCell,run(String(r.lessons)),CENTRED)),
+      cell(w[3],para(STYLE_IDS.tableCell,run(r.goals)))
+    ]))
+  ];
+  return (withHeading?heading(2,SUMMARY_HEADING):'')+para(null,run(SUMMARY_INTRO))
+    +table(w,trs,{caption:'One-page summary',description:'Each module of the guide, with the minutes it takes, how many lessons it has and what its lessons set out to do.'})
+    +para(null,run(summaryTotal(rows)));
+}
+export function summaryState(paras){
+  const gi=headingIndex(paras,SUMMARY_HEADING),built=gi>=0?findBuilt(paras,gi,SUMMARY_SHAPE):null;
+  return {built:!!built,stale:built?!sameWords(paras,built,summaryWords(summaryRows(paras,readGuide(paras)))):false};
+}
+export function summaryPlacement(paras){
+  const gi=headingIndex(paras,SUMMARY_HEADING);
+  if(gi<0)return {withHeading:true,after:before(paras,[]),remove:null,replaces:null};
+  const built=findBuilt(paras,gi,SUMMARY_SHAPE);
+  if(built)return {withHeading:false,after:built.end,remove:{start:built.start,end:built.end,guard:paras[built.start].text},replaces:'page'};
   return {withHeading:false,after:gi,remove:null,replaces:null};
 }
 

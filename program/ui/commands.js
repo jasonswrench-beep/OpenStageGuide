@@ -40,6 +40,7 @@ export const TOOL_ICONS = {
   forms: "file-text",
   lessonDetails: "id-card",
   referencePages: "quote",
+  layout: "layout-dashboard",
   importSlides: "presentation",
   updateFromSlides: "refresh-cw",
   eLearningScreens: "monitor-play",
