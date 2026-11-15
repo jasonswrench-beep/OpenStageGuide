@@ -39,6 +39,7 @@ export const TOOL_ICONS = {
   activityLibrary: "library",
   forms: "file-text",
   lessonDetails: "id-card",
+  referencePages: "quote",
   importSlides: "presentation",
   updateFromSlides: "refresh-cw",
   eLearningScreens: "monitor-play",

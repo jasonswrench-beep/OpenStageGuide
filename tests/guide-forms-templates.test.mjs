@@ -15,7 +15,7 @@ async function add(a,spec){
 }
 
 test('there are templates for the forms the author is likely to want, each with a name, a kind, a note and a body',()=>{
-  assert.deepEqual(FORM_TEMPLATES.map(t=>t.id),['reading','worksheet','notes','checklist','rating','instrument','observer','evaluation','action','commitment','rolecards','matchup','twobytwo','forcefield','planning']);
+  assert.deepEqual(FORM_TEMPLATES.map(t=>t.id),['reading','worksheet','notes','checklist','rating','instrument','observer','evaluation','action','commitment','rolecards','matchup','twobytwo','forcefield','planning','timeline','techmaterials','roomsetup','roles','prework','followup']);
   for(const t of FORM_TEMPLATES){
     assert.ok(t.label&&t.note.length>10,t.id);
     assert.ok(LABELS.includes(t.kind),`${t.id}: ${t.kind} is a kind of form the guide knows`);
@@ -78,4 +78,11 @@ test('a form made from a template has the print line, and its elements are the r
   assert.match(xml,/<w:tblHeader/,'a header row');
   assert.equal(ps.filter(p=>p.style==='OSG Form Line').length,6,'six lines to write on in the worksheet');
   assert.ok(ps.some(p=>p.style==='OSG Form Field'),'a row of fields');
+});
+
+test('the planning kit templates are for the facilitator whatever was ticked, and pre-work and the follow-up roadmap are for everyone',()=>{
+  const ctx={used:new Set(),docPr:1,lists:0,bullets:new Set(),sdt:0,pictures:[]};
+  for(const id of ['timeline','techmaterials','roomsetup','roles'])assert.match(buildForm({template:id,id:'f9',title:'Mine',facilitator:false},ctx),/OSGFormTitleFacilitator/,id);
+  for(const id of ['prework','followup','worksheet'])assert.doesNotMatch(buildForm({template:id,id:'f9',title:'Mine'},ctx),/OSGFormTitleFacilitator/,id);
+  assert.ok(FORM_TEMPLATES.filter(t=>t.facilitator).length===4);
 });

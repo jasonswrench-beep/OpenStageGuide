@@ -83,6 +83,8 @@ export function classify(paras){
         break;
       case 'form-print':drop('form-print');break;
       case 'fact':drop('fact');break;
+      // The reference pages are for learners: the glossary, the references, the figure captions and the pull quotes go in the workbook.
+      case 'term':case 'reference':case 'caption':case 'quote':case 'quote-by':keep('reference');break;
       case 'notes':drop('notes');break;
       case 'time':drop('time');break;
       case 'answer-key':case 'key-table-head':case 'key-table-cell':drop('key');break;
@@ -289,7 +291,7 @@ export function lookTheme(effective,language='en-US'){
 const WORKBOOK_STYLE_IDS=new Set(['Normal','DefaultParagraphFont','Title','Heading1','Heading2',STYLE_IDS.guideTitle,STYLE_IDS.module,STYLE_IDS.lesson,
   STYLE_IDS.cue,STYLE_IDS.cueLabel,STYLE_IDS.body,STYLE_IDS.assessment,STYLE_IDS.question,STYLE_IDS.option,STYLE_IDS.answerLine,
   STYLE_IDS.tableHead,STYLE_IDS.tableCell,STYLE_IDS.ratingBox,STYLE_IDS.itemNote,
-  STYLE_IDS.formTitle,STYLE_IDS.formText,STYLE_IDS.formLine,STYLE_IDS.formField,STYLE_IDS.formBox,STYLE_IDS.formSource,STYLE_IDS.formCard]);
+  STYLE_IDS.formTitle,STYLE_IDS.formText,STYLE_IDS.formLine,STYLE_IDS.formField,STYLE_IDS.formBox,STYLE_IDS.formSource,STYLE_IDS.formCard,STYLE_IDS.term,STYLE_IDS.reference,STYLE_IDS.caption,STYLE_IDS.quote,STYLE_IDS.quoteBy]);
 export const WORKBOOK_ONLY_STYLES={subtitle:'OSGWorkbookSubtitle',bullet:'OSGWorkbookBullet',footer:'OSGWorkbookFooter'};
 const extraStyles=theme=>`
 <w:style w:type="paragraph" w:customStyle="1" w:styleId="${WORKBOOK_ONLY_STYLES.footer}"><w:name w:val="OSG Workbook Footer"/><w:basedOn w:val="Normal"/><w:qFormat/><w:pPr><w:spacing w:after="0"/></w:pPr><w:rPr><w:color w:val="${theme.ink}"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr></w:style>

@@ -286,6 +286,11 @@ main:focus, main:focus-visible { outline: none; }
 .page h4.g-form { font: 700 1.05rem "Segoe UI", system-ui, sans-serif; margin: 22px 0 6px; padding: 6px 10px; border-left: 5px solid var(--accent); background: var(--tint); color: var(--text); }
 .page h4.g-form.facilitator { border-left-color: var(--edge); background: var(--subtle); }
 .page .g-fact { font: 0.88rem "Segoe UI", system-ui, sans-serif; background: var(--subtle); padding: 2px 8px; margin: 0 0 2px; }
+.page .g-term { margin: 0 0 8px; }
+.page .g-reference { margin: 0 0 8px 36px; text-indent: -36px; }
+.page .g-caption { font: italic 0.88rem "Segoe UI", system-ui, sans-serif; color: var(--muted); margin: 2px 0 12px; }
+.page .g-quote { font-size: 1.12rem; font-style: italic; border-left: 4px solid var(--os-shell); margin: 12px 36px 0; padding-left: 12px; }
+.page .g-quoteby { font: 0.88rem "Segoe UI", system-ui, sans-serif; border-left: 4px solid var(--os-shell); margin: 0 36px 12px; padding-left: 12px; }
 .page .g-print { font: italic 0.85rem "Segoe UI", system-ui, sans-serif; color: var(--muted); background: var(--subtle); padding: 3px 8px; margin: 0 0 6px; }
 .page .g-formtext { margin: 0 0 6px; font-family: "Segoe UI", system-ui, sans-serif; font-size: 0.95rem; }
 .page .g-rule { display: block; height: 1.8em; border-bottom: 1px solid var(--edge); margin: 0 0 2px; }

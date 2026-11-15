@@ -35,7 +35,7 @@ export const PROGRAM_MENUS=Object.freeze([
   {id:'assessment',label:'Assessment',tools:['assessments','learningAlignment']},
   {id:'elearning',label:'eLearning',tools:['eLearningScreens','eLearningCues']},
   {id:'check',label:'Check & Plan',tools:['reviewGuide','timingAndAgenda','accessibility']},
-  {id:'make',label:'Make',tools:['deliveryVersions','appearance','generateMaterials','participantWorkbook']}
+  {id:'make',label:'Make',tools:['deliveryVersions','appearance','generateMaterials','referencePages','participantWorkbook']}
 ]);
 
 // The pieces of the Guide screen that a tool can show on its own. Anything not listed for a tool is hidden while it is open.
@@ -43,7 +43,7 @@ export const GUIDE_SECTIONS=Object.freeze([
   'guide-sec-module','guide-sec-lesson','guide-sec-block','guide-sec-owncues',
   'guide-sec-import','guide-sec-update',
   'guide-sec-look','guide-sec-standard','guide-sec-built',
-  'guide-sec-move','guide-sec-keeptidy','guide-sec-contents','guide-sec-library','guide-sec-agenda','guide-sec-forms','guide-sec-details','guide-sec-align','guide-sec-versions',
+  'guide-sec-move','guide-sec-keeptidy','guide-sec-contents','guide-sec-library','guide-sec-agenda','guide-sec-forms','guide-sec-details','guide-sec-reference','guide-sec-align','guide-sec-versions',
   'guide-sec-backup','guide-sec-restore'
 ]);
 
@@ -100,7 +100,7 @@ export const TOOLS=Object.freeze(Object.fromEntries([
     tip:'Choose the look of the guide: fonts, colors, header and footer.',related:['generateMaterials','courseSettings','participantWorkbook']}),
   tool('generateMaterials',{label:'Generate Materials',icon:'GenerateMaterials',group:'make',kind:'guide',part:'look',sections:['guide-sec-built'],
     title:'Generate materials',note:'Pages built from your guide when you ask.',
-    tip:'Build Training at a Glance, the Graphic Cues page and a module overview.',related:['appearance','participantWorkbook']}),
+    tip:'Build Training at a Glance, the Graphic Cues page and a module overview.',related:['appearance','participantWorkbook','referencePages']}),
   tool('participantWorkbook',{label:'Participant Workbook',icon:'ParticipantWorkbook',group:'make',kind:'screen',screen:'workbook',ownHeading:true,
     title:'Participant workbook',note:'Blocks for learners. Facilitator-only blocks are left out.',
     tip:'Preview and download learner instructions and writing space.',related:['appearance','generateMaterials','reviewGuide']}),
@@ -134,7 +134,10 @@ export const PROGRAM_TOOLS=Object.freeze(Object.fromEntries([
     tip:'See every form in the guide with its number and print line, start a new one, choose how forms are numbered, and say how many people, teams and tables there will be to work out the copies to make.',related:['addActivity','instructionalCues','reviewGuide']}),
   tool('lessonDetails',{label:'Lesson Details',icon:'LessonDetails',group:'sections',kind:'guide',part:'organize',sections:['guide-sec-details'],selected:true,
     title:'Lesson details',note:'Purpose, materials, method, range of minutes, how people work together and whether the lesson may be left out.',
-    tip:'Write down a lesson\'s purpose, materials and method, the minutes the facilitator may take, how people work together, the size of the group, and whether it is optional or one to choose from.',related:['addLesson','timingAndAgenda','reviewGuide']})
+    tip:'Write down a lesson\'s purpose, materials and method, the minutes the facilitator may take, how people work together, the size of the group, and whether it is optional or one to choose from.',related:['addLesson','timingAndAgenda','reviewGuide']}),
+  tool('referencePages',{label:'Reference Pages',icon:'ReferencePages',group:'make',kind:'guide',part:'organize',sections:['guide-sec-reference'],selected:true,
+    title:'Reference pages',note:'The glossary, the references, figure captions, pull quotes and the licence page.',
+    tip:'Add terms to a glossary and sources to a list of references, put a numbered caption and its source under a figure, set a pull quote, and build the licence and permissions page.',related:['generateMaterials','appearance','reviewGuide']})
 ]));
 
 export const TOOL_IDS=Object.freeze(Object.keys(TOOLS));
@@ -155,6 +158,7 @@ export const PROGRAM_NAMES=Object.freeze({
   activityLibrary:'Activity library',
   forms:'Forms',
   lessonDetails:'Lesson details',
+  referencePages:'Reference pages',
   importSlides:'Import slides',
   updateFromSlides:'Update from slides',
   eLearningScreens:'E-learning screens',

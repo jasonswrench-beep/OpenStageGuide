@@ -7,6 +7,7 @@ import {allCues,ACTIVITY_PARTS} from './guide-cues.mjs';
 import {ITEM_TYPES,RATING_SCALES,itemTypeByKeyLabel,readNumericKey} from './guide-items.mjs';
 import {formPlan} from './guide-forms.mjs';
 import {factIssues,dayIssues,lengthIssue} from './guide-facts.mjs';
+import {captionEdits} from './guide-reference.mjs';
 
 const MODULE=/^Module\s+(\d+)\s*:\s*(.*)$/s;
 const LESSON=/^Lesson\s+(\d+)\.(\d+)\s*:\s*(.*)$/s;
@@ -38,6 +39,11 @@ export const kindOf=p=>{
   if(s===STYLE_NAMES.formPrint)return 'form-print';
   if(s===STYLE_NAMES.formCard)return 'form-card';
   if(s===STYLE_NAMES.fact)return 'fact';
+  if(s===STYLE_NAMES.term)return 'term';
+  if(s===STYLE_NAMES.reference)return 'reference';
+  if(s===STYLE_NAMES.caption)return 'caption';
+  if(s===STYLE_NAMES.quote)return 'quote';
+  if(s===STYLE_NAMES.quoteBy)return 'quote-by';
   if(s===STYLE_NAMES.tableHead)return 'table-head';
   if(s===STYLE_NAMES.tableCell)return 'table-cell';
   if(s===STYLE_NAMES.ratingBox)return 'rating-box';
@@ -307,6 +313,7 @@ export function updatePlan(paras,options={}){
   }
   const forms=formPlan(paras,options.forms||{});
   edits.push(...forms.edits);
+  edits.push(...captionEdits(paras));
   // The ids of the cues of a lesson's blocks, so a day with no break in it can be found.
   const cueIdsOf=l=>{const ids=[];for(let i=l.index+1;i<=l.end;i++)if(kindOf(paras[i])==='cue'){const c=cueFromText(paras[i].text);if(c)ids.push(c.id);}return ids;};
   const length=lengthIssue(cumulative,options.forms?.time?.minutes);

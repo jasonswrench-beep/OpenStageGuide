@@ -287,9 +287,10 @@
 <div id="guide-sec-built">
 <h2>Pages built from your guide</h2>
 <p class="hint">These pages are built from your guide when you ask. Nothing changes them by itself, so build them again after the guide changes. The overview is for the module your cursor is in.</p>
-<div class="guide-actions"><button id="guide-build-glance" type="button">Build Training at a Glance</button><button id="guide-build-cues" type="button">Build Graphic Cues page</button><button id="guide-build-overview" type="button">Build module overview</button></div>
+<div class="guide-actions"><button id="guide-build-glance" type="button">Build Training at a Glance</button><button id="guide-build-cues" type="button">Build Graphic Cues page</button><button id="guide-build-materials" type="button">Build Materials list</button><button id="guide-build-overview" type="button">Build module overview</button></div>
 <p id="guide-glance-note" class="hint"></p>
 <p id="guide-cues-note" class="hint"></p>
+<p id="guide-materials-note" class="hint"></p>
 <p id="guide-overview-note" class="hint"></p>
 </div>
 
@@ -422,6 +423,71 @@
 </fieldset>
 <div class="guide-actions"><button id="guide-details-save" type="submit" class="primary">Save lesson details</button></div>
 </form>
+</div>
+
+<div id="guide-sec-reference">
+<h2 id="guide-reference-heading">Reference pages</h2>
+<p class="hint">Pages that go at the end of the guide, or under a figure. Learners have them in the participant workbook too.</p>
+<details open>
+<summary>Glossary</summary>
+<form id="guide-ref-term-form">
+<label for="guide-ref-term">Term</label>
+<input id="guide-ref-term" type="text" maxlength="80">
+<label for="guide-ref-meaning">What it means</label>
+<textarea id="guide-ref-meaning" rows="2" maxlength="600"></textarea>
+<div class="guide-actions"><button id="guide-ref-term-add" type="submit">Add term</button></div>
+<p class="hint">The term goes into the Glossary page in alphabetical order. The page is started at the end of the guide the first time.</p>
+</form>
+</details>
+<details>
+<summary>References</summary>
+<form id="guide-ref-form">
+<label for="guide-ref-text">The reference, as you want it to read</label>
+<textarea id="guide-ref-text" rows="3" maxlength="600"></textarea>
+<div class="guide-actions"><button id="guide-ref-add" type="submit">Add reference</button></div>
+<p class="hint">It goes into the References page in alphabetical order.</p>
+</form>
+</details>
+<details>
+<summary>Figure caption</summary>
+<form id="guide-cap-form">
+<label for="guide-cap-text">What the figure shows</label>
+<input id="guide-cap-text" type="text" maxlength="300">
+<label for="guide-cap-source">Where it comes from (optional)</label>
+<input id="guide-cap-source" type="text" maxlength="300">
+<div class="guide-actions"><button id="guide-cap-add" type="submit">Add caption below the cursor</button></div>
+<p class="hint">Update guide numbers the captions: Figure 2.1 is the first in module 2.</p>
+</form>
+</details>
+<details>
+<summary>Pull quote</summary>
+<form id="guide-quote-form">
+<label for="guide-quote-text">The quotation</label>
+<textarea id="guide-quote-text" rows="2" maxlength="500"></textarea>
+<label for="guide-quote-by">Who said it</label>
+<input id="guide-quote-by" type="text" maxlength="120">
+<div class="guide-actions"><button id="guide-quote-add" type="submit">Add quote below the cursor</button></div>
+</form>
+</details>
+<details>
+<summary>Licence and permissions</summary>
+<form id="guide-licence-form">
+<label for="guide-licence-kind">Licence</label>
+<select id="guide-licence-kind"></select>
+<label for="guide-licence-holder">Who holds the rights</label>
+<input id="guide-licence-holder" type="text" maxlength="120">
+<label for="guide-licence-year">Year</label>
+<input id="guide-licence-year" type="text" maxlength="4" inputmode="numeric">
+<label for="guide-licence-words">Your own words (when you choose My own words)</label>
+<textarea id="guide-licence-words" rows="3" maxlength="1200"></textarea>
+<label for="guide-licence-reviewed">Content that dates was last reviewed on (optional)</label>
+<input id="guide-licence-reviewed" type="text" maxlength="60" placeholder="for example 15 November 2026">
+<label for="guide-licence-place">Where the law applies (optional)</label>
+<input id="guide-licence-place" type="text" maxlength="120" placeholder="for example the state of New York, USA">
+<div class="guide-actions"><button id="guide-licence-build" type="submit">Build the licence page</button></div>
+<p id="guide-licence-note" class="hint" role="status" aria-live="polite"></p>
+</form>
+</details>
 </div>
 
 <div id="guide-sec-align">

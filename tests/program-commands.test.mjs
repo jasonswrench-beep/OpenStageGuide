@@ -52,7 +52,7 @@ test('each menu holds the tools the author listed (2026-11-14), in that order; S
   assert.deepEqual(names('assessment'),['Assessments','Learning alignment']);
   assert.deepEqual(names('elearning'),['E-learning screens','E-learning cues']);
   assert.deepEqual(names('check'),['Review guide','Timing and agenda','Accessibility']);
-  assert.deepEqual(names('make'),['Delivery versions','Appearance','Generate materials','Participant workbook']);
+  assert.deepEqual(names('make'),['Delivery versions','Appearance','Generate materials','Reference pages','Participant workbook']);
   for(const m of PROGRAM_MENUS)assert.deepEqual(names(m.id),m.tools.map(t=>TOOL_NAMES[t]),`${m.label} is the list in guide-tools.mjs`);
   const protect=GROUPS.find(g=>g.id==='protect').tools.map(t=>TOOL_NAMES[t]);
   assert.ok(protect.every(n=>names('file').includes(n)||names('help').includes(n)),'Save and Restore a backup are in File, Help is in Help');

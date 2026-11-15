@@ -7,7 +7,7 @@ import {cell,row,table,head,PAGE} from './guide-assess-ooxml.mjs';
 import {STYLE_IDS} from './guide-styles.mjs';
 import {allCues,TIME_ICON} from './guide-cues.mjs';
 import {readGuide,lessonMinutes,kindOf,cueFromText,readBlock} from './guide-model.mjs';
-import {readForms} from './guide-forms.mjs';
+import {readForms,copiesToMake} from './guide-forms.mjs';
 import {readFacts} from './guide-facts.mjs';
 
 const alnum=s=>String(s??'').replace(/[^\p{L}\p{N}]+/gu,'').toLowerCase();
@@ -174,6 +174,52 @@ export function glancePlacement(paras){
   const end=sectionEnd(paras,gi);
   for(let i=gi+1;i<end;i++)
     if(kindOf(paras[i])==='other'&&alnum(paras[i].text)===alnum(GLANCE_PROMPT))return {withHeading:false,after:i,remove:{start:i,end:i,guard:paras[i].text},replaces:'placeholder'};
+  return {withHeading:false,after:gi,remove:null,replaces:null};
+}
+
+// ---- the materials list (kit slice K5)
+// What to have ready, grouped for the facilitator, each person, each team, each table and the room, with quantities: the materials each lesson names (its Materials
+// fact) and the copies to make from the print line of each form and the numbers of people, teams and tables the guide records. Built when the author asks, like the pages above.
+export const MATERIALS_HEADING='Materials list';
+export const MATERIALS_INTRO='What to have ready: the materials each lesson names, and the copies to make from the print line of each form.';
+export const MATERIALS_HEAD=['For','Item','How many'];
+const MATERIALS_WIDTHS=[2400,4860,2100];
+const MATERIALS_SHAPE={intro:MATERIALS_INTRO,firstHead:MATERIALS_HEAD[0]};
+const GROUP_OF={person:'Each person',team:'Each team',table:'Each table',room:'The room',fixed:'The room'};
+const GROUP_ORDER=['The facilitator','Each person','Each team','Each table','The room'];
+export function materialsRows(paras,guide,settings={}){
+  const rows=[];
+  for(const mod of guide.modules)for(const l of mod.lessons){
+    const m=readFacts(paras,l).facts.materials;
+    if(m)rows.push({group:'The facilitator',item:`${l.text||'A lesson'}: ${m}`,quantity:''});
+  }
+  for(const r of copiesToMake(paras,settings).rows){
+    const each=r.per==='fixed'?`${r.n} ${r.n===1?'copy':'copies'}`:r.per==='room'?String(r.n):`${r.n} each`;
+    const total=r.total===null?(['room','fixed'].includes(r.per)?'':'; how many in all is not known yet'):(['room','fixed'].includes(r.per)?'':` (${r.total} in all)`);
+    rows.push({group:GROUP_OF[r.per]||'The room',item:r.text,quantity:`${each}${total}`.replace(/^; /,'')});
+  }
+  return rows.map((r,i)=>({r,i})).sort((a,b)=>GROUP_ORDER.indexOf(a.r.group)-GROUP_ORDER.indexOf(b.r.group)||a.i-b.i).map(x=>x.r);
+}
+const materialsWords=rows=>[MATERIALS_INTRO,...MATERIALS_HEAD,...rows.flatMap(r=>[r.group,r.item,r.quantity])];
+export function materialsBody(rows,{withHeading=false}={}){
+  if(!rows.length)throw new Error('There is nothing to list yet. Give a lesson its materials in Lesson details, or give a form a print line.');
+  const [w0,w1,w2]=MATERIALS_WIDTHS;
+  const trs=[
+    row(MATERIALS_HEAD.map((t,i)=>head(t,MATERIALS_WIDTHS[i],false)),{header:true}),
+    ...rows.map(r=>row([cell(w0,para(STYLE_IDS.tableCell,run(r.group))),cell(w1,para(STYLE_IDS.tableCell,run(r.item))),cell(w2,para(STYLE_IDS.tableCell,r.quantity?run(r.quantity):''))]))
+  ];
+  return (withHeading?heading(2,MATERIALS_HEADING):'')+para(null,run(MATERIALS_INTRO))
+    +table(MATERIALS_WIDTHS,trs,{caption:'Materials list',description:'What to have ready, grouped for the facilitator, each person, each team, each table and the room, with how many of each.'});
+}
+export function materialsState(paras,settings={}){
+  const gi=headingIndex(paras,MATERIALS_HEADING),built=gi>=0?findBuilt(paras,gi,MATERIALS_SHAPE):null,guide=readGuide(paras);
+  return {built:!!built,stale:built?!sameWords(paras,built,materialsWords(materialsRows(paras,guide,settings))):false};
+}
+export function materialsPlacement(paras){
+  const gi=headingIndex(paras,MATERIALS_HEADING);
+  if(gi<0)return {withHeading:true,after:before(paras,[]),remove:null,replaces:null};
+  const built=findBuilt(paras,gi,MATERIALS_SHAPE);
+  if(built)return {withHeading:false,after:built.end,remove:{start:built.start,end:built.end,guard:paras[built.start].text},replaces:'page'};
   return {withHeading:false,after:gi,remove:null,replaces:null};
 }
 

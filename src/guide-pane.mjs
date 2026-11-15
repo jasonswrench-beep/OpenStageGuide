@@ -4,10 +4,11 @@
 import {allCues,CUE_GROUPS,AUDIENCES,ACTIVITY_PARTS,cueById,iconUrl,setCustomCues,customCueNames,checkCustomCueNames,CUSTOM_CUE_SLOTS} from './guide-cues.mjs';
 import {moduleHeading,lessonHeading,timeBlock,cueBlock,startGuide as startGuideBody,sampleGuide,acknowledgementsBody,perspectiveBody,appendixBody} from './guide-ooxml.mjs';
 import {cueFromText,updatePlan,guideIssues,outline,lessonMinutes,describeAt,blockAnchor,blockSpan,kindOf,transitionAnchor,lessonPlacement,modulePlacement,contentsState,readGuide,standardPageState,missingStandardPages,appendixPlacement,tidyTarget,tidyMove,tidyDeletion} from './guide-model.mjs';
-import {glanceBody,glanceState,glancePlacement,glanceRows,lessonForms,lessonMethods,cuesBody,cuesState,cuesPlacement,cuesUsed,moduleAt,overviewFacts,overviewBody,overviewState,overviewPlacement,overviewsSummary} from './guide-pages.mjs';
+import {glanceBody,glanceState,glancePlacement,glanceRows,lessonForms,lessonMethods,materialsRows,materialsBody,materialsState,materialsPlacement,cuesBody,cuesState,cuesPlacement,cuesUsed,moduleAt,overviewFacts,overviewBody,overviewState,overviewPlacement,overviewsSummary} from './guide-pages.mjs';
 import {checkParts} from './guide-check.mjs';
 import {citationControl} from './guide-forms-ooxml.mjs';
 import {readFacts,checkFacts,factsBlock,hoursWords,METHODS,MODES} from './guide-facts.mjs';
+import {planTerm,planReference,captionLine,quoteBlock,licenceBody,findLicence,LICENCES} from './guide-reference.mjs';
 import {readSettings as readFormSettings,writeSettings as writeFormSettings,readForms,copiesToMake,resolveScheme,printText} from './guide-forms.mjs';
 import {itemPlacement,sectionPlacement,itemSpan,itemTarget} from './guide-model.mjs';
 import {ITEM_TYPES,itemTypeById,LEVELS,levelById,parsePairs,parseLines,parseLabels,parseCriteria,parseRubricRows,DEFAULT_RUBRIC_LEVELS} from './guide-items.mjs';
@@ -147,7 +148,7 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
     $('guide-sec-selected').hidden=guide&&!t.selected;
     // A piece whose own heading says what the strip above already says (Add a module or lesson, E-Learning screens, Update from slides)
     // leaves the saying to the strip, so a screen reader does not read the same heading twice.
-    for(const id of ['guide-module-heading','guide-lesson-heading','guide-el-heading','guide-upd-heading','guide-lib-heading','guide-agenda-heading','guide-forms-heading','guide-details-heading','guide-align-heading','guide-ver-heading','guide-bk-heading','guide-rs-heading']){
+    for(const id of ['guide-module-heading','guide-lesson-heading','guide-el-heading','guide-upd-heading','guide-lib-heading','guide-agenda-heading','guide-forms-heading','guide-details-heading','guide-reference-heading','guide-align-heading','guide-ver-heading','guide-bk-heading','guide-rs-heading']){
       const heading=$(id);
       if(heading)heading.hidden=!!t&&clean(heading.textContent).toLowerCase()===t.title.toLowerCase();
     }
@@ -288,12 +289,20 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
   }
   // Whether each generated Getting Started page is in the document and still says what the guide says now. Nothing rebuilds
   // them by itself, so this is the only sign that one has fallen out of date.
+  async function buildMaterialsPage(){
+    const list=await adapter.paragraphs(),guide=readGuide(list),rows=materialsRows(list,guide,formSettings),place=materialsPlacement(list);
+    await adapter.insert(()=>materialsBody(rows,{withHeading:place.withHeading}),pageInsert(place));
+    await keepOpen();
+    await load();
+    status(`The materials list is built with ${plural(rows.length,'line')}. ${pageHow(place,'Materials list')}${tidy()} ${UNDO}`);
+  }
   function drawPages(){
     // A page that cannot be built yet says what it is waiting for, here beside its button, so nothing depends on a message elsewhere.
     const note=(name,s,waiting='')=>s.built?(s.stale?`${name} is out of date. Choose its button to build it again.`:`${name} matches your guide.`):`${name} has not been built yet.${waiting}`;
     const lessons=plan.guide.modules.reduce((n,m)=>n+m.lessons.length,0);
     $('guide-glance-note').textContent=note('Training at a Glance',glanceState(paras),lessons?'':' It needs a module and a lesson: add them first.');
     $('guide-cues-note').textContent=note('The Graphic Cues page',cuesState(paras),cuesUsed(paras).length?'':' It needs some blocks: add them first.');
+    $('guide-materials-note').textContent=note('The Materials list',materialsState(paras,formSettings),materialsRows(paras,plan.guide,formSettings).length?'':' It needs a lesson with materials, or a form with a print line.');
     // The overview belongs to one module, the one the cursor is in; the count says how the rest stand.
     const mod=moduleAt(paras,at),all=overviewsSummary(paras);
     const here=mod?note(`The overview of ${mod.text||'this module'}`,overviewState(paras,mod)):'Put your cursor in a module to build its overview.';
@@ -783,6 +792,54 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
     if(w&&w.parent&&w.parent!==w){w.parent.postMessage({type:'osg-run',command:'pack',scope},w.location.origin);status('The handout pack is being made.');return;}
     status('The handout pack is made in the window of the program.');
   }
+  // -- reference pages: glossary, references, captions, pull quotes and the licence page (guide-reference.mjs)
+  function drawReference(){
+    const sel=$('guide-licence-kind');
+    if(!sel.children.length){
+      sel.replaceChildren(...LICENCES.map(l=>{const o=doc.createElement('option');o.value=l.id;o.textContent=l.label;return o;}));
+      $('guide-licence-year').value=String(new Date().getFullYear());
+    }
+    const found=findLicence(paras);
+    $('guide-licence-note').textContent=found?'The licence page is in the guide. Building it again replaces it.':'The licence page is not built yet.';
+  }
+  async function putPage(after,body,remove){
+    await adapter.insert(()=>body,{where:'after',after,select:'last',...(remove?{remove}:{})});
+    await keepOpen();
+    await load();
+  }
+  async function addTerm(){
+    const list=await adapter.paragraphs(),plan=planTerm(list,$('guide-ref-term').value,$('guide-ref-meaning').value);
+    await putPage(plan.after,plan.body);
+    $('guide-ref-term').value='';$('guide-ref-meaning').value='';
+    status(`"${plan.term}" is in the glossary${plan.created?', which was started at the end of the guide':''}.${tidy()} ${UNDO}`);
+  }
+  async function addReference(){
+    const list=await adapter.paragraphs(),plan=planReference(list,$('guide-ref-text').value);
+    await putPage(plan.after,plan.body);
+    $('guide-ref-text').value='';
+    status(`The reference is in the list${plan.created?', which was started at the end of the guide':''}.${tidy()} ${UNDO}`);
+  }
+  async function addCaption(){
+    const body=captionLine({caption:$('guide-cap-text').value,source:$('guide-cap-source').value});
+    const list=await adapter.paragraphs(),here=await adapter.cursorIndex();
+    await putPage(blockAnchor(list,here),body);
+    $('guide-cap-text').value='';$('guide-cap-source').value='';
+    status(`The caption is added below your cursor. Choose Update guide to number it.${tidy()} ${UNDO}`);
+  }
+  async function addQuote(){
+    const body=quoteBlock({quote:$('guide-quote-text').value,by:$('guide-quote-by').value});
+    const list=await adapter.paragraphs(),here=await adapter.cursorIndex();
+    await putPage(blockAnchor(list,here),body);
+    $('guide-quote-text').value='';$('guide-quote-by').value='';
+    status(`The quote is added below your cursor.${tidy()} ${UNDO}`);
+  }
+  async function buildLicence(){
+    const body=licenceBody({licence:$('guide-licence-kind').value,holder:$('guide-licence-holder').value,year:$('guide-licence-year').value,words:$('guide-licence-words').value,reviewed:$('guide-licence-reviewed').value,place:$('guide-licence-place').value});
+    const list=await adapter.paragraphs(),found=findLicence(list);
+    await putPage(found?found.end:list.length-1,body,found?{start:found.start,end:found.end,guard:list[found.start].text}:null);
+    drawReference();
+    status(`The licence page is ${found?'built again':'built at the end of the guide'}.${tidy()} ${UNDO}`);
+  }
   // -- lesson details: the facts under a lesson's time line (guide-facts.mjs), for the lesson the cursor is in
   let detailsFor='';
   // The lesson the cursor is in: the last lesson heading at or above it, unless a module, an assessment or another heading comes between.
@@ -998,6 +1055,7 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
       if(tool==='timingAndAgenda')drawAgenda();
       else if(tool==='forms')drawForms();
       else if(tool==='lessonDetails')drawDetails();
+      else if(tool==='referencePages')drawReference();
       else if(tool==='learningAlignment')drawAlignment();
       else if(tool==='deliveryVersions'){await readVersionsNow();drawVersions();}
     }catch{/* the panel stays as it was */}
@@ -2100,6 +2158,7 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
   $('guide-agenda-download').onclick=()=>act(makeAgenda);
   $('guide-forms-new').onclick=()=>newFormFromTool();
   $('guide-details-form').onsubmit=e=>{e?.preventDefault?.();return act(saveDetails);};
+  for(const [id,fn] of [['guide-ref-term-form',addTerm],['guide-ref-form',addReference],['guide-cap-form',addCaption],['guide-quote-form',addQuote],['guide-licence-form',buildLicence]])$(id).onsubmit=e=>{e?.preventDefault?.();return act(fn);};
   $('guide-forms-pack').onclick=()=>packFromTool();
   $('guide-forms-scheme').onchange=()=>act(changeScheme);
   for(const id of ['guide-forms-people','guide-forms-teams','guide-forms-tables'])$(id).onchange=()=>act(changeGroup);
@@ -2136,6 +2195,7 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
   $('guide-retry').onclick=()=>act(async()=>{await load();status('');});
   $('guide-update').onclick=()=>act(updateGuide);
   // The buttons are disabled while an action runs, so focus returns to the one pressed only once it has finished.
+  $('guide-build-materials').onclick=async()=>{await act(buildMaterialsPage);focus('guide-build-materials');};
   $('guide-build-glance').onclick=async()=>{await act(buildGlancePage);focus('guide-build-glance');};
   $('guide-build-cues').onclick=async()=>{await act(buildCuesPage);focus('guide-build-cues');};
   $('guide-build-overview').onclick=async()=>{await act(buildOverviewPage);focus('guide-build-overview');};

@@ -470,7 +470,7 @@ export function createWordAdapter({Word:WordApi,Office:OfficeApi,fetchFn,DOMPars
         const quote=t=>{const x=String(t??'').replace(/[\r\n\u0007\ufffc]+/g,' ').replace(/^[^A-Za-z0-9]+/,'').replace(/\s+/g,' ').trim();return `"${x.length>50?`${x.slice(0,50)}...`:x}"`;};
         const byHand=e=>{
           const now=quote(ps.items[e.index]?.text);
-          if(e.kind==='heading')return `change the heading ${now} to read "${e.text}"`;
+          if(e.kind==='heading'||e.kind==='caption')return `change ${e.kind==='caption'?'the caption':'the heading'} ${now} to read "${e.text}"`;
           if(e.kind==='question')return `change "${e.from}" to "${e.to}" in the question ${now}`;
           return `change the time line ${now} to read "${timeText(e.minutes,e.cumulative)}" (select the words after the small picture and type over them)`;
         };
@@ -478,7 +478,7 @@ export function createWordAdapter({Word:WordApi,Office:OfficeApi,fetchFn,DOMPars
           const p=ps.items[e.index];
           if(!p)continue;
           try{
-            if(e.kind==='heading'){p.insertText(e.text,'Replace');await c.sync();continue;}
+            if(e.kind==='heading'||e.kind==='caption'){p.insertText(e.text,'Replace');await c.sync();continue;}
             // A question's number is replaced where it stands, so the rest of the question keeps its formatting.
             if(e.kind==='question'){const hit=p.search(e.from,{matchCase:true});hit.load('items');await c.sync();hit.items[0]?.insertText(e.to,'Replace');await c.sync();continue;}
             // The time block's icon is a picture at the start of the paragraph. Word refuses to give the range of an inline picture
@@ -829,7 +829,7 @@ export function createDemoAdapter({DOMParserClass=globalThis.DOMParser,Serialize
       for(const e of edits){
         const p=paras[e.index];if(!p)continue;
         if(e.kind==='question'){p.text=p.text.replace(e.from,e.to);p.xml=p.xml.replace(e.from,e.to);continue;}
-        if(e.kind==='form'){p.xml=retext(p.xml,e.text);refresh(p);continue;}
+        if(e.kind==='form'||e.kind==='caption'){p.xml=retext(p.xml,e.text);refresh(p);continue;}
         if(e.kind==='citation'){p.xml=retextCitation(p.xml,e.id,e.nth,e.to);refresh(p);continue;}
         const text=e.kind==='heading'?e.text:` ${timeText(e.minutes,e.cumulative)}`;
         p.xml=retext(p.xml,text);p.text=e.kind==='heading'?e.text:text;
