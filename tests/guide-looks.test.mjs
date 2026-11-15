@@ -227,7 +227,7 @@ test('what Word would not change is named, and the rest is reported as done',asy
   a.adapter.refuse(()=>[{style:'OSG Facilitator Notes',what:'left border',why:'x'},{style:'OSG Facilitator Notes',what:'shading',why:'x'},{style:'Heading 1',what:'font',why:'x'}]);
   await click(a,'guide-look-apply');
   assert.equal(a.err(),'');
-  assert.match(a.n('guide-status').textContent,/Word would not change OSG Facilitator Notes \(left border, shading\); Heading 1 \(font\), and the rest was changed\. To finish by hand, open the Styles pane/);
+  assert.match(a.n('guide-status').textContent,/OSG Facilitator Notes \(left border, shading\); Heading 1 \(font\) could not be changed, and the rest was changed\. To finish by hand, change those styles in the Styles panel/);
 });
 
 test('a built-in style Word cannot find is named, since the look would be incomplete without it',async()=>{

@@ -9,7 +9,8 @@ import { createProjectAdapter } from "../../src/guide-project-adapter.mjs";
 import { webProjectStore } from "../../src/guide-project-web.mjs";
 import { serveAdapter } from "../../src/guide-remote.mjs";
 import { createDemoAdapter, loadIcons } from "../../src/guide-word.mjs";
-import { aboutDialog, askName, chooseGuide, chooseOne } from "./dialogs.js";
+import { aboutDialog, askFields, askName, chooseGuide, chooseOne } from "./dialogs.js";
+import { parseProject, serializeProject } from "../../src/guide-project.mjs";
 import { checkForUpdates } from "./updates.js";
 import { get, post } from "./api.js";
 import { ZOOM_KEY, cleanZoom, nextZoom, zoomWords } from "../../src/zoom.mjs";
@@ -19,7 +20,7 @@ import { askParagraphFormat, askTextFormat } from "./format.js";
 import { openStylesPanel } from "./styles-panel.js";
 import { INSERTS, newForm } from "./forms.js";
 import { drawWelcome } from "./welcome.js";
-import { importStylesFromWord, saveWordFile } from "./word-files.js";
+import { downloadFile, importStylesFromWord, safeFileName, saveHandoutPack, saveWordFile } from "./word-files.js";
 
 const doc = document;
 const main = /** @type {HTMLElement} */ (doc.getElementById("main"));
@@ -119,6 +120,61 @@ async function saveWord(template) {
   await saveWordFile(doc, guideDoc, { name: (state.current ?? "guide").replace(/\.guide-project\.json$/i, ""), template, say });
 }
 
+/** A backup of the guide: a copy of its project file (words, pictures, styles, settings) saved wherever the author chooses. */
+async function saveBackup() {
+  if (!guideDoc) return;
+  try {
+    const text = serializeProject(guideDoc.exportState());
+    const name = (state.current ?? "guide").replace(/\.guide-project\.json$/i, "");
+    const file = `${safeFileName(name)} backup ${new Date().toISOString().slice(0, 10)}.guide-project.json`;
+    downloadFile(doc, new TextEncoder().encode(text), file, "application/json");
+    say(`${file} is a copy of the guide as it is now, with its pictures and settings. Keep one somewhere other than this computer's drive too, such as OneDrive or a USB stick. Restore a backup opens it as a new guide.`);
+  } catch (e) {
+    say(/** @type {Error} */ (e).message, true);
+  }
+}
+
+/** A saved backup read and opened as a new guide of its own, so the guide that is open (or any other) is not changed. */
+async function restoreBackup() {
+  if (!(await settle())) return;
+  try {
+    const read = await askFields(doc, {
+      title: "Restore a backup",
+      intro: "Choose a backup made with Save a backup. It opens as a new guide, so the guide you have open is not changed.",
+      confirm: "Read the backup",
+      fields: [{ id: "file", label: "Backup file (.guide-project.json)", type: "file", accept: ".json,.guide-project.json" }],
+      finish: async (values) => {
+        if (!(values.file instanceof File)) throw new Error("Choose a backup file first.");
+        return parseProject(await values.file.text());
+      },
+    });
+    if (!read) return;
+    const name = await askName(doc, {
+      title: "Name of the restored guide",
+      label: "Name of the guide",
+      confirm: "Restore",
+      value: `${read.guide.title || "Restored guide"} (restored)`.slice(0, 80),
+      hint: "The backup opens as a new guide with this name. The guide you have open is not changed.",
+      accept: (typed) => post("new", { name: typed }),
+    });
+    if (!name) return;
+    // The new guide is empty when it opens; the backup is put into it and saved, and the guide is opened again from the file.
+    await show();
+    guideDoc.importState(read.guide);
+    await guideDoc.flush();
+    await show();
+    say(`The backup is open as a new guide, "${name}".`);
+  } catch (e) {
+    say(/** @type {Error} */ (e).message, true);
+  }
+}
+
+/** The forms for everyone from a lesson, a module or the whole guide, as one Word file. @param {"lesson" | "module" | "guide"} scope */
+async function savePack(scope) {
+  if (!guideDoc) return;
+  await saveHandoutPack(doc, guideDoc, { scope, name: (state.current ?? "guide").replace(/\.guide-project\.json$/i, ""), say });
+}
+
 /** Take the styles of a Word file into the guide. */
 async function importStyles() {
   if (!guideDoc) return;
@@ -132,6 +188,8 @@ async function importStyles() {
 const frame = startFrame(doc, {
   insert: (name) => insertCommand(name),
   saveWord: () => saveWord(false),
+  saveBackup: () => saveBackup(),
+  restoreBackup: () => restoreBackup(),
   saveTemplate: () => saveWord(true),
   importStyles: () => importStyles(),
   zoom,
@@ -371,6 +429,16 @@ window.addEventListener("message", (e) => {
   } else if (data.type === "osg-run" && data.command === "form") {
     // The Forms tool's New form button: the same dialog as Insert > Form.
     void insertCommand("form");
+  } else if (data.type === "osg-run" && data.command === "backup") {
+    void saveBackup();
+  } else if (data.type === "osg-run" && data.command === "restore") {
+    void restoreBackup();
+  } else if (data.type === "osg-run" && data.command === "pack" && ["lesson", "module", "guide"].includes(data.scope)) {
+    // The Forms tool's Make handout pack button.
+    void savePack(/** @type {"lesson" | "module" | "guide"} */ (data.scope));
+  } else if (data.type === "osg-undo" && (data.action === "undo" || data.action === "redo")) {
+    // Ctrl+Z or Ctrl+Y pressed in the tools outside a box that is being typed in: the guide's own Undo and Redo, as the Edit menu runs them.
+    void editor?.command(data.action);
   } else if (data.type === "osg-zoom" && ["more", "less", "actual"].includes(data.action)) {
     if (zoom.can()) void zoom[/** @type {"more" | "less" | "actual"} */ (data.action)]();
   } else if (data.type === "osg-key" && typeof data.key === "string" && ["k", "K", "/", "F10"].includes(data.key)) {

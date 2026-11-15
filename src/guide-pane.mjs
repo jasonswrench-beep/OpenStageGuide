@@ -4,7 +4,7 @@
 import {allCues,CUE_GROUPS,AUDIENCES,ACTIVITY_PARTS,cueById,iconUrl,setCustomCues,customCueNames,checkCustomCueNames,CUSTOM_CUE_SLOTS} from './guide-cues.mjs';
 import {moduleHeading,lessonHeading,timeBlock,cueBlock,startGuide as startGuideBody,sampleGuide,acknowledgementsBody,perspectiveBody,appendixBody} from './guide-ooxml.mjs';
 import {cueFromText,updatePlan,guideIssues,outline,lessonMinutes,describeAt,blockAnchor,blockSpan,kindOf,transitionAnchor,lessonPlacement,modulePlacement,contentsState,readGuide,standardPageState,missingStandardPages,appendixPlacement,tidyTarget,tidyMove,tidyDeletion} from './guide-model.mjs';
-import {glanceBody,glanceState,glancePlacement,glanceRows,cuesBody,cuesState,cuesPlacement,cuesUsed,moduleAt,overviewFacts,overviewBody,overviewState,overviewPlacement,overviewsSummary} from './guide-pages.mjs';
+import {glanceBody,glanceState,glancePlacement,glanceRows,lessonForms,cuesBody,cuesState,cuesPlacement,cuesUsed,moduleAt,overviewFacts,overviewBody,overviewState,overviewPlacement,overviewsSummary} from './guide-pages.mjs';
 import {checkParts} from './guide-check.mjs';
 import {citationControl} from './guide-forms-ooxml.mjs';
 import {readSettings as readFormSettings,writeSettings as writeFormSettings,readForms,copiesToMake,resolveScheme,printText} from './guide-forms.mjs';
@@ -22,8 +22,6 @@ import {GUIDE_LOOKS,cleanLook,parseLook,resolveGuideLook,lookSpecs,headerPackage
 import {screensOf,narrationStats,elearningIssues,screenBlocks,scriptText,scriptFiles,scriptFileName,WORDS_PER_MINUTE} from './guide-elearning.mjs';
 import {authorProject,authorZipName} from './guide-author.mjs';
 import {toolFor,GUIDE_SECTIONS} from './guide-tools.mjs';
-import {backupFileName,inspectBackup,copyProblem,backupFacts,sizeText} from './guide-backup.mjs';
-import {readCheckpoint} from './checkpoint.mjs';
 import {guideAgenda,agendaSummary,agendaFiles,agendaFileName,START_TIME} from './guide-agenda.mjs';
 import {alignment,alignmentSummary} from './guide-alignment.mjs';
 import {readVersions,writeVersions,lessonList,lessonKey,newVersion,toggleLesson,moveLesson,versionAgenda,versionSummary,parseTarget} from './guide-versions.mjs';
@@ -31,7 +29,7 @@ import {STARTER_ACTIVITIES,STORE_KEY as LIBRARY_KEY,blockFromEntry,entryFromBloc
 import {AGENDA_START_KEY,LOOK_KEY} from './program-settings.mjs';
 import {fingerprint,notesPrint,readMemory,writeMemory,recordFor,remember,slideBlocksIn,labelOf,planSlideUpdate,planSummary,operations,entriesAfter} from './slides-sync.mjs';
 
-const BUSY_IDS=['guide-leave-block','guide-bk-save','guide-bk-file','guide-bk-open','guide-upd-choose','guide-upd-which','guide-upd-all','guide-upd-none','guide-upd-go','guide-help-sample','guide-tab-guide','guide-tab-assess','guide-tab-workbook','guide-workbook-go','guide-sec-level-one','guide-sec-level-two','guide-sec-level-three','guide-item-go','guide-paste-go','guide-bank-go','guide-item-cancel','guide-item-start-two','guide-assess-edit','guide-retry','guide-start-go','guide-sample','guide-add-module','guide-add-lesson','guide-lib-save','guide-agenda-refresh','guide-agenda-download','guide-align-refresh','guide-ver-new','guide-ver-make','guide-block-go','guide-block-cancel','guide-update','guide-build-glance','guide-build-cues','guide-build-overview','guide-open-review','guide-refresh','guide-review-run','guide-review-back','guide-review-pdf','guide-edit-selected','guide-edit-save','guide-edit-cancel','guide-move-up','guide-move-down','guide-delete','guide-delete-yes','guide-delete-no','guide-add-standard','guide-add-appendix','guide-own-save','guide-pic-choose','guide-slides-choose','guide-slides-all','guide-slides-none','guide-slides-go','guide-look-apply','guide-el-add','guide-el-script','guide-el-text','guide-el-author'];
+const BUSY_IDS=['guide-leave-block','guide-bk-save','guide-bk-open','guide-upd-choose','guide-upd-which','guide-upd-all','guide-upd-none','guide-upd-go','guide-help-sample','guide-tab-guide','guide-tab-assess','guide-tab-workbook','guide-workbook-go','guide-sec-level-one','guide-sec-level-two','guide-sec-level-three','guide-item-go','guide-paste-go','guide-bank-go','guide-item-cancel','guide-item-start-two','guide-assess-edit','guide-retry','guide-start-go','guide-sample','guide-add-module','guide-add-lesson','guide-lib-save','guide-agenda-refresh','guide-agenda-download','guide-align-refresh','guide-ver-new','guide-ver-make','guide-block-go','guide-block-cancel','guide-update','guide-build-glance','guide-build-cues','guide-build-overview','guide-open-review','guide-refresh','guide-review-run','guide-review-back','guide-review-pdf','guide-edit-selected','guide-edit-save','guide-edit-cancel','guide-move-up','guide-move-down','guide-delete','guide-delete-yes','guide-delete-no','guide-add-standard','guide-add-appendix','guide-own-save','guide-pic-choose','guide-slides-choose','guide-slides-all','guide-slides-none','guide-slides-go','guide-look-apply','guide-el-add','guide-el-script','guide-el-text','guide-el-author'];
 // What only a person can check. Review guide has the first; Accessibility (the document's own checks) has the other two.
 const CHECK_YOURSELF=[
   'Does each cue read sensibly when spoken aloud?'
@@ -42,9 +40,9 @@ const CHECK_YOURSELF_ACCESSIBILITY=[
 ];
 // A file window waits for the author, who may take minutes to find a file; its own limit (file-pick.mjs) is ten.
 const SLOW_TIMEOUT_MS=15*60*1000;
-const UNDO='To take it back, click in your document and press Ctrl+Z.';
-// A move or a delete is done in several steps in Word (the change, the renumbering, the contents table), so one Ctrl+Z is not enough: five were needed for a move.
-const UNDO_MANY='To take it back, click in your document and press Ctrl+Z several times (a move or a delete is done in several steps) until it is as it was.';
+const UNDO='To take it back, choose Edit, then Undo.';
+// A move or a delete is done in several steps (the change, the renumbering, the contents table), so one Undo may not be enough.
+const UNDO_MANY='To take it back, choose Edit, then Undo, several times (a move or a delete is done in several steps) until it is as it was.';
 const SAMPLE_TITLE='Sample guide: Handling workplace conflict';
 const parseMinutes=(raw,label='Minutes')=>{
   const t=String(raw??'').trim();
@@ -637,7 +635,7 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
     await adapter.insert(ctx=>cueBlock(block,ctx),{where:'after',after:anchor,select:'last'});
     await keepOpen();
     await load();
-    status(`${e.title} was added after the block your cursor was in. Change its words in Word, or put your cursor in it and choose Edit.${tidy()} ${UNDO}`);
+    status(`${e.title} was added after the block your cursor was in. Change its words on the page, or put your cursor in it and choose Edit.${tidy()} ${UNDO}`);
   }
   async function saveToLibrary(){
     const list=await adapter.paragraphs(),here=await adapter.cursorIndex(),d=describeAt(list,here);
@@ -757,6 +755,12 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
     await saveFormSettings({...formSettings,scheme:$('guide-forms-scheme').value});
     status('How forms are numbered is changed. Choose Update guide to renumber the forms and every citation of them.');
   }
+  // The handout pack is made in the program's own page (a Word file is given to the author there), which reads the cursor and the guide itself.
+  function packFromTool(){
+    const scope=$('guide-forms-pack-scope').value,w=doc.defaultView;
+    if(w&&w.parent&&w.parent!==w){w.parent.postMessage({type:'osg-run',command:'pack',scope},w.location.origin);status('The handout pack is being made.');return;}
+    status('The handout pack is made in the window of the program.');
+  }
   // A new form is asked for in the program's own page (its Insert > Form dialog), which puts it where the author's cursor is.
   function newFormFromTool(){
     const w=doc.defaultView;
@@ -766,7 +770,7 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
   async function makeAgenda(){
     const list=await adapter.paragraphs(),start=$('guide-agenda-start').value||'09:00',a=guideAgenda(list,start);
     if(!a.lessons)throw new Error('There are no lessons to put in an agenda yet. Add a module and a lesson, then give them minutes.');
-    if(JSON.stringify([start,a.rows,a.notes])!==agendaShown){paras=list;drawAgenda();throw new Error('Your guide or the start time changed since the agenda was shown. It is shown again above. Check it, then choose Make the agenda in Word.');}
+    if(JSON.stringify([start,a.rows,a.notes])!==agendaShown){paras=list;drawAgenda();throw new Error('Your guide or the start time changed since the agenda was shown. It is shown again above. Check it, then choose Make the agenda as a Word file.');}
     await openAgendaFile({...a,title:String(await adapter.title()).trim()||a.title});
   }
   // -- learning alignment
@@ -982,56 +986,14 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
     status(`${plural(slides.length,'slide')} inserted${without?`, ${without===slides.length&&!slidePics.length?'with no picture':`${without} of them without a picture`}${why}`:''}.${tidy()} Your cursor is in the last slide. To type below the slides, choose Write below this block. ${UNDO}`);
   }
 
-  // ---- backups: a complete copy of the document saved as an ordinary .docx, and a saved backup opened again (guide-backup.mjs)
-  let chosenBackup=null;
-  const backupZip=()=>{
-    const ZipClass=Zip||globalThis.JSZip;
-    if(!ZipClass)throw new Error('The pane could not load what it needs to work with a backup. Close it, open it again from the ribbon, then try again.');
-    return ZipClass;
-  };
-  const parserOf=()=>xml.DOMParserClass||globalThis.DOMParser;
-  async function saveBackup(){
-    status('Making a copy of the document...');
-    await load();
-    const modules=plan.guide.modules.filter(m=>m.index>=0);
-    const live={isGuide:!!plan.guide.isGuide,modules:modules.length,lessons:modules.reduce((n,m)=>n+m.lessons.length,0)};
-    const bytes=await adapter.captureFile();
-    const info=await inspectBackup(bytes,backupZip(),{DOMParserClass:parserOf()});
-    const bad=copyProblem(info,live);
-    if(bad)throw new Error(bad);
-    const name=backupFileName(plan.guide.title||info.title);
-    adapter.offerDownload(toBase64(bytes),name);
-    status(`Backup made: "${name}" (${sizeText(info.bytes)}). It was checked: it opens as a Word file and holds ${plural(info.modules,'module')}, ${plural(info.lessons,'lesson')}, ${plural(info.slides,'slide')} and ${plural(info.paragraphs,'paragraph')}, the same guide as the document. Look in your Downloads folder, or where Word asked you to save it. Keep another copy somewhere other than this computer's drive. To use it later, choose Restore Backup.`);
+  // ---- backups: a copy of the guide's project file, made and read in the program's own page (program/ui/app.js), which these buttons ask
+  function askProgram(command,done,alone){
+    const w=doc.defaultView;
+    if(w&&w.parent&&w.parent!==w){w.parent.postMessage({type:'osg-run',command},w.location.origin);status(done);return;}
+    status(alone);
   }
-  function forgetBackup(){
-    chosenBackup=null;
-    $('guide-bk-found').hidden=true;
-    $('guide-bk-facts').replaceChildren();
-  }
-  // A .docx is read as it is. A .zip is the older backup: its package is checked as it always was and the Word copy is taken out of it.
-  async function chooseBackup(){
-    forgetBackup();
-    const file=$('guide-bk-file').files?.[0];
-    if(!file)return;
-    status(`Reading ${file.name}...`);
-    let bytes=new Uint8Array(await file.arrayBuffer()),from='',name=file.name;
-    if(/\.zip$/i.test(file.name)){
-      bytes=(await readCheckpoint(bytes,backupZip())).master;
-      from=' (an older backup package: the Word copy was taken out of it and checked)';
-      name=`${file.name.replace(/\.zip$/i,'')} - Restored.docx`;
-    }
-    const info=await inspectBackup(bytes,backupZip(),{DOMParserClass:parserOf()});
-    chosenBackup={bytes,name,info};
-    $('guide-bk-facts').replaceChildren(...backupFacts(info).map(t=>{const li=doc.createElement('li');li.textContent=t;return li;}));
-    $('guide-bk-found').hidden=false;
-    status(`${file.name} is a readable backup${from}. Check that this is the one you want, then choose Open this backup in a new window.`);
-  }
-  async function openBackup(){
-    if(!chosenBackup)throw new Error('Choose a backup file first.');
-    const {bytes,name}=chosenBackup,base64=toBase64(bytes);
-    try{await adapter.openDocument(base64,name);status('The backup is open in a new Word window. The document you were working in has not changed. To go back to the backup, save that copy over your guide (File, Save As), or keep working in it.');}
-    catch{adapter.offerDownload(base64,name);status(`Word could not open it for you, so it was downloaded as "${name}". Open it from your Downloads folder.`);}
-  }
+  const saveBackup=()=>askProgram('backup','The backup is being made.','A backup is made in the window of the program: choose File, then Save a backup.');
+  const openBackup=()=>askProgram('restore','Choose the backup in the window that opens.','A backup is restored in the window of the program: choose File, then Restore a backup.');
 
   // ---- update from slides: the changed presentation compared with the slides already in the guide (slides-sync.mjs)
   let upd=null;
@@ -1139,7 +1101,7 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
     }catch(e){
       upd=null;drawUpdate();
       await load().catch(()=>{});
-      throw new Error(`${done} of ${plural(ops.length,'change')} were made before this stopped: ${(e&&e.message)||e} To take back what was done, click in your document and press Ctrl+Z several times.`);
+      throw new Error(`${done} of ${plural(ops.length,'change')} were made before this stopped: ${(e&&e.message)||e} To take back what was done, choose Edit, then Undo, several times.`);
     }
     let kept='';
     try{
@@ -1289,12 +1251,12 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
     if(styles.refused.length){
       const byStyle=new Map();
       for(const f of styles.refused)byStyle.set(f.style,[...(byStyle.get(f.style)||[]),f.what]);
-      parts.push(`Word would not change ${[...byStyle].map(([style,what])=>`${style} (${what.join(', ')})`).join('; ')}, and the rest was changed. To finish by hand, open the Styles pane in Word (Home, the small arrow beside Styles) and change those styles' settings.`);
+      parts.push(`${[...byStyle].map(([style,what])=>`${style} (${what.join(', ')})`).join('; ')} could not be changed, and the rest was changed. To finish by hand, change those styles in the Styles panel (Format menu).`);
     }
     // Word's own styles (body text, title, headings) are looked up by their English names; if one is not found, the look is incomplete.
     const missing=styles.skipped.filter(n=>['Normal','Title','Heading 1','Heading 2'].includes(n));
     if(missing.length)parts.push(`Word did not find its own ${missing.join(', ')} style${missing.length===1?'':'s'}, so ${missing.length===1?'it was':'they were'} not changed. Change ${missing.length===1?'it':'them'} by hand in the Styles pane.`);
-    for(const f of hf.failed)parts.push(`The ${f.what} could not be set. Add it in Word: Insert > ${f.what==='header'?'Header':'Footer'}.`);
+    for(const f of hf.failed)parts.push(`The ${f.what} could not be set. Choose Apply again, or try another look.`);
     return parts.join(' ');
   }
   async function applyLookNow(){
@@ -1363,7 +1325,7 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
     const d=tidyDeletion(list,target);
     pendingDelete={start:d.span.start,text:target.text};
     const inside=target.kind==='module'?`the module with its ${plural(d.lessons,'lesson')}, its Transition block and anything you typed in it`:'the lesson with its time block, its blocks and anything you typed in it';
-    $('guide-delete-text').textContent=`Delete ${target.text}? This removes ${inside}: ${plural(d.paragraphs,'paragraph')} in all. You can take it back: click in your document and press Ctrl+Z several times.`;
+    $('guide-delete-text').textContent=`Delete ${target.text}? This removes ${inside}: ${plural(d.paragraphs,'paragraph')} in all. You can take it back: choose Edit, then Undo, several times.`;
     $('guide-delete-confirm').hidden=false;
   }
   async function confirmDelete(){
@@ -1383,7 +1345,7 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
     if(!here)return;
     if(here.type==='block'){
       const b=here.block;
-      if(b.hasPicture)throw new Error('This block has a picture, and the pane cannot rewrite a block that holds one. To change its words, type in Word. To change the picture, select the block\'s lines in Word, press Delete, and add the block again. (Move or delete works on a whole lesson, not on one block.)');
+      if(b.hasPicture)throw new Error('This block has a picture, and the pane cannot rewrite a block that holds one. To change its words, type on the page. To change the picture, select the block\'s lines on the page, press Delete, and add the block again. (Move or delete works on a whole lesson, not on one block.)');
       const cites=blockCitations(b);
       if(cites.count&&!cites.single)throw new Error('This block cites a form in the middle of its words, in its notes, or is not a Handout block, and the pane cannot rewrite it without losing the link to the form. To change its words, type on the page. (Move or delete works on a whole lesson, not on one block.)');
       editing={type:'block',block:b};
@@ -1446,7 +1408,7 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
     const list=await adapter.paragraphs();
     const hits=list.map((p,i)=>kindOf(p)==='cue'&&clean(p.text)===b.firstText?i:-1).filter(i=>i>=0).sort((x,y)=>Math.abs(x-b.span.start)-Math.abs(y-b.span.start));
     const span=hits.length?blockSpan(list,hits[0]):null;
-    if(!span)throw new Error('That block has changed since you chose it. Select it in your document again, then choose Edit this block.');
+    if(!span)throw new Error('That block has changed since you chose it. Put your cursor in it again, then choose Edit this block.');
     await adapter.insert(ctx=>cueBlock(withCite(block,ctx),ctx),{where:'after',after:span.end,select:'last',remove:{start:span.start,end:span.end,guard:b.firstText}});
     endEdit();
     await load();
@@ -1460,7 +1422,7 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
     if(!title)throw new Error('Type a title first.');
     const minutes=e.lesson&&!$('guide-edit-minutes').disabled?parseMinutes($('guide-edit-minutes').value,'Lesson minutes'):null;
     const list=await adapter.paragraphs(),now=updatePlan(list,{forms:formSettings});
-    if(clean(list[e.index]?.text)!==e.text)throw new Error(`${e.lesson?'That lesson':'That module'} has changed since you chose it. Select it in your document again, then choose Edit.`);
+    if(clean(list[e.index]?.text)!==e.text)throw new Error(`${e.lesson?'That lesson':'That module'} has changed since you chose it. Put your cursor in it again, then choose Edit.`);
     const prefix=new RegExp(`^${e.lesson?'Lesson\\s+\\d+\\.\\d+':'Module\\s+\\d+'}\\s*:\\s*`).exec(e.text);
     const edits=[{kind:'heading',index:e.index,text:`${prefix?prefix[0]:''}${title}`}];
     const lesson=e.lesson&&now.guide.modules.flatMap(m=>m.lessons).find(l=>l.index===e.index);
@@ -1486,7 +1448,7 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
   const pageHow=(place,name)=>place.withHeading?`There was no ${name} heading, so one was added.`:place.replaces==='page'?'The earlier one was replaced.':place.replaces==='placeholder'?'It took the place of the placeholder text.':'It is under the heading, above your own text.';
   async function buildGlancePage(){
     const list=await adapter.paragraphs(),guide=readGuide(list),place=glancePlacement(list);
-    await adapter.insert(()=>glanceBody(guide,{withHeading:place.withHeading}),pageInsert(place));
+    await adapter.insert(()=>glanceBody(guide,{withHeading:place.withHeading,used:lessonForms(list,guide)}),pageInsert(place));
     await adapter.refreshFields();
     await keepOpen();
     await load();
@@ -1568,7 +1530,7 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
     const documentFix=checkParts(await adapter.reviewParts()).findings.filter(f=>f.level==='fail');
     if(fix.length||documentFix.length){
       const where=[fix.length?'listed above':'',documentFix.length?'in Accessibility':''].filter(Boolean).join(' and ');
-      pdfMessage('problem',`No PDF was made: ${plural(fix.length+documentFix.length,'thing')} to fix first, ${where}. Fix them, then choose Save as PDF again.`);
+      pdfMessage('problem',`No PDF was made: ${plural(fix.length+documentFix.length,'thing')} to fix first, ${where}. Fix them, then choose How to make a PDF again.`);
       return;
     }
     let base64;
@@ -1596,7 +1558,7 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
     const target=editingItem?null:itemTarget(paras,at),where=$('guide-item-where');
     where.hidden=!!editingItem;
     where.setAttribute('data-state',target?'ready':'none');
-    where.textContent=target?`Items go in: ${target.title}${target.after?`, after ${target.after}`:''}.`:'No assessment section here yet. Start one above, or click inside one in your document, then choose Insert item.';
+    where.textContent=target?`Items go in: ${target.title}${target.after?`, after ${target.after}`:''}.`:'No assessment section here yet. Start one above, or click inside one on the page, then choose Insert item.';
     if(target)hideItemProblem();
   }
   // Messages about the item form sit just above Insert item, where the author is looking, not at the top of the pane.
@@ -1736,7 +1698,7 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
       const list=await adapter.paragraphs(),here=await adapter.cursorIndex();
       if(!itemTarget(list,here)){
         // Nothing has been changed and nothing typed is lost; say what to do right where the author clicked.
-        itemProblem('Items go inside an assessment section, and your cursor is not in one. What you typed is still here. Start a section, or click inside one in your document, then choose Insert item again.',{offer:true});
+        itemProblem('Items go inside an assessment section, and your cursor is not in one. What you typed is still here. Start a section, or click inside one on the page, then choose Insert item again.',{offer:true});
         return;
       }
       const {anchor,number}=itemPlacement(list,here);
@@ -1774,7 +1736,7 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
       return;
     }
     const list=await adapter.paragraphs(),here=await adapter.cursorIndex();
-    if(!itemTarget(list,here)){pasteProblem('Items go inside an assessment section, and your cursor is not in one. What you pasted is still here. Start a section, or click inside one in your document, then choose Add the pasted questions again.');return;}
+    if(!itemTarget(list,here)){pasteProblem('Items go inside an assessment section, and your cursor is not in one. What you pasted is still here. Start a section, or click inside one on the page, then choose Add the pasted questions again.');return;}
     const {anchor,number}=itemPlacement(list,here);
     await adapter.insert(ctx=>r.items.map((it,i)=>itemBlock({...it,number:number+i},ctx)).join(''),{where:'after',after:anchor,select:'last'});
     $('guide-paste-text').value='';
@@ -1837,7 +1799,7 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
     if(!/^\d{1,5}$/.test(raw)||Number(raw)<1||Number(raw)>readable.length){bankProblem(`Start at a number from 1 to ${readable.length}.`);return;}
     const from=Number(raw)-1,chosen=readable.slice(from,from+MAX_BANK_ADD);
     const list=await adapter.paragraphs(),here=await adapter.cursorIndex();
-    if(!itemTarget(list,here)){bankProblem('Items go inside an assessment section, and your cursor is not in one. Start a section, or click inside one in your document, then choose Add questions from the bank again.');return;}
+    if(!itemTarget(list,here)){bankProblem('Items go inside an assessment section, and your cursor is not in one. Start a section, or click inside one on the page, then choose Add questions from the bank again.');return;}
     const {anchor,number}=itemPlacement(list,here);
     await adapter.insert(ctx=>chosen.map((q,i)=>itemBlock({...q.item,number:number+i},ctx)).join(''),{where:'after',after:anchor,select:'last'});
     const next=from+chosen.length+1;
@@ -1890,7 +1852,7 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
     const list=await adapter.paragraphs();
     const hits=list.map((p,i)=>kindOf(p)==='question'&&clean(p.text)===it.firstText?i:-1).filter(i=>i>=0).sort((x,y)=>Math.abs(x-it.span.start)-Math.abs(y-it.span.start));
     const span=hits.length?itemSpan(list,hits[0]):null;
-    if(!span)throw new Error('That item has changed since you chose it. Select it in your document again, then choose Edit this item.');
+    if(!span)throw new Error('That item has changed since you chose it. Put your cursor in it again, then choose Edit this item.');
     await adapter.insert(ctx=>itemBlock({...item,number:it.number??1},ctx),{where:'after',after:span.end,select:'last',remove:{start:span.start,end:span.end,guard:it.firstText}});
     const label=itemTypeById(item.type).label;
     clearItemForm();
@@ -2035,11 +1997,11 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
   $('guide-agenda-refresh').onclick=()=>act(async()=>{await load();drawAgenda();});
   $('guide-agenda-download').onclick=()=>act(makeAgenda);
   $('guide-forms-new').onclick=()=>newFormFromTool();
+  $('guide-forms-pack').onclick=()=>packFromTool();
   $('guide-forms-scheme').onchange=()=>act(changeScheme);
   for(const id of ['guide-forms-people','guide-forms-teams','guide-forms-tables'])$(id).onchange=()=>act(changeGroup);
-  $('guide-bk-save').onclick=()=>act(saveBackup);
-  $('guide-bk-file').onchange=()=>act(chooseBackup);
-  $('guide-bk-open').onclick=()=>act(openBackup);
+  $('guide-bk-save').onclick=()=>act(async()=>saveBackup());
+  $('guide-bk-open').onclick=()=>act(async()=>openBackup());
   $('guide-align-refresh').onclick=()=>act(async()=>{await load();drawAlignment();});
   $('guide-ver-select').onchange=()=>{confirmingDelete=false;chosenVersion=$('guide-ver-select').value;drawVersions();};
   $('guide-ver-new').onclick=()=>act(newVersionNow);

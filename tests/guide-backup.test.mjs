@@ -92,74 +92,25 @@ test('Save Backup and Restore Backup are tools of the guide now, each with its o
   }
 });
 
-test('Save a backup takes a copy of the whole document, reads it back, checks it against the guide, and downloads it',async()=>{
-  const a=await withZip();
-  const bytes=await docx([[STYLE_IDS.guideTitle,'Reframing conflict'],[STYLE_IDS.module,'Module 1: Basics'],[STYLE_IDS.lesson,'Lesson 1.1: Start'],[STYLE_IDS.time,' Time: 10 minutes. Cumulative time: 0 minutes.']],{title:'Reframing conflict'});
-  a.adapter.setCapturedFile(bytes);
-  a.p.useTool('saveBackup');
-  await click(a,'guide-bk-save');
-  assert.equal(a.err(),'');
-  const saved=a.adapter.downloads();
-  assert.equal(saved.length,1);
-  assert.match(saved[0].fileName,/^Reframing conflict - Backup \d{4}-\d{2}-\d{2} \d{4}\.docx$/);
-  assert.equal(saved[0].base64,base64Of(bytes),'the file offered is the copy Word made, byte for byte');
-  assert.match(a.n('guide-status').textContent,/Backup made: "Reframing conflict - Backup .*\.docx" \(\d+ KB\)\. It was checked: it opens as a Word file and holds 1 module, 1 lesson, 0 slides and 4 paragraphs, the same guide as the document\. Look in your Downloads folder.*Restore Backup\./);
-});
-
-test('a copy that does not match the document is not saved, and says so',async()=>{
-  const a=await withZip();
-  a.adapter.setCapturedFile(await docx([[STYLE_IDS.guideTitle,'Reframing conflict'],[STYLE_IDS.module,'Module 1: Basics']]));
-  a.p.useTool('saveBackup');
-  await click(a,'guide-bk-save');
-  assert.match(a.err(),/has 1 module and 0 lessons, but the document has 1 module and 1 lesson, so the copy was not saved/);
-  assert.equal(a.adapter.downloads().length,0);
-});
-
-test('when Word cannot give the file, the author is told and nothing is downloaded',async()=>{
+test('Save a backup and Restore a backup ask the program page to do the work, and say what to do when there is none',async()=>{
   const a=await withZip();
   a.p.useTool('saveBackup');
   await click(a,'guide-bk-save');
-  assert.match(a.err(),/no Word document to back up/);
-  assert.equal(a.adapter.downloads().length,0);
-});
-
-test('a saved backup is read and described, then opens as a separate document',async()=>{
-  const a=await withZip();
-  const bytes=await docx(GUIDE);
+  assert.match(a.n('guide-status').textContent,/choose File, then Save a backup/,'with no program page around the tools it says where the command is');
   a.p.useTool('restoreBackup');
-  a.n('guide-bk-file').files=[file(bytes,'Reframing conflict - Backup 2026-11-08 0915.docx')];
-  await a.n('guide-bk-file').onchange();
-  assert.equal(a.err(),'');
-  assert.equal(a.n('guide-bk-found').hidden,false);
-  const facts=a.n('guide-bk-facts').children.map(li=>li.textContent);
-  assert.equal(facts[0],'Title: Reframing conflict');assert.equal(facts[1],'2 modules, 2 lessons, 1 slide.');
-  assert.match(a.n('guide-status').textContent,/is a readable backup\. Check that this is the one you want, then choose Open this backup in a new window\./);
-  assert.equal(a.adapter.openedDocuments().length,0,'choosing the file opens nothing');
   await click(a,'guide-bk-open');
+  assert.match(a.n('guide-status').textContent,/choose File, then Restore a backup/);
   assert.equal(a.err(),'');
-  const opened=a.adapter.openedDocuments();
-  assert.equal(opened.length,1);
-  assert.equal(opened[0].base64,base64Of(bytes));
-  assert.match(a.n('guide-status').textContent,/open in a new Word window\. The document you were working in has not changed/);
-  assert.equal(a.adapter.snapshot().some(p=>/Module 2: More/.test(p.text)),false,'the working document was not touched');
 });
 
-test('a file that is not a readable backup is refused in plain words and offers nothing to open',async()=>{
+test('the program page can make a backup and read it back: a backup is the own project file of the guide, and a backup that is not one is refused in plain words',async()=>{
+  const {serializeProject,parseProject}=await import('../src/guide-project.mjs');
   const a=await withZip();
-  a.p.useTool('restoreBackup');
-  a.n('guide-bk-file').files=[file(new Uint8Array([1,2,3,4,5,6]),'notes.docx')];
-  await a.n('guide-bk-file').onchange();
-  assert.match(a.err(),/not a Word document that can be opened here/);
-  assert.equal(a.n('guide-bk-found').hidden,true);
-  // and a good file chosen after it works again
-  a.n('guide-bk-file').files=[file(await docx(GUIDE),'good.docx')];
-  await a.n('guide-bk-file').onchange();
-  assert.equal(a.n('guide-bk-found').hidden,false);
-  // an older backup package that is not one is told so by the older reader's own words
-  a.n('guide-bk-file').files=[file(await new JSZip().file('x.txt','y').generateAsync({type:'uint8array'}),'old.zip')];
-  await a.n('guide-bk-file').onchange();
-  assert.match(a.err(),/backup manifest is missing/);
-  assert.equal(a.n('guide-bk-found').hidden,true);
-  await click(a,'guide-bk-open');
-  assert.match(a.err(),/Choose a backup file first/);
+  await addModule(a,'One');await addLesson(a,'First');
+  const text=serializeProject(a.adapter.exportState());
+  const read=parseProject(text);
+  assert.equal(read.guide.paragraphs.length,a.adapter.exportState().paragraphs.length,'every paragraph comes back');
+  assert.throws(()=>parseProject('{"not":"a project"}'),/That is not an OpenStage Guide project/);
+  assert.throws(()=>parseProject('nonsense'),/not readable/);
+  assert.throws(()=>parseProject(null),/That is not an OpenStage Guide project/);
 });

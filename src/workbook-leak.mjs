@@ -10,7 +10,7 @@ const MC='http://schemas.openxmlformats.org/markup-compatibility/2006';
 const REL='http://schemas.openxmlformats.org/officeDocument/2006/relationships';
 const CORE_REL='http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties';
 
-const ALLOWED_PARTS=new Set(['[Content_Types].xml','_rels/.rels','word/document.xml','word/_rels/document.xml.rels','word/styles.xml','word/settings.xml','word/numbering.xml','word/footer1.xml','docProps/core.xml']);
+const ALLOWED_PARTS=new Set(['[Content_Types].xml','_rels/.rels','word/document.xml','word/_rels/document.xml.rels','word/styles.xml','word/settings.xml','word/numbering.xml','word/footer1.xml','word/footer2.xml','docProps/core.xml']);
 // A copy Word has saved again carries a few parts of its own. They hold no guide content, but they are still searched for it.
 const SAVED_PARTS=['docProps/app.xml','word/theme/theme1.xml','word/fontTable.xml','word/webSettings.xml'];
 // Word also writes a footnotes part and an endnotes part into every copy it saves. They are accepted only while they hold nothing but

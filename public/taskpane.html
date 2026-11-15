@@ -29,22 +29,19 @@
 <h1 id="guide-help-heading" tabindex="-1">Help</h1>
 <p>How to use the tools, and a finished example.</p>
 <h2>A finished example</h2>
-<p class="hint">The sample guide is a small finished guide with a module, a lesson and blocks of the kinds you will use most. It goes at the top of this document.</p>
+<p class="hint">The sample guide is a small finished guide with a module, a lesson and blocks of the kinds you will use most. It is added to the guide you have open.</p>
 <button id="guide-help-sample" type="button">Try the sample guide</button>
 <h2 id="guide-help-keys-heading">Keyboard shortcuts</h2>
-<p class="hint">They work from the document, with the pane open or not.</p>
+<p class="hint">The main ones. Help > Keyboard keys (Ctrl+/) lists them all.</p>
 <ul id="guide-help-keys" class="guide-keys" aria-labelledby="guide-help-keys-heading">
-<li><kbd>Ctrl+Shift+Alt+G</kbd> Open the Guide pane</li>
-<li><kbd>Ctrl+Shift+Alt+R</kbd> Review the guide</li>
-<li><kbd>Ctrl+Shift+Alt+M</kbd> Go to the next module</li>
-<li><kbd>Ctrl+Shift+Alt+N</kbd> Go to the previous module</li>
-<li><kbd>Ctrl+Shift+Alt+L</kbd> Go to the next lesson</li>
-<li><kbd>Ctrl+Shift+Alt+K</kbd> Go to the previous lesson</li>
-<li><kbd>Ctrl+Shift+Alt+C</kbd> Go to the Contents page</li>
-<li><kbd>Ctrl+Shift+Alt+T</kbd> Go to Training at a Glance</li>
+<li><kbd>Ctrl+K</kbd> Search for a command</li>
+<li><kbd>Ctrl+/</kbd> The list of all the keys</li>
+<li><kbd>F10</kbd> Go to the menus, and back to where you were</li>
+<li><kbd>Ctrl+Z</kbd> and <kbd>Ctrl+Y</kbd> Undo and redo (Edit menu)</li>
+<li><kbd>Ctrl+Alt+=</kbd>, <kbd>Ctrl+Alt+-</kbd> and <kbd>Ctrl+Alt+0</kbd> Zoom the page in, out and back to its actual size</li>
 </ul>
-<h2>The instructions</h2>
-<p><a id="guide-help-read" href="help.html" target="_blank" rel="noopener">Read the instructions</a> (they open in your browser).</p>
+<h2>The program manual</h2>
+<p>The manual is written separately and is not part of the program yet.</p>
 </div>
 
 <div id="guide-start" hidden>
@@ -335,7 +332,7 @@
 <tbody id="guide-agenda-body"></tbody>
 </table>
 <ul id="guide-agenda-notes" class="guide-issues"></ul>
-<div class="guide-actions"><button id="guide-agenda-refresh" type="button">Work it out again</button><button id="guide-agenda-download" type="button" class="primary">Make the agenda in Word</button></div>
+<div class="guide-actions"><button id="guide-agenda-refresh" type="button">Work it out again</button><button id="guide-agenda-download" type="button" class="primary">Make the agenda as a Word file</button></div>
 </div>
 
 <div id="guide-sec-forms">
@@ -369,6 +366,15 @@
 <tbody id="guide-forms-copies-body"></tbody>
 </table>
 <ul id="guide-forms-copies-missing" class="guide-issues"></ul>
+<h3 id="guide-forms-pack-heading">Handout pack</h3>
+<p class="hint">The forms for everyone from a lesson, a module or the whole guide, in one Word file for copying: each form on a page of its own, a landscape form in a section of its own, and none of the facilitator's print lines or forms.</p>
+<label for="guide-forms-pack-scope">What to put in it</label>
+<select id="guide-forms-pack-scope">
+<option value="lesson">The lesson the cursor is in</option>
+<option value="module">The module the cursor is in</option>
+<option value="guide" selected>The whole guide</option>
+</select>
+<div class="guide-actions"><button id="guide-forms-pack" type="button">Make handout pack</button></div>
 </div>
 
 <div id="guide-sec-align">
@@ -411,20 +417,14 @@
 </div>
 <div id="guide-sec-backup">
 <h2 id="guide-bk-heading">Save a backup</h2>
-<p class="hint">A backup is a complete copy of this document as it is now: its words, pictures, notes and styles, and what the guide keeps inside it (its look, its slides, its delivery versions). It is saved as an ordinary Word file that opens on any computer. Unsaved changes are included.</p>
-<div class="guide-actions"><button id="guide-bk-save" type="button" class="primary">Save a backup</button></div>
-<p class="hint">The copy goes to your Downloads folder (or where Word asks). Keep one somewhere other than this computer's drive too, such as OneDrive or a USB stick.</p>
+<p class="hint">A backup is a copy of the guide as it is now: its words, pictures and styles, and what the guide keeps with it (its look, its slides, its delivery versions, how its forms are numbered). It is one file that only this program opens again.</p>
+<div class="guide-actions"><button id="guide-bk-save" type="button" class="primary">Save a backup...</button></div>
+<p class="hint">The copy goes to your Downloads folder. Keep one somewhere other than this computer's drive too, such as OneDrive or a USB stick.</p>
 </div>
 <div id="guide-sec-restore">
 <h2 id="guide-rs-heading">Restore a backup</h2>
-<p class="hint">Choose a backup you saved earlier. It opens in a new Word window as a separate document: nothing in the document you are working in changes. To go back to it, save the opened copy over your guide, or keep working in the copy.</p>
-<label for="guide-bk-file">Backup file (a .docx, or a .zip made by the older backup)</label>
-<input id="guide-bk-file" type="file" accept=".docx,.zip">
-<div id="guide-bk-found" hidden>
-<h3 id="guide-bk-found-heading">This backup</h3>
-<ul id="guide-bk-facts"></ul>
-<div class="guide-actions"><button id="guide-bk-open" type="button" class="primary">Open this backup in a new window</button></div>
-</div>
+<p class="hint">Choose a backup you saved earlier. It opens as a new guide of its own: the guide you have open does not change, and nothing is written over.</p>
+<div class="guide-actions"><button id="guide-bk-open" type="button" class="primary">Restore a backup...</button></div>
 </div>
 </div>
 </div>
@@ -653,11 +653,11 @@ a. True
 <ul id="guide-review-check" class="guide-issues"></ul>
 <div class="guide-actions"><button id="guide-review-run" type="button">Review again</button><button id="guide-review-back" type="button">Back to guide</button></div>
 <div id="guide-review-pdf-part">
-<h2>Save as PDF</h2>
-<p class="hint">This reviews the document first. With nothing to fix, it asks Word for its own PDF and checks that the PDF is tagged. With anything to fix, no PDF is made.</p>
+<h2>Make a PDF</h2>
+<p class="hint">The program does not make PDFs itself yet. This reviews the guide first. With nothing to fix, it tells you how to make a tagged PDF through a Word file. With anything to fix, it lists what comes first.</p>
 <p id="guide-review-pdf-problem" role="alert" class="guide-error" hidden></p>
 <p id="guide-review-pdf-ok" role="status" class="guide-ok" hidden></p>
-<button id="guide-review-pdf" type="button">Save as PDF</button>
+<button id="guide-review-pdf" type="button">How to make a PDF</button>
 </div>
 </div>
 </section>

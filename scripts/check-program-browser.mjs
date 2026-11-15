@@ -472,6 +472,42 @@ try{
   await fpage.getByRole('menuitem',{name:/Review guide/}).click();
   await ff.locator('#guide-review-heading',{hasText:/^Review guide$/}).waitFor({timeout:15000});
   ok(!/how many people there will be/.test(await ff.locator('#guide-review-look').innerText()),'and the Review no longer asks how many people there will be');
+  // the handout pack: the forms for everyone, as a Word file, with no print line
+  await fpage.getByRole('menuitem',{name:/^Activities/}).click();
+  await fpage.getByRole('menuitem',{name:/^Forms$/}).click();
+  await ff.locator('#guide-forms-pack-scope').waitFor({state:'visible',timeout:10000});
+  await ff.locator('#guide-forms-pack-scope').selectOption('guide');
+  const [packDownload]=await Promise.all([fpage.waitForEvent('download',{timeout:20000}),ff.locator('#guide-forms-pack').click()]);
+  const packPath=path.join(RUN,'pack.docx');
+  await packDownload.saveAs(packPath);
+  ok(/ - handouts\.docx$/.test(packDownload.suggestedFilename()),'Make handout pack gives a Word file: '+packDownload.suggestedFilename());
+  const packXml=await (await JSZip.loadAsync(fs.readFileSync(packPath))).file('word/document.xml').async('string');
+  ok(/Handout[^<]*Goals/.test(packXml)&&!/Print:/.test(packXml),'it holds the form and not its print line');
+  // Ctrl+Z pressed in the tools, on a button, is the guide's Undo: it takes back the block that cited the form
+  ok(/Give out\s+Handout/.test(await fpage.locator('#work-guide').innerText()),'the block that cites the form is on the page');
+  await ff.locator('#guide-forms-new').focus();
+  await fpage.keyboard.press('Control+z');
+  await fpage.waitForFunction(()=>!/Give out\s+Handout/.test(document.querySelector('#work-guide')?.innerText||''),null,{timeout:10000});
+  ok(true,'Ctrl+Z pressed in the tools takes back the last change to the guide');
+  // File > Save a backup is a copy of the guide's own file, and File > Restore a backup opens it as a new guide
+  await fpage.getByRole('menuitem',{name:/^File/}).click();
+  const [backupDownload]=await Promise.all([fpage.waitForEvent('download',{timeout:20000}),fpage.getByRole('menuitem',{name:/Save a backup/}).click()]);
+  const backupPath=path.join(RUN,'backup.guide-project.json');
+  await backupDownload.saveAs(backupPath);
+  ok(/ backup \d{4}-\d\d-\d\d\.guide-project\.json$/.test(backupDownload.suggestedFilename()),'Save a backup gives a file named for the guide and the day: '+backupDownload.suggestedFilename());
+  const backupJson=JSON.parse(fs.readFileSync(backupPath,'utf8'));
+  ok(backupJson.format&&Array.isArray(backupJson.guide?.paragraphs)&&backupJson.guide.paragraphs.some(p=>/Goals/.test(p.text)),'it is the guide as a project file, with the form in it');
+  await fpage.getByRole('menuitem',{name:/^File/}).click();
+  await fpage.getByRole('menuitem',{name:/Restore a backup/}).click();
+  await fpage.locator('dialog[open] input[type=file]').setInputFiles(backupPath);
+  await fpage.locator('dialog[open]').getByRole('button',{name:'Read the backup'}).click();
+  await fpage.locator('dialog[open] #dlg-name').waitFor({timeout:10000});
+  ok(/restored/.test(await fpage.locator('dialog[open] #dlg-name').inputValue()),'the restored guide is offered a name of its own: '+await fpage.locator('dialog[open] #dlg-name').inputValue());
+  await fpage.locator('dialog[open]').getByRole('button',{name:'Restore'}).click();
+  await fpage.waitForFunction(()=>/Goals/.test(document.querySelector('#work-guide')?.innerText||''),null,{timeout:20000});
+  ok(files(GUIDES).some(f=>/\(restored\)\.guide-project\.json$/.test(f))&&files(GUIDES).some(f=>f==='Forms check.guide-project.json'),'the backup is a new guide beside the first, which is not changed');
+  const nowOpen=await fpage.evaluate(()=>fetch('/api/state').then(r=>r.json()));
+  ok(/\(restored\)\.guide-project\.json$/.test(String(nowOpen.current)),'and it is the one that is open: '+nowOpen.current);
   await fpage.screenshot({path:path.join(SHOTS,'forms-tool.png')});
   await fpage.close();
 }finally{

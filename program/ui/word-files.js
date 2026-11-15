@@ -6,6 +6,7 @@
  * only, never markup.
  */
 import { DOCX_LIMITS, docxFromPackage, readDocxStyles } from "../../src/guide-docx.mjs";
+import { packEntries } from "../../src/guide-handouts.mjs";
 import { FONT_URL, STYLES as FONT_STYLES, packFont } from "../../src/guide-fonts.mjs";
 import { listStyles, niceName, specCss } from "../../src/guide-styles-edit.mjs";
 import { AS_NEW, candidates, importSummary, planImport } from "../../src/guide-styles-import.mjs";
@@ -93,6 +94,27 @@ export async function saveWordFile(doc, guide, { name, template, say }) {
         ? `${file} has the guide's styles. In Word, start a document from it, or copy it to your templates folder. The styles are real Word styles, so they appear in Word's Styles gallery.${fonts}`
         : `${file} was made from the guide. Open it in Word, press Ctrl+A and then F9 to fill in the page numbers of the contents.${fonts}`,
     );
+  } catch (e) {
+    say(/** @type {Error} */ (e).message, true);
+  }
+}
+
+/**
+ * The forms for everyone from a lesson, a module or the whole guide, as one Word file made from the guide's own styles (src/guide-handouts.mjs).
+ * @param {Document} doc @param {any} guide the guide's document @param {{ scope: "lesson" | "module" | "guide", name: string, say: (message: string, bad?: boolean) => void }} opts
+ */
+export async function saveHandoutPack(doc, guide, { scope, name, say }) {
+  try {
+    const state = guide.exportState();
+    const paras = await guide.paragraphs();
+    const at = await guide.cursorIndex();
+    const pack = packEntries(state.paragraphs, paras, { at, scope });
+    const pkg = await guide.sourcePackage();
+    const title = `${String(state.title || name)}: handouts`;
+    const bytes = await docxFromPackage(pkg, zipLibrary(), io, { entries: pack.entries, title, fonts: loadPackFonts });
+    const file = `${safeFileName(name)} - handouts${scope === "guide" ? "" : ` - ${safeFileName(pack.scopeName)}`}.docx`;
+    downloadFile(doc, bytes, file, DOCX);
+    say(`${file} has ${pack.forms.length === 1 ? "1 form" : `${pack.forms.length} forms`} for everyone: ${pack.forms.join("; ")}. Each starts on a page of its own, and the facilitator's print lines are left out.`);
   } catch (e) {
     say(/** @type {Error} */ (e).message, true);
   }

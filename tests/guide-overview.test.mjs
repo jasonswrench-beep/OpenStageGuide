@@ -49,7 +49,7 @@ test('the facts: each lesson with its minutes and its objective, and the module\
   assert.deepEqual(overviewFacts(list,mod),{name:'Module 1: Recognize',total:35,lessons:[
     {name:'Lesson 1.1: Listen',minutes:20,objective:'Name the feeling.'},
     {name:'Lesson 1.2: Reframe',minutes:15,objective:'No objective yet.'}
-  ]});
+  ],handouts:[],facilitatorForms:[]});
 });
 
 test('the first build writes the author\'s lines to type over, the time line and the lessons table, in one page under the heading',async()=>{

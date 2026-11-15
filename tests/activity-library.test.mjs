@@ -86,7 +86,7 @@ test('a second activity goes after the first, and the guide says how to take it 
   await buttonOf(a.n('guide-lib-list').children[3],'Insert').onclick();
   const rows=a.rows(),first=rows.findIndex(r=>/Think, pair, share/.test(r)),second=rows.findIndex(r=>/Role play in threes/.test(r));
   assert.ok(first>0&&second>first,'in the order they were put in');
-  assert.match(a.n('guide-status').textContent,/Ctrl\+Z/);
+  assert.match(a.n('guide-status').textContent,/choose Edit, then Undo/);
 });
 
 test('finding an activity narrows both lists by title, kind or summary',async()=>{

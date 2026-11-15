@@ -203,6 +203,6 @@ test('an update that stops partway says how far it got',async()=>{
   const real=a.adapter.insert.bind(a.adapter);let calls=0;
   a.adapter.insert=async(...args)=>{if(++calls===2)throw new Error('Word did not answer.');return real(...args);};
   await click(a,'guide-upd-go');
-  assert.match(a.err(),/1 of 2 changes were made before this stopped: Word did not answer\. To take back what was done, click in your document and press Ctrl\+Z several times\./);
+  assert.match(a.err(),/1 of 2 changes were made before this stopped: Word did not answer\. To take back what was done, choose Edit, then Undo, several times\./);
   assert.equal(a.n('guide-upd-fieldset').hidden,true,'the list is dropped: it is no longer true');
 });

@@ -105,7 +105,7 @@ test('Update guide fixes cumulative times and numbers, once, and says how to und
   await a.n('guide-update').onclick();
   assert.ok(a.rows().includes('OSG Time: Time: 4 minutes. Cumulative time: 0 minutes.'));
   assert.doesNotMatch(a.n('guide-update-note').textContent,/out of date/);
-  assert.match(a.n('guide-status').textContent,/Ctrl\+Z/);
+  assert.match(a.n('guide-status').textContent,/choose Edit, then Undo/);
   a.type('guide-lesson-title','Second lesson');a.type('guide-new-minutes','6');await a.n('guide-add-lesson').onclick();
   assert.ok(a.rows().includes('OSG Time: Time: 6 minutes. Cumulative time: 4 minutes.'));
   assert.match(a.n('guide-total').textContent,/10 min/);

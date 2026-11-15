@@ -76,6 +76,18 @@ if(programMode){
     e.preventDefault();
     toProgram({type:'osg-key',key:e.key,ctrlKey:e.ctrlKey,metaKey:e.metaKey});
   });
+  // Undo and Redo are the guide's (the program's Edit menu), not the tools'. Pressed in a box where the author is typing, Ctrl+Z is the box's own and is left alone;
+  // pressed anywhere else in the tools (on a button, on the page of the tool) it is passed on to the guide.
+  document.addEventListener('keydown',e=>{
+    if(!(e.ctrlKey||e.metaKey)||e.altKey)return;
+    const key=e.key.toLowerCase();
+    const action=key==='z'&&!e.shiftKey?'undo':(key==='y'&&!e.shiftKey)||(key==='z'&&e.shiftKey)?'redo':null;
+    if(!action)return;
+    const t=e.target,tag=t&&t.tagName?String(t.tagName).toLowerCase():'';
+    if(tag==='textarea'||tag==='select'||t?.isContentEditable||(tag==='input'&&!['button','checkbox','radio','submit','reset','range','file','color'].includes(String(t.type||'text').toLowerCase())))return;
+    e.preventDefault();
+    toProgram({type:'osg-undo',action});
+  });
   // Zoom is the guide's page (src/zoom.mjs), which the program's page owns: the zoom keys pressed here, in the tools, are passed on to it.
   document.addEventListener('keydown',e=>{
     const action=zoomKeyAction(e);

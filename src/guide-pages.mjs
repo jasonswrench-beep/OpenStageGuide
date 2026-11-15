@@ -7,6 +7,7 @@ import {cell,row,table,head,PAGE} from './guide-assess-ooxml.mjs';
 import {STYLE_IDS} from './guide-styles.mjs';
 import {allCues,TIME_ICON} from './guide-cues.mjs';
 import {readGuide,lessonMinutes,kindOf,cueFromText,readBlock} from './guide-model.mjs';
+import {readForms} from './guide-forms.mjs';
 
 const alnum=s=>String(s??'').replace(/[^\p{L}\p{N}]+/gu,'').toLowerCase();
 const isHeading2=p=>/^heading 2$/i.test(String(p.style||''))||/^Heading2$/.test(String(p.builtIn||''));
@@ -51,59 +52,96 @@ const sameWords=(paras,span,want)=>{
   return have.length===expect.length&&have.every((t,i)=>t===expect[i]);
 };
 
+// ---- the forms a part of the guide cites
+// A form's short name for a list: "Handout 1.1" (its label and number), or its whole title when it has no number yet.
+const shortName=f=>f.numbered&&f.number?`${f.label} ${f.number}`:f.text;
+// The forms cited from the paragraphs `start` to `end`, each once, in the order they are cited: all of them, those for everyone (the participants' handouts)
+// and those for the facilitator only. A citation of a form no longer in the guide is not listed (the Review says so).
+export function formsCited(paras,start,end,read=readForms(paras)){
+  const all=[],everyone=[],facilitator=[];
+  for(const c of read.cites){
+    if(c.index<start||c.index>end)continue;
+    const f=read.byId.get(c.id);
+    if(!f)continue;
+    const name=shortName(f);
+    if(all.includes(name))continue;
+    all.push(name);
+    (f.audience==='facilitator'?facilitator:everyone).push(name);
+  }
+  return {all,everyone,facilitator};
+}
+// For each lesson (by the index of its heading), the forms its blocks cite. Empty when the guide cites no form at all, which is how the pages know to leave
+// out their forms columns and lines.
+export function lessonForms(paras,guide){
+  const read=readForms(paras),byLesson=new Map();
+  if(!read.cites.length)return byLesson;
+  for(const l of guide.modules.flatMap(m=>m.lessons)){
+    const names=formsCited(paras,l.index,l.end,read).all;
+    if(names.length)byLesson.set(l.index,names);
+  }
+  return byLesson;
+}
+
 // ---- Training at a Glance
 export const GLANCE_HEADING='Training at a Glance';
 export const GLANCE_INTRO='The minutes each module and lesson takes, and the minute of the session at which each one starts.';
 export const GLANCE_HEAD=['Module or lesson','Minutes','Starts at minute'];
 const GLANCE_WIDTHS=[5560,1900,1900];
+// A guide whose blocks cite forms gets a fourth column that lists them (the author's request, F1b of the forms spec); one that cites none keeps the three.
+const GLANCE_FORMS_HEAD='Forms used';
+const GLANCE_FORMS_WIDTHS=[4000,1200,1300,2860];
 const GLANCE_CLOSING='Total teaching time';
 const glanceTotal=total=>`${GLANCE_CLOSING}: ${plural(total,'minute')}.`;
 const GLANCE_SHAPE={intro:GLANCE_INTRO,firstHead:GLANCE_HEAD[0],closing:GLANCE_CLOSING};
 
 // One row for each module (its lessons' minutes added up) and each lesson. A lesson starts at the minutes taught before it,
 // the same cumulative time the lesson's own time block shows.
-export function glanceRows(guide){
+export function glanceRows(guide,used=new Map()){
   const rows=[];let cumulative=0;
   for(const mod of guide.modules){
-    const start=cumulative;
+    const start=cumulative,inModule=[];
     const lessons=mod.lessons.map(l=>{
-      const minutes=lessonMinutes(l),r={kind:'lesson',name:l.text||'Untitled lesson',minutes,starts:cumulative};
+      const minutes=lessonMinutes(l),names=used.get(l.index)||[],r={kind:'lesson',name:l.text||'Untitled lesson',minutes,starts:cumulative,forms:names.join(', ')};
+      for(const n of names)if(!inModule.includes(n))inModule.push(n);
       cumulative+=minutes;return r;
     });
-    if(mod.index>=0)rows.push({kind:'module',name:mod.text||'Untitled module',minutes:cumulative-start,starts:start});
+    if(mod.index>=0)rows.push({kind:'module',name:mod.text||'Untitled module',minutes:cumulative-start,starts:start,forms:inModule.join(', ')});
     rows.push(...lessons);
   }
   return {rows,total:cumulative};
 }
-const glanceWords=guide=>{
-  const {rows,total}=glanceRows(guide);
-  return [GLANCE_INTRO,...GLANCE_HEAD,...rows.flatMap(r=>[r.name,String(r.minutes),String(r.starts)]),glanceTotal(total)];
+const glanceWords=(guide,used=new Map())=>{
+  const {rows,total}=glanceRows(guide,used),withForms=used.size>0;
+  return [GLANCE_INTRO,...GLANCE_HEAD,...(withForms?[GLANCE_FORMS_HEAD]:[]),...rows.flatMap(r=>[r.name,String(r.minutes),String(r.starts),...(withForms?[r.forms]:[])]),glanceTotal(total)];
 };
 
-export function glanceBody(guide,{withHeading=false}={}){
-  const {rows,total}=glanceRows(guide);
+// `used` is lessonForms' map: when it holds anything, the table has a fourth column naming the forms each lesson cites (a module row lists those of its lessons).
+export function glanceBody(guide,{withHeading=false,used=new Map()}={}){
+  const {rows,total}=glanceRows(guide,used),withForms=used.size>0;
   if(!rows.some(r=>r.kind==='lesson'))throw new Error('Add a module and a lesson first. Training at a Glance lists them with their times.');
-  const [w0,w1,w2]=GLANCE_WIDTHS;
+  const widths=withForms?GLANCE_FORMS_WIDTHS:GLANCE_WIDTHS,heads=withForms?[...GLANCE_HEAD,GLANCE_FORMS_HEAD]:GLANCE_HEAD;
   const trs=[
-    row(GLANCE_HEAD.map((t,i)=>head(t,GLANCE_WIDTHS[i],i>0)),{header:true}),
+    row(heads.map((t,i)=>head(t,widths[i],i>0&&i<3)),{header:true}),
     ...rows.map(r=>{
       const fill=r.kind==='module'?MODULE_FILL:undefined;
       return row([
-        cell(w0,para(STYLE_IDS.tableCell,run(r.name,r.kind==='module'?STYLE_IDS.cueLabel:undefined)),{fill}),
-        cell(w1,para(STYLE_IDS.tableCell,run(String(r.minutes)),CENTRED),{fill}),
-        cell(w2,para(STYLE_IDS.tableCell,run(String(r.starts)),CENTRED),{fill})
+        cell(widths[0],para(STYLE_IDS.tableCell,run(r.name,r.kind==='module'?STYLE_IDS.cueLabel:undefined)),{fill}),
+        cell(widths[1],para(STYLE_IDS.tableCell,run(String(r.minutes)),CENTRED),{fill}),
+        cell(widths[2],para(STYLE_IDS.tableCell,run(String(r.starts)),CENTRED),{fill}),
+        ...(withForms?[cell(widths[3],para(STYLE_IDS.tableCell,r.forms?run(r.forms):''),{fill})]:[])
       ]);
     })
   ];
   return (withHeading?heading(2,GLANCE_HEADING):'')+para(null,run(GLANCE_INTRO))
-    +table(GLANCE_WIDTHS,trs,{caption:'Training at a Glance',description:'Each module and lesson of the guide, with the minutes it takes and the minute at which it starts. Module rows give the total for their lessons.'})
+    +table(widths,trs,{caption:'Training at a Glance',description:`Each module and lesson of the guide, with the minutes it takes and the minute at which it starts${withForms?', and the forms its blocks cite':''}. Module rows give the total for their lessons.`})
     +para(null,run(glanceTotal(total)));
 }
 
 // Whether the page is in the document and whether it still says what the guide says now.
 export function glanceState(paras){
   const gi=headingIndex(paras,GLANCE_HEADING),built=gi>=0?findBuilt(paras,gi,GLANCE_SHAPE):null;
-  return {built:!!built,stale:built?!sameWords(paras,built,glanceWords(readGuide(paras))):false};
+  const guide=readGuide(paras);
+  return {built:!!built,stale:built?!sameWords(paras,built,glanceWords(guide,lessonForms(paras,guide))):false};
 }
 // What building the page does to the document: what it replaces (a table built before, or the untouched placeholder and
 // nothing else), where it goes, and whether it must bring its own heading.
@@ -200,9 +238,14 @@ export function overviewFacts(paras,mod){
       }
     return {name:l.text||'Untitled lesson',minutes:lessonMinutes(l),objective:objectives.join('; ')||NO_OBJECTIVE};
   });
-  return {name:mod.text||'This module',lessons,total:lessons.reduce((n,l)=>n+l.minutes,0)};
+  // The forms the module's blocks cite, for the participants and for the facilitator only (empty unless the guide cites forms).
+  const cited=formsCited(paras,mod.index,mod.end);
+  return {name:mod.text||'This module',lessons,total:lessons.reduce((n,l)=>n+l.minutes,0),handouts:cited.everyone,facilitatorForms:cited.facilitator};
 }
-const overviewWords=facts=>[timeLine(facts),...OVERVIEW_HEAD,...facts.lessons.flatMap(l=>[l.name,String(l.minutes),l.objective])];
+// The lines under the lessons table that name the forms: "Participant handouts: Handout 1.1, Checklist 1.2." and, when there are any, "Facilitator forms: ...".
+const formLines=facts=>[...(facts.handouts?.length?[['Participant handouts:',` ${facts.handouts.join(', ')}.`]]:[]),...(facts.facilitatorForms?.length?[['Facilitator forms:',` ${facts.facilitatorForms.join(', ')}.`]]:[])];
+const FORM_LINE=/^[^A-Za-z]*(Participant handouts|Facilitator forms):/;
+const overviewWords=facts=>[timeLine(facts),...OVERVIEW_HEAD,...facts.lessons.flatMap(l=>[l.name,String(l.minutes),l.objective]),...formLines(facts).map(([a,b])=>`${a}${b}`)];
 
 // withAuthored is true for a first build, which also writes the author's own lines; otherwise only the time line and the lessons table.
 export function overviewBody(facts,{withAuthored=false}={}){
@@ -217,7 +260,8 @@ export function overviewBody(facts,{withAuthored=false}={}){
     ]))
   ];
   const generated=para(STYLE_IDS.overview,run('Time:',STYLE_IDS.cueLabel)+run(timeLine(facts).slice('Time:'.length)))
-    +table(OVERVIEW_WIDTHS,trs,{caption:`Lessons in ${facts.name}`,description:`Each lesson in ${facts.name}, with the minutes it takes and its objective.`});
+    +table(OVERVIEW_WIDTHS,trs,{caption:`Lessons in ${facts.name}`,description:`Each lesson in ${facts.name}, with the minutes it takes and its objective.`})
+    +formLines(facts).map(([a,b])=>para(STYLE_IDS.overview,run(a,STYLE_IDS.cueLabel)+run(b))).join('');
   return withAuthored?OVERVIEW_TOP.map(overviewLine).join('')+generated+OVERVIEW_BOTTOM.map(overviewLine).join(''):generated;
 }
 
@@ -240,6 +284,8 @@ function findOverview(paras,mod){
     let i=from+1;
     if(kindOf(paras[i]||{})!=='table-head'||alnum(paras[i].text)!==alnum(OVERVIEW_HEAD[0]))continue;
     while(['table-head','table-cell'].includes(kindOf(paras[i]||{})))i++;
+    // The lines that name the forms come straight after the table, and are part of what the button wrote.
+    while(kindOf(paras[i]||{})==='overview'&&FORM_LINE.test(paras[i].text))i++;
     built={start:from,end:i-1};
   }
   let lastOwn=-1;

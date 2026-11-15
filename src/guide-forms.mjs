@@ -168,6 +168,23 @@ export function readForms(paras){
   return {forms,cites,byId,duplicates,noId,hasModules};
 }
 
+// Where each form is: from its title to the paragraph before whatever ends it (the same rule readForms reads by). `orientation` is what its print line says,
+// or null. The outputs read this to give a landscape form its own page setup and to pick the forms of a lesson, a module or the guide.
+export function formSpans(paras){
+  const {forms}=readForms(paras);
+  return forms.map(f=>{
+    let end=f.index;
+    while(end+1<paras.length&&!endsForm(String(paras[end+1].style||'')))end++;
+    return {index:f.index,end,id:f.id,audience:f.audience,text:f.text,numbered:f.numbered,label:f.label,number:f.number,orientation:f.print?.orientation||null,printIndex:f.printIndex};
+  });
+}
+// For each paragraph, whether it is in a form that is printed landscape. Used by the Word outputs to put such a form in a section of its own.
+export function landscapeFlags(paras){
+  const flags=paras.map(()=>false);
+  for(const s of formSpans(paras))if(s.orientation==='landscape')for(let i=s.index;i<=s.end;i++)flags[i]=true;
+  return flags;
+}
+
 // What "Update guide" would change for forms, and what to tell the author. `settings` is readSettings' result.
 export function formPlan(paras,settings={}){
   const read=readForms(paras),numbers=numberForms(read.forms,settings.scheme||'auto',read.hasModules);

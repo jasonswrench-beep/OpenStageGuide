@@ -243,7 +243,7 @@ test('a Level Two section goes after the last module, and its items go inside it
     'OSG Question: Question 1. Which step comes first?','OSG Option: Name the feeling','OSG Option: Describe the facts','OSG Option: Ask for a change',
     'OSG Answer Line: Your answer:','OSG Answer Key: Answer key (multiple choice): b.','OSG Answer Key: Why: Facts keep it neutral.','OSG Answer Key: Points: 1'
   ]);
-  assert.match(a.n('guide-status').textContent,/Multiple choice item added\..*Ctrl\+Z/);
+  assert.match(a.n('guide-status').textContent,/Multiple choice item added\..*choose Edit, then Undo/);
   assert.equal(a.n('guide-item-stem').value,'','the form is cleared for the next item');
 });
 
@@ -330,7 +330,7 @@ test('before anything is typed the pane says where an item would go',async()=>{
   await assessTab(a);
   const where=()=>({text:a.n('guide-item-where').textContent,state:a.n('guide-item-where').attributes['data-state']});
   assert.equal(where().state,'none');
-  assert.match(where().text,/^No assessment section here yet\. Start one above, or click inside one in your document/);
+  assert.match(where().text,/^No assessment section here yet\. Start one above, or click inside one on the page/);
   await click(a,'guide-sec-level-two');
   assert.deepEqual(where(),{text:'Items go in: Level Two Assessment.',state:'ready'});
   typeItem(a,'true-false',{'guide-item-stem':'One?'});a.n('guide-item-true').checked=true;await submit(a,'guide-item-form');

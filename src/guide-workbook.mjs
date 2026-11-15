@@ -8,6 +8,7 @@ import {readStyles,textOf} from './guide-check.mjs';
 import {resolveWorkbookBrand,textContrast,WORKBOOK_FAMILIES} from './workbook-presentation.mjs';
 import {allCues,cueById} from './guide-cues.mjs';
 import {esc,para,run} from './guide-ooxml.mjs';
+import {landscapeFlags} from './guide-forms.mjs';
 
 // The looks the author can choose from: the five the product already has, each with a few words on what it is for.
 const LOOK_NOTES={clearline:'Spacious, one column.','editorial-study':'Reference style with serif headings.','practice-lab':'Numbered responses.','field-guide':'Step by step.','reflection-journal':'Prompt and response.'};
@@ -258,14 +259,16 @@ function prepare(source){
 
 // The page: Letter or A4 with the look's margins. The footer (page numbers) shows on every page but the first.
 const pageSize=effective=>{const a4=effective.pageSize==='A4';return {w:a4?11906:12240,h:a4?16838:15840,m:Math.round(effective.marginIn*1440)};};
-const sectPr=effective=>{
-  const {w,h,m}=pageSize(effective);
-  return `<w:sectPr><w:footerReference w:type="default" r:id="rIdFooter"/><w:pgSz w:w="${w}" w:h="${h}"/><w:pgMar w:top="${m}" w:right="${m}" w:bottom="${m}" w:left="${m}" w:header="720" w:footer="720" w:gutter="0"/><w:titlePg/></w:sectPr>`;
+// A landscape section (a form printed landscape) has the page turned on its side and a footer of its own, whose page number sits at the wider page's right margin.
+// Only the first section's first page goes without a footer (the cover).
+const sectPr=(effective,{landscape=false,titlePg=true}={})=>{
+  const {w,h,m}=pageSize(effective),[pw,ph]=landscape?[h,w]:[w,h];
+  return `<w:sectPr><w:footerReference w:type="default" r:id="${landscape?'rIdFooterWide':'rIdFooter'}"/><w:pgSz w:w="${pw}" w:h="${ph}"${landscape?' w:orient="landscape"':''}/><w:pgMar w:top="${m}" w:right="${m}" w:bottom="${m}" w:left="${m}" w:header="720" w:footer="720" w:gutter="0"/>${titlePg?'<w:titlePg/>':''}</w:sectPr>`;
 };
 const field=(code,result)=>`<w:r><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:instrText xml:space="preserve"> ${code} </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:t>${result}</w:t></w:r><w:r><w:fldChar w:fldCharType="end"/></w:r>`;
 // The footer: the organization's name and the title on the left, "Page X of Y" on the right.
-const footerXml=(effective,title,organization)=>{
-  const {w,m}=pageSize(effective),left=[organization,title].filter(Boolean).join(' · ');
+const footerXml=(effective,title,organization,{landscape=false}={})=>{
+  const {w:portraitWidth,h,m}=pageSize(effective),w=landscape?h:portraitWidth,left=[organization,title].filter(Boolean).join(' · ');
   return `<w:ftr ${NS}><w:p><w:pPr><w:pStyle w:val="${WORKBOOK_ONLY_STYLES.footer}"/><w:tabs><w:tab w:val="right" w:pos="${w-2*m}"/></w:tabs></w:pPr>${run(left)}<w:r><w:tab/></w:r>${run('Page ')}${field('PAGE','1')}${run(' of ')}${field('NUMPAGES','1')}</w:p></w:ftr>`;
 };
 const hex6=c=>String(c).replace('#','').toUpperCase();
@@ -405,6 +408,9 @@ export function buildWorkbook(source,{familyId='clearline',brand={},lines=3}={},
 
   const out=new DOMParserClass().parseFromString(`<w:document ${NS}><w:body/></w:document>`,'application/xml');
   const outBody=els(out.documentElement)[0];
+  // A form printed landscape is a section of its own: `flags` says which paragraphs are in one.
+  const flags=landscapeFlags(paras);
+  let landscapeNow=false,closedSections=0,usedLandscape=false;
   const fragment=xml=>els(new DOMParserClass().parseFromString(`<w:document ${NS}><w:body>${xml}</w:body></w:document>`,'application/xml').documentElement)[0];
   const append=xml=>{for(const n of els(fragment(xml)))outBody.appendChild(out.importNode(n,true));};
 
@@ -456,6 +462,13 @@ export function buildWorkbook(source,{familyId='clearline',brand={},lines=3}={},
   for(const e of keptEntries){
     const firstKind=result.kinds[owner[entries.indexOf(e)][0]];
     if(firstKind!=='body')flush();
+    // Where the orientation changes, the section so far ends in an empty paragraph that carries its page setup.
+    const landscape=!!flags[owner[entries.indexOf(e)][0]];
+    if(landscape!==landscapeNow){
+      flush();
+      append(`<w:p><w:pPr>${sectPr(effective,{landscape:landscapeNow,titlePg:closedSections===0&&!landscapeNow})}</w:pPr></w:p>`);
+      closedSections++;landscapeNow=landscape;if(landscape)usedLandscape=true;
+    }
     const copy=out.importNode(e,true);
     if(gray)grayify(copy);
     const paragraphs=copy.localName==='p'?[copy]:Array.from(copy.getElementsByTagNameNS(W,'p'));
@@ -501,21 +514,22 @@ export function buildWorkbook(source,{familyId='clearline',brand={},lines=3}={},
     const before=outBody.childNodes[objectiveAt]||null;
     for(const n of els(frag))outBody.insertBefore(out.importNode(n,true),before);
   }
-  append(sectPr(effective));
+  append(sectPr(effective,{landscape:landscapeNow,titlePg:closedSections===0&&!landscapeNow}));
   const ser=new SerializerClass(),documentXml=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n${ser.serializeToString(out)}`;
 
   const lists=listIds.size,needNumbering=lists>0||needBullets;
   const mediaRels=media.map(m=>`<Relationship Id="${[...mediaFor.values()].find(v=>v.name===m.name).rid}" Type="${R}/image" Target="${m.name.replace('word/','')}"/>`).join('');
   const files=[
-    {name:'[Content_Types].xml',text:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="png" ContentType="image/png"/><Default Extension="jpeg" ContentType="image/jpeg"/><Default Extension="jpg" ContentType="image/jpeg"/><Default Extension="gif" ContentType="image/gif"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/><Override PartName="/word/settings.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml"/><Override PartName="/word/footer1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/>${needNumbering?'<Override PartName="/word/numbering.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml"/>':''}<Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/></Types>`},
+    {name:'[Content_Types].xml',text:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="png" ContentType="image/png"/><Default Extension="jpeg" ContentType="image/jpeg"/><Default Extension="jpg" ContentType="image/jpeg"/><Default Extension="gif" ContentType="image/gif"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/><Override PartName="/word/settings.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml"/><Override PartName="/word/footer1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/>${usedLandscape?'<Override PartName="/word/footer2.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/>':''}${needNumbering?'<Override PartName="/word/numbering.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml"/>':''}<Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/></Types>`},
     {name:'_rels/.rels',text:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="${REL_NS}"><Relationship Id="rId1" Type="${R}/officeDocument" Target="word/document.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/></Relationships>`},
     {name:'word/document.xml',text:documentXml},
-    {name:'word/_rels/document.xml.rels',text:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="${REL_NS}"><Relationship Id="rIdStyles" Type="${R}/styles" Target="styles.xml"/><Relationship Id="rIdSettings" Type="${R}/settings" Target="settings.xml"/><Relationship Id="rIdFooter" Type="${R}/footer" Target="footer1.xml"/>${needNumbering?`<Relationship Id="rIdNumbering" Type="${R}/numbering" Target="numbering.xml"/>`:''}${mediaRels}</Relationships>`},
+    {name:'word/_rels/document.xml.rels',text:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="${REL_NS}"><Relationship Id="rIdStyles" Type="${R}/styles" Target="styles.xml"/><Relationship Id="rIdSettings" Type="${R}/settings" Target="settings.xml"/><Relationship Id="rIdFooter" Type="${R}/footer" Target="footer1.xml"/>${usedLandscape?`<Relationship Id="rIdFooterWide" Type="${R}/footer" Target="footer2.xml"/>`:''}${needNumbering?`<Relationship Id="rIdNumbering" Type="${R}/numbering" Target="numbering.xml"/>`:''}${mediaRels}</Relationships>`},
     {name:'word/styles.xml',text:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n${workbookStyles(theme)}`},
     {name:'word/settings.xml',text:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<w:settings xmlns:w="${W}"><w:themeFontLang w:val="${esc(source.language)}"/><w:compat><w:compatSetting w:name="compatibilityMode" w:uri="http://schemas.microsoft.com/office/word" w:val="15"/></w:compat></w:settings>`},
     {name:'docProps/core.xml',text:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:title>${esc(workbookTitle(title))}</dc:title><dc:language>${esc(source.language)}</dc:language></cp:coreProperties>`}
   ];
   files.push({name:'word/footer1.xml',text:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n${footerXml(effective,title,effective.organizationName)}`});
+  if(usedLandscape)files.push({name:'word/footer2.xml',text:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n${footerXml(effective,title,effective.organizationName,{landscape:true})}`});
   if(needNumbering)files.push({name:'word/numbering.xml',text:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n${numberingXml(lists,needBullets)}`});
   for(const m of media)files.push({name:m.name,base64:m.base64});
 

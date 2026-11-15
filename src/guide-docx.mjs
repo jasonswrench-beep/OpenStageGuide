@@ -5,6 +5,7 @@
 // the pictures, each as a part. A Word file is the same parts in a zip with a content types list and the package's own relationships.
 import {STYLES as FONT_STYLES,obfuscateFont,newGuid,packFontsUsed,namedOnlyUsed} from './guide-fonts.mjs';
 import {cleanParagraphXml} from './guide-xml-clean.mjs';
+import {landscapeFlags} from './guide-forms.mjs';
 const W='http://schemas.openxmlformats.org/wordprocessingml/2006/main';
 const REL='http://schemas.openxmlformats.org/officeDocument/2006/relationships';
 const CT={main:'application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml',template:'application/vnd.openxmlformats-officedocument.wordprocessingml.template.main+xml',settings:'application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml',fontTable:'application/vnd.openxmlformats-officedocument.wordprocessingml.fontTable+xml',font:'application/vnd.openxmlformats-officedocument.obfuscatedFont'};
@@ -12,7 +13,11 @@ const DECLARATION='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n';
 export const DOCX_LIMITS=Object.freeze({fileBytes:25*1024*1024,partBytes:6*1024*1024,parts:3000});
 /** What a file can carry of fonts: one font file, and all of them together. */
 export const EMBED_LIMITS=Object.freeze({fontBytes:3*1024*1024,totalBytes:12*1024*1024});
-const SECTION='<w:sectPr><w:pgSz w:w="12240" w:h="15840"/><w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="720" w:footer="720" w:gutter="0"/></w:sectPr>';
+const PAGE_MARGINS='<w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="720" w:footer="720" w:gutter="0"/>';
+const SECTION=`<w:sectPr><w:pgSz w:w="12240" w:h="15840"/>${PAGE_MARGINS}</w:sectPr>`;
+const SECTION_LANDSCAPE=`<w:sectPr><w:pgSz w:w="15840" w:h="12240" w:orient="landscape"/>${PAGE_MARGINS}</w:sectPr>`;
+// A paragraph that ends a section: Word takes the page setup of the section from the last paragraph it holds.
+const sectionBreak=sect=>`<w:p><w:pPr>${sect}</w:pPr></w:p>`;
 const settingsXml=embed=>`<w:settings xmlns:w="${W}"><w:zoom w:percent="100"/>${embed?'<w:embedTrueTypeFonts/>':''}<w:defaultTabStop w:val="720"/><w:compat><w:compatSetting w:name="compatibilityMode" w:uri="http://schemas.microsoft.com/office/word" w:val="15"/></w:compat></w:settings>`;
 const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 const EXTENSIONS={png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',gif:'image/gif',odttf:CT.font};
@@ -25,6 +30,10 @@ const EXTENSIONS={png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',gif:'image/
 export function bodyWithContents(entries,clean=x=>x){
   let out='',run=[];
   const level=style=>/^toc (\d)$/i.exec(style||'')?.[1];
+  // A form that is printed landscape is a section of its own: the page before it ends, and the page after it is portrait again. `entries` may say it
+  // themselves (a landscape flag, as a handout pack does) or it is read from their print lines.
+  const flags=entries.some(e=>e&&'landscape' in e)?entries.map(e=>!!e.landscape):landscapeFlags(entries);
+  let landscape=false;
   const flush=()=>{
     if(!run.length)return;
     run.forEach((e,i)=>{
@@ -35,17 +44,25 @@ export function bodyWithContents(entries,clean=x=>x){
     out+='<w:p><w:r><w:fldChar w:fldCharType="end"/></w:r></w:p>';
     run=[];
   };
-  for(const e of entries){
+  for(const [at,e] of entries.entries()){
+    if(flags[at]!==landscape){
+      flush();
+      // Nothing before a landscape form (a pack that starts with one) has no portrait page to end.
+      if(flags[at]){if(out)out+=sectionBreak(SECTION);}else out+=sectionBreak(SECTION_LANDSCAPE);
+      landscape=flags[at];
+    }
     if(e.xml&&String(e.xml).trim()){flush();out+=clean(e.xml);}
     else if(level(e.style)&&String(e.text||'').trim())run.push(e);
     // anything else with no XML is a cell of a table that came with the table's own XML
   }
   flush();
+  // A guide that ends in a landscape form ends in a landscape section.
+  if(landscape)out+=SECTION_LANDSCAPE;
   return out;
 }
 
-/** Add the section properties a Word page needs, unless the body already ends with some. */
-export const withSection=body=>/<w:sectPr[\s>]/.test(body)?body:body+SECTION;
+/** Add the section properties a Word page needs, unless the body already ends with some (the body's own, not those of a section break inside it). */
+export const withSection=body=>/<w:sectPr[\s>][\s\S]*<\/w:sectPr>\s*$/.test(body)?body:body+SECTION;
 
 // The two levels of the contents table. Word makes them itself when it updates the table; the entries written here need them to look right until then.
 const TOC_STYLES={

@@ -6,12 +6,15 @@ import {searchEntries} from '../program/ui/commandsearch.js';
 import {UI_ICONS} from '../program/ui/ui-icons.js';
 import {GROUPS,TOOLS,TOOL_IDS,PROGRAM_TOOLS,PROGRAM_MENUS} from '../src/guide-tools.mjs';
 const ALL_IDS=[...TOOL_IDS,...Object.keys(PROGRAM_TOOLS)];
+// The two backup commands are done by the program itself (File menu), not by opening a tool beside the guide.
+const DIRECT=['saveBackup','restoreBackup'];
+const OPENED=ALL_IDS.filter(id=>!DIRECT.includes(id));
 
 function make(){
   const calls=[];
   let guide=false;
   const ctx={hasGuide:()=>guide,openTool:id=>calls.push(['tool',id]),updateGuide:()=>calls.push(['update']),newGuide:()=>calls.push(['new']),openGuide:()=>calls.push(['open']),
-    closeGuide:()=>calls.push(['close']),search:()=>calls.push(['search']),keys:()=>calls.push(['keys']),about:()=>calls.push(['about']),updates:()=>calls.push(['updates'])};
+    closeGuide:()=>calls.push(['close']),search:()=>calls.push(['search']),keys:()=>calls.push(['keys']),about:()=>calls.push(['about']),updates:()=>calls.push(['updates']),saveBackup:()=>calls.push(['backup']),restoreBackup:()=>calls.push(['restore'])};
   return {...buildMenus(ctx),calls,setGuide:v=>{guide=v;}};
 }
 const items=menus=>menus.flatMap(m=>m.items.filter(i=>i!=='-'));
@@ -32,7 +35,7 @@ test('every tool, the add-in\'s twenty-one and the program\'s four, is one item 
     assert.ok(TOOL_ICONS[id],`${id} has an icon`);
     const found=all.filter(i=>i.label===label);
     assert.equal(found.length,1,`${label} is in exactly one menu`);
-    assert.equal(found[0].title,(TOOLS[id]??PROGRAM_TOOLS[id]).tip,'its description is the tool\'s own tip');
+    if(!DIRECT.includes(id))assert.equal(found[0].title,(TOOLS[id]??PROGRAM_TOOLS[id]).tip,'its description is the own tip of the tool');
   }
   assert.deepEqual(Object.keys(TOOL_NAMES).sort(),[...ALL_IDS].sort(),'no name for a tool that does not exist');
   assert.deepEqual(Object.keys(TOOL_ICONS).sort(),[...ALL_IDS].sort());
@@ -61,19 +64,23 @@ test('a tool opens only when a guide is open; making, opening and closing know t
   const m=make();
   const tools=items(m.menus).filter(i=>Object.values(TOOL_NAMES).includes(i.label));
   assert.equal(tools.length,ALL_IDS.length);
-  assert.ok(tools.every(i=>i.enabled()===false),'no tool can be used with no guide open');
+  assert.ok(tools.filter(i=>i.label!==TOOL_NAMES.restoreBackup).every(i=>i.enabled()===false),'no tool can be used with no guide open (a backup can be restored: it opens a guide of its own)');
+  assert.equal(tools.find(i=>i.label===TOOL_NAMES.restoreBackup).enabled?.()??true,true);
   const [newItem,openItem,closeItem]=menuEntries(m.menus,'file');
   assert.equal(newItem.enabled?.()??true,true);assert.equal(openItem.enabled?.()??true,true);
   assert.equal(closeItem.enabled(),false);
   m.setGuide(true);
-  assert.ok(tools.every(i=>i.enabled()===true));
+  assert.ok(tools.filter(i=>i.label!==TOOL_NAMES.restoreBackup).every(i=>i.enabled()===true));
   assert.equal(closeItem.enabled(),true);
 });
 
 test('choosing a tool asks for that tool, and the other commands do their own things',()=>{
   const m=make();m.setGuide(true);
-  for(const id of ALL_IDS)items(m.menus).find(i=>i.label===TOOL_NAMES[id]).run();
-  assert.deepEqual(m.calls.map(c=>c[1]),ALL_IDS);
+  for(const id of OPENED)items(m.menus).find(i=>i.label===TOOL_NAMES[id]).run();
+  assert.deepEqual(m.calls.map(c=>c[1]),OPENED);
+  m.calls.length=0;
+  items(m.menus).find(i=>i.label===TOOL_NAMES.saveBackup).run();items(m.menus).find(i=>i.label===TOOL_NAMES.restoreBackup).run();
+  assert.deepEqual(m.calls,[['backup'],['restore']],'Save and Restore a backup are done by the program itself');
   m.calls.length=0;
   const byLabel=l=>items(m.menus).find(i=>i.label===l);
   byLabel('New guide...').run();byLabel('Open guide...').run();byLabel('Close guide').run();byLabel('Search for a command...').run();byLabel('Keyboard keys').run();byLabel('Check for updates...').run();byLabel('About OpenStage Guide').run();

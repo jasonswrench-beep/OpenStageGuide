@@ -44,11 +44,11 @@ Made 2026-11-15, at the author's request ("do we have a formal checklist for wha
 - [x] All 26 open from their menus, show the piece of the Guide screen they name, and have a test and a browser check. Add lesson, Learning outcomes, E-learning cues, Accessibility and Forms exist only in the program.
 - [x] Review guide (what the guide says) and Accessibility (the document's checks) are two screens.
 - [x] Timing and agenda, Learning alignment, Delivery versions, Appearance, Generate materials (Training at a Glance, Graphic Cues page, module overview), Participant workbook with its leak check, Assessments, E-learning screens, Slides import and update, Activity library.
-- [ ] **Save a backup... and Restore a backup...** do not work as their names say (copy the guide's own file instead).
-- [ ] **Save as PDF** in Review guide does not make a PDF (save as a Word file and make the PDF in Word).
-- [ ] The Help tool's key list and its link to instructions do not work in the program.
-- [ ] Ctrl+Z pressed while the keyboard is in the tools does not undo the guide (use Edit, Undo).
-- [ ] Several tools still use words from the Word add-in ("click in your document and press Ctrl+Z", "use Word's list tools instead", "Make the agenda in Word").
+- [x] **File > Save a backup...** gives a copy of the guide's own project file (words, pictures, styles, settings) named for the guide and the day; **Restore a backup...** reads one and opens it as a new guide of its own, so nothing is written over. Both are the program's own commands, and the tools of the same names ask the program to do them.
+- [ ] **A PDF made by the program** does not exist yet. The Review screen's button is now called "How to make a PDF": it reviews the guide and then says how to make a tagged PDF through a Word file.
+- [x] The Help tool lists the program's own keys (the add-in's keys and its link to instructions are gone).
+- [x] Ctrl+Z and Ctrl+Y pressed in the tools (not in a box being typed in) are the guide's Undo and Redo.
+- [~] The Word add-in's words are gone from the pane's messages ("choose Edit, then Undo", "on the page", "Make the agenda as a Word file"). Left: the typed-list message of the Review ("use Word's list tools instead") and the older panels of the add-in that the program never shows.
 
 ## 5. Forms and handouts (the spec's slices)
 
@@ -59,9 +59,9 @@ Made 2026-11-15, at the author's request ("do we have a formal checklist for wha
 - [x] **F6** print line ("Print: 1 per person, Letter, portrait.") and the copies-to-make arithmetic.
 - [x] **F7** the Review checks for forms (missing, duplicate, unnamed, empty, no header row, audience, print line).
 - [x] **F3 the Forms tool** (in the working tree, not in a setup): the list of forms with number, audience and print line; New form; the numbering choice; how many people, teams and tables, with the copies to make; 15 templates (reading handout, worksheet, note-taking grid, checklist, rating form, self-scored instrument, observer form, evaluation form, action plan, commitment card, role cards, match-up cards, two-by-two, force-field, planning checklist); and the **"Which form" choice on the Handout cue**, so the script cites a form by choosing it (Update guide keeps the name right; editing such a block keeps the citation).
-- [ ] **F1b** a "Forms used" column on Training at a Glance, and "Participant handouts: 5.2, 5.3" on a module or lesson header.
-- [ ] **F8** a form of another orientation in its own section, and a handout pack (all the forms of a lesson, a unit or the programme in one file).
-- [ ] Review guide warns about print lines until the number of people, teams or tables is given in Forms (the tool now has the place for it; the warning says where).
+- [x] **F1b** a "Forms used" column on Training at a Glance (only when blocks cite forms), and "Participant handouts: ..." and "Facilitator forms: ..." lines in a module's overview.
+- [x] **F8** a landscape form is a section of its own in the guide's Word file, the participant workbook (with its own footer) and the handout pack; the **handout pack** makes one Word file of the forms for everyone from a lesson, a module or the whole guide. *Not checked in a real Word or with the Word schema validator (its Python module is not installed here); checked by tests and as well-formed XML.*
+- [x] Review guide's warning about print lines says where to give the number of people, teams or tables (the Forms tool), and clears when it is given.
 
 ## 6. The rest of the kit the plan calls for (plan section 3)
 
@@ -75,7 +75,7 @@ Made 2026-11-15, at the author's request ("do we have a formal checklist for wha
 
 ## 7. Outputs
 
-- [x] The participant workbook and the facilitator's copy, made from the guide.
+- [x] The participant workbook and the facilitator's copy, made from the guide; the handout pack (section 5).
 - [x] A guide and a workbook saved as Word files (File > Save as Word file), passing the Word schema validator and opening in a real Word (one machine's Word, read-only) *(per docs)*.
 - [ ] A web page made from the guide.
 - [ ] **A PDF made by the program.** Whether the window's print-to-PDF gives a tagged (accessible) PDF has not been checked; PDFRemediator is the fallback.
@@ -83,7 +83,7 @@ Made 2026-11-15, at the author's request ("do we have a formal checklist for wha
 
 ## 8. Words, testing and release process
 
-- [x] 1,847 automatic tests (one opt-in test skipped) and 5 window tests; browser checks of the program (126, with the Forms tool), of saving a guide (29), of the editor (217), of settings (7) and of closing (6). All pass on the working tree of 2026-11-15.
+- [x] 1,862 automatic tests (one opt-in test skipped) and 5 window tests; browser checks of the program (135, with the Forms tool, the handout pack, backup and restore, and undo from the tools), of saving a guide (29), of the editor (217), of settings (7) and of closing (6). All pass on the working tree of 2026-11-15.
 - [x] Every build is run through the steps in section 9 before it is published.
 - [ ] The program has been used by nobody but its author (apart from the manual's author, who tried every tool in a scratch copy and found the problems listed in the release notes).
 - [ ] The program manual (written by the manual session) is on alpha 3; it will be refreshed for alpha 5 and 6 when the author says.

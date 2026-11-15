@@ -62,7 +62,7 @@ test('a guide started before these pages existed can be given the ones it lacks,
   const rows=a.rows();
   assert.equal(rows[idx(a,'heading 1: Acknowledgements')-1],'Normal: Facilitator guide','Acknowledgements follows the title lines');
   assert.match(a.n('guide-status').textContent,/Added Acknowledgements and The Program in Perspective\./);
-  assert.match(a.n('guide-status').textContent,/Ctrl\+Z/);
+  assert.match(a.n('guide-status').textContent,/choose Edit, then Undo/);
   assert.match(a.n('guide-standard-note').textContent,/Acknowledgements and The Program in Perspective are in your guide\./);
   assert.equal(a.rows().filter(r=>/Thank the people/.test(r)).length,1);
   const before=a.rows();
@@ -234,7 +234,7 @@ test('Delete asks first, names what will go, and Keep it leaves everything as it
   await moveTo(a,r=>r==='OSG Lesson: Lesson 1.2: Beta');
   await click(a,'guide-delete');
   assert.equal(a.n('guide-delete-confirm').hidden,false);
-  assert.match(a.n('guide-delete-text').textContent,/Delete Lesson 1\.2: Beta\? This removes the lesson with its time block, its blocks and anything you typed in it: 3 paragraphs in all\. You can take it back: click in your document and press Ctrl\+Z several times\./);
+  assert.match(a.n('guide-delete-text').textContent,/Delete Lesson 1\.2: Beta\? This removes the lesson with its time block, its blocks and anything you typed in it: 3 paragraphs in all\. You can take it back: choose Edit, then Undo, several times\./);
   assert.deepEqual(a.rows(),start,'nothing is deleted yet');
   await click(a,'guide-delete-no');
   assert.equal(a.n('guide-delete-confirm').hidden,true);
@@ -403,15 +403,15 @@ test('the first line of the contents table is counted although the pane API of W
   assert.equal(contentsState([P('','Elsewhere	9'),P('Normal','x'),P('TOC 1','Module 1: A	4'),P('OSG Module','Module 1: A')]).stale,false,'the table is complete without it');
 });
 
-test('a move or a delete says to press Ctrl+Z several times, and the other actions still say once',async()=>{
+test('a move or a delete says to choose Undo several times, and the other actions still say once',async()=>{
   const a=await twoModules();
   await moveTo(a,r=>r==='OSG Lesson: Lesson 1.2: Beta');
   await click(a,'guide-move-up');
-  assert.match(a.n('guide-status').textContent,/press Ctrl\+Z several times \(a move or a delete is done in several steps\) until it is as it was\./);
+  assert.match(a.n('guide-status').textContent,/choose Edit, then Undo, several times \(a move or a delete is done in several steps\) until it is as it was\./);
   await click(a,'guide-delete');await click(a,'guide-delete-yes');
-  assert.match(a.n('guide-status').textContent,/deleted\..*press Ctrl\+Z several times/);
+  assert.match(a.n('guide-status').textContent,/deleted\..*choose Edit, then Undo, several times/);
   a.type('guide-new-title','New');await a.n('guide-add-module').onclick();
-  assert.match(a.n('guide-status').textContent,/click in your document and press Ctrl\+Z\.$/,'adding a module is one step');
+  assert.match(a.n('guide-status').textContent,/choose Edit, then Undo\.$/,'adding a module is one step');
 });
 test('the Start screen lists the standard pages by their real names',()=>{
   const html=fs.readFileSync(new URL('../public/taskpane.html',import.meta.url),'utf8');

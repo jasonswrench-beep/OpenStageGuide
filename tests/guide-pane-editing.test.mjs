@@ -45,7 +45,7 @@ test('Edit this block puts the block back in the form, and Update block replaces
   assert.equal(a.n('guide-block-heading').textContent,'Add a block');
   assert.equal(a.n('guide-block-go').textContent,'Insert block');
   assert.equal(a.n('guide-block-text').value,'');
-  assert.match(a.n('guide-status').textContent,/Ask block updated\..*Ctrl\+Z/);
+  assert.match(a.n('guide-status').textContent,/Ask block updated\..*choose Edit, then Undo/);
   assert.match(a.n('guide-update-note').textContent,/1 number or time is out of date\./,'the lesson\'s time follows the new minutes');
 });
 
