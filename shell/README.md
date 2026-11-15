@@ -52,13 +52,13 @@ The icons in `src-tauri/icons` are made from the product icon (`public/assets/ri
 
 ## State (2026-11-15)
 
-**Built and signed, not published: v0.1.0-alpha.8** (2026-11-15, release label on b89c28f; `OpenStage Guide_0.1.0_x64-setup.exe`, 29,170,672 bytes, SHA-256
+**Latest: v0.1.0-alpha.8**, published as a release (not marked pre-release; tag on b89c28f; on GitHub `OpenStage-Guide-0.1.0-alpha.8-Setup.exe`, the same bytes) (2026-11-15, release label on b89c28f; `OpenStage Guide_0.1.0_x64-setup.exe`, 29,170,672 bytes, SHA-256
 `189f62accb4e9ba8a831fd1eb6b33a2daf7732931d072eefb2bf5be26431c71f`, About reads build `5105a1e7`), built with `python -I tools/build_installer.py --sign`. It is alpha 7
 and one change: **Clear previous guides** on the home screen leaves the guides off the list (a time is kept as a setting; no guide file is deleted, moved or changed), a
 button brings them back, and Open guide still lists every guide. Signed and timestamped as below (8 of our files by Jason Wrench; Node keeps its makers' signature), unpacked:
 272 files of the program identical to the commit, `release.txt` says `v0.1.0-alpha.8`, the five browser checks pass on the unpacked files with the setup's own Node (173, 29,
 234, 7, 6), and its signed window, started from the unpacked folder, answered with version 0.1.0 and build `5105a1e7` and its home screen had the new button (not pressed:
-it would have written a setting in the author's folder). Not pushed, not published, not installed by the author.
+it would have written a setting in the author's folder). Downloaded again from GitHub without signing in, the file has the same hash and a valid, timestamped signature, and a copy that says it is alpha 7 asked Check for updates and was told alpha 8 is out. Not yet installed by the author.
 
 **v0.1.0-alpha.7**, published the same day as a pre-release (tag on 3baba18; on GitHub `OpenStage-Guide-0.1.0-alpha.7-Setup.exe`, the same bytes) (release label on 3baba18; `OpenStage Guide_0.1.0_x64-setup.exe`, 29,168,344 bytes, SHA-256
 `3fc537c56221da757d90c284e4c8d747b99d57293812b0c23e733951ffe4a8a0`, About reads build `0bd2e09a`), built with `python -I tools/build_installer.py --sign`. It holds alpha 6's

@@ -8,7 +8,7 @@ Brought up to date 2026-11-15 after the whole kit was built (the author's decisi
 
 - [x] A window of its own (Tauri), with the program's own local server inside, started and stopped with the window.
 - [x] A signed setup (Jason Wrench, timestamped) built by `python -I tools/build_installer.py --sign`; installs for one user with no administrator password; updates in place and keeps guides.
-- [x] Published as GitHub pre-releases (alpha 1 to 5); the setup has a checksum file; downloads without signing in.
+- [x] Published on GitHub as releases (alphas 1 to 7 went out marked "pre-release"; from alpha 8 a release is a plain release, not marked so); the setup has a checksum file; downloads without signing in.
 - [x] **Help > Check for updates...** (asks GitHub only when chosen, installs nothing); can be turned off by `OPENSTAGE_UPDATE_CHECK=off` or an `update-check.txt`.
 - [x] **Clear previous guides** (home screen): leaves the guides off the list, deletes nothing; **Show the N guides left off** brings them back; Open guide lists every guide. Built after alpha 7, in alpha 8 (built and signed, setup SHA-256 `189f62ac...c71f`, build `5105a1e7`, in `installers-signed-2026-11-15-alpha8`; not pushed or published).
 - [x] Closing the window saves the open guide first.
@@ -16,7 +16,7 @@ Brought up to date 2026-11-15 after the whole kit was built (the author's decisi
 - [x] One guides folder for the window and the browser version (`Documents\OpenStage Guides`).
 - [ ] The setup has not been tried on a second computer, or by anyone but its author.
 - [ ] A virtual-machine check of the installer and the uninstaller (clean Windows) has not been done.
-- [ ] Alpha 6 is not published (built and signed; the setup is in `installers-signed-2026-11-14-alpha6`). **It will not be.** Alpha 7 holds alpha 6's fixes and the whole kit; it was built and signed on 2026-11-15 on the author's go (setup SHA-256 `3fc537c5...a8a0`, build `0bd2e09a`, in `installers-signed-2026-11-15-alpha7`) and checked as in section 9 steps 2 to 6; it was pushed and published as the pre-release v0.1.0-alpha.7 on the author's yes, downloaded again without signing in (same hash, valid signature), and an alpha 5 copy's Check for updates was told it is out. Nothing of the kit is committed to the public repository yet: the commits are local only.
+- [ ] Alpha 6 is not published (built and signed; the setup is in `installers-signed-2026-11-14-alpha6`). **It will not be.** Alpha 7 holds alpha 6's fixes and the whole kit; it was built and signed on 2026-11-15 on the author's go (setup SHA-256 `3fc537c5...a8a0`, build `0bd2e09a`, in `installers-signed-2026-11-15-alpha7`) and checked as in section 9 steps 2 to 6; it was pushed and published as v0.1.0-alpha.7 (marked "pre-release" then) on the author's yes, downloaded again without signing in (same hash, valid signature), and an alpha 5 copy's Check for updates was told it is out. Nothing of the kit is committed to the public repository yet: the commits are local only.
 
 ## 2. The suite look and the shell
 
@@ -102,5 +102,5 @@ Built 2026-11-15; what each slice does is in `docs/KIT-SPEC-2026-11-15.md` ("As 
 4. The setup is unpacked: every program file is byte for byte the file of the commit, and `release.txt` carries the label.
 5. The five browser checks pass again on the unpacked files with the setup's own Node.
 6. The signed window is started from the unpacked setup and looked at (menus, About build number).
-7. Only on the author's yes: push, publish the pre-release with the setup and its checksum, download it again without signing in (hash and signature), and ask for updates from a copy of the previous release.
+7. Only on the author's yes: push, publish the release (a plain release, not marked pre-release) with the setup and its checksum, download it again without signing in (hash and signature), and ask for updates from a copy of the previous release.
 8. The record is added to `shell/README.md` and this list is updated; the manual session is told what changed.

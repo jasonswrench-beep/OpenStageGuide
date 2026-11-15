@@ -82,7 +82,7 @@ Where it lives (recommended): a new `app/` folder in this repository, on its own
 - **Edits made outside the program** (in Word after an export) do not come back. The program is the source of truth, and the Word export says so.
 - **Two products to keep in step** while the add-in lives. The shared core keeps that small.
 - **Not covered by the 2026-11-13 measurement:** how the 2,000-line pane screens reach Word through the interface in detail; whether the guide's saved settings all fit in a project file; how much of the 126 test files assume Word-shaped documents.
-- **Signing and releases.** The author has Azure Artifact Signing working for other programs. A public pre-release needs a public place: this repository is private.
+- **Signing and releases.** The author has Azure Artifact Signing working for other programs. A public release needs a public place: this repository is private.
 
 ## 7. Questions only the author can answer
 

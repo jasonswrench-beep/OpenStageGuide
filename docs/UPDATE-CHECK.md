@@ -10,7 +10,7 @@ OpenStage Guide has **Help > Check for updates...**. It follows the pattern ever
   checksum, the signed setup). It downloads and installs nothing. Running the new setup updates the copy in place and keeps the guides.
 * **Where it looks.** One HTTPS request, made by the program's own server, to
   `https://api.github.com/repos/jasonswrench-beep/OpenStageGuide/releases?per_page=30`. Node checks the certificate. No redirect is followed,
-  at most 2 MB is read, and it gives up after 15 seconds. Pre-releases count, because every release so far is one; drafts never do. The
+  at most 2 MB is read, and it gives up after 15 seconds. A release counts whether or not GitHub marks it "pre-release" (the first seven were marked so); drafts never do. The
   request carries only a plain user agent (`OpenStage-Guide-update-check`). Nothing about the person, their guides or their computer is sent.
   A repository that is not public yet answers 404, which is said as "no release found".
 * **What it compares.** The installed copy's exact release with the highest published tag (`vMAJOR.MINOR.PATCH`, or that with `-alpha.N`,
