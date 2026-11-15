@@ -80,3 +80,15 @@ test('the copies from the suite say where they came from, and the NOTICE credits
   for(const f of ['menubar.js','popupmenu.js','commandsearch.js','ui-icons.js'])assert.match(read(path.join(dir('ui'),f)),/OpenStage Author|Lucide|OpenAssess/,f);
   assert.match(read(path.join(root,'NOTICE')),/program\/ui/);
 });
+
+test('the guide\'s headings, and the rules beside notes and quotes, are readable on the dark page: they use a color the dark setting redefines, and paper prints it black',()=>{
+  const css=read(dir('style.css')),lines=css.split(String.fromCharCode(10));
+  for(const start of ['.page h1.g-title','.page h2.g-module','.page h3.g-lesson']){
+    const line=lines.find(l=>l.startsWith(start));
+    assert.ok(line&&line.includes('color: var(--heading)'),`${start} is drawn in --heading`);
+  }
+  assert.ok(!lines.some(l=>/^\.page h[123]\.g-/.test(l)&&l.includes('color: var(--os-shell)')),'no heading is drawn in the navy of the bar, which is the color of the dark page');
+  const at=css.indexOf('@media (prefers-color-scheme: dark)'),dark=css.slice(at,css.indexOf('}',css.indexOf('}',at)+1));
+  assert.ok(/--heading: #e[0-9a-f]{5}/i.test(dark),'the dark setting gives headings a light color');
+  assert.ok(/@media print[\s\S]*--heading: #000/.test(css),'and paper prints them black');
+});
