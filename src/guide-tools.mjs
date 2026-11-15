@@ -100,7 +100,7 @@ export const TOOLS=Object.freeze(Object.fromEntries([
     tip:'Choose the look of the guide: fonts, colors, header and footer.',related:['generateMaterials','courseSettings','participantWorkbook']}),
   tool('generateMaterials',{label:'Generate Materials',icon:'GenerateMaterials',group:'make',kind:'guide',part:'look',sections:['guide-sec-built'],
     title:'Generate materials',note:'Pages built from your guide when you ask.',
-    tip:'Build Training at a Glance, the Graphic Cues page and a module overview.',related:['appearance','participantWorkbook','referencePages']}),
+    tip:'Build Training at a Glance, the Graphic Cues page and a module overview.',related:['appearance','participantWorkbook','referencePages','layout']}),
   tool('participantWorkbook',{label:'Participant Workbook',icon:'ParticipantWorkbook',group:'make',kind:'screen',screen:'workbook',ownHeading:true,
     title:'Participant workbook',note:'Blocks for learners. Facilitator-only blocks are left out.',
     tip:'Preview and download learner instructions and writing space.',related:['appearance','generateMaterials','reviewGuide']}),
