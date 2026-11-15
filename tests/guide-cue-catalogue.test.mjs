@@ -12,8 +12,8 @@ const picture={base64:TINY,type:'png',mime:'image/png',size:{cx:914400,cy:914400
 // A Picture block needs a picture; every other cue is written with words alone.
 const written=(cue,extra={})=>{const ctx=makeContext();return paragraphsOf(buildPackage(cueBlock({cue,text:'Hello there',minutes:5,...(cue==='picture'?{picture}:{}),...extra},ctx),ctx,iconData));};
 
-test('the catalogue has about sixty cues, each complete and in a known group',async()=>{
-  assert.ok(CUES.length>=58&&CUES.length<=64,`${CUES.length} cues`);
+test('the catalogue has about seventy cues, each complete and in a known group',async()=>{
+  assert.ok(CUES.length>=58&&CUES.length<=70,`${CUES.length} cues`);
   assert.equal(new Set(CUES.map(c=>c.id)).size,CUES.length,'ids are unique');
   assert.equal(new Set(CUES.map(c=>c.label.toLowerCase())).size,CUES.length,'labels are unique');
   const groups=new Set(CUE_GROUPS.map(g=>g.id)),audiences=new Set(AUDIENCES.map(a=>a.id));
@@ -66,19 +66,19 @@ test('a label that begins another label is not mistaken for it',()=>{
 
 test('your own cues: names are checked, kept apart from the built-in ones, and used like any cue',()=>{
   try{
-    assert.deepEqual(checkCustomCueNames(['Debrief','','Wrap up']).problems,[]);
+    assert.deepEqual(checkCustomCueNames(['Recap talk','','Wrap up']).problems,[]);
     const bad=checkCustomCueNames(['Say','Say more','x'.repeat(30)]);
     assert.equal(bad.ok,false);
     assert.equal(bad.problems.length,3,bad.problems.join(' | '));
     assert.match(checkCustomCueNames(['Note: later']).problems[0],/colon or round brackets/);
     assert.match(checkCustomCueNames(['(x)']).problems[0],/start with a letter/);
-    assert.match(checkCustomCueNames(['Debrief','debrief']).problems[0],/too like "Debrief"/);
+    assert.match(checkCustomCueNames(['Recap talk','recap talk']).problems[0],/too like "Recap talk"/);
     assert.match(checkCustomCueNames(['Slide notes extra']).problems[0],/too like "Slide/);
 
-    setCustomCues(['Debrief','','Wrap up']);
-    assert.deepEqual(customCueNames(),['Debrief','','Wrap up']);
+    setCustomCues(['Recap talk','','Wrap up']);
+    assert.deepEqual(customCueNames(),['Recap talk','','Wrap up']);
     assert.equal(allCues().length,CUES.length+2);
-    assert.equal(cueById('custom-1').label,'Debrief');
+    assert.equal(cueById('custom-1').label,'Recap talk');
     assert.equal(cueById('custom-2'),null,'an empty slot is not a cue');
     assert.equal(cueById('custom-3').group,'you');
     const cue=written('custom-3').find(p=>kindOf(p)==='cue');
@@ -119,10 +119,10 @@ test('your own cues are saved in the document, offered in the list, and cannot b
   try{
     const a=await started();
     await addModule(a,'Module one');await addLesson(a,'Lesson one');
-    a.type('guide-own-1','Debrief');a.type('guide-own-2','');a.type('guide-own-3','');
+    a.type('guide-own-1','Recap talk');a.type('guide-own-2','');a.type('guide-own-3','');
     await click(a,'guide-own-save');
     assert.equal(a.err(),'');
-    assert.deepEqual(await a.adapter.customCues(),['Debrief','','']);
+    assert.deepEqual(await a.adapter.customCues(),['Recap talk','','']);
     assert.ok(a.radio('custom-1'),'the own cue is in the list');
     assert.match(a.n('guide-own-note').textContent,/Saved\. Your cue is in the list under "For you"/);
     a.pick('custom-1');a.type('guide-block-text','What went well?');a.type('guide-block-notes','');a.type('guide-block-minutes','');
@@ -131,18 +131,18 @@ test('your own cues are saved in the document, offered in the list, and cannot b
     // The block is in use, so its cue's name cannot change or go.
     a.type('guide-own-1','Wrap up');
     await click(a,'guide-own-save');
-    assert.match(a.err(),/Blocks in your guide use the cue "Debrief"/);
+    assert.match(a.err(),/Blocks in your guide use the cue "Recap talk"/);
     assert.equal(a.n('guide-own-note').textContent,'','the earlier "Saved." line does not stay beside the refusal');
-    assert.deepEqual(await a.adapter.customCues(),['Debrief','',''],'nothing was changed');
+    assert.deepEqual(await a.adapter.customCues(),['Recap talk','',''],'nothing was changed');
     // A bad name is refused with the reason, and nothing is saved.
-    a.type('guide-own-1','Debrief');a.type('guide-own-2','Say');
+    a.type('guide-own-1','Recap talk');a.type('guide-own-2','Say');
     await click(a,'guide-own-save');
     assert.match(a.err(),/Custom cue 2 \("Say"\) is too like "Say"/);
     // A second pane on the same document reads the names back when it loads.
     a.type('guide-own-2','');
-    await a.adapter.setCustomCues(['Debrief','Recap','']);
+    await a.adapter.setCustomCues(['Recap talk','Summary','']);
     await a.p.refresh();
     assert.ok(a.radio('custom-2'),'a name added elsewhere appears after a refresh');
-    assert.equal(a.n('guide-own-2').value,'Recap');
+    assert.equal(a.n('guide-own-2').value,'Summary');
   }finally{setCustomCues([]);}
 });

@@ -326,6 +326,15 @@
 <label for="guide-agenda-start">Start time</label>
 <input id="guide-agenda-start" type="time" value="09:00" required>
 <p id="guide-agenda-summary" class="hint" role="status" aria-live="polite"></p>
+<fieldset id="guide-length-box">
+<legend>How long the programme is, as you say it (optional)</legend>
+<p class="hint">The Review says when the lessons add up to something else. For more than one day, give a lesson the time its day starts in Lesson details.</p>
+<label for="guide-length-hours">Hours</label>
+<input id="guide-length-hours" type="number" min="0" max="999" step="1" inputmode="numeric">
+<label for="guide-length-minutes">Minutes</label>
+<input id="guide-length-minutes" type="number" min="0" max="59" step="1" inputmode="numeric">
+<p id="guide-length-note" class="hint" role="status" aria-live="polite"></p>
+</fieldset>
 <table id="guide-agenda-table" class="guide-agenda-table" hidden>
 <caption>Agenda</caption>
 <thead><tr><th scope="col">Time</th><th scope="col">What</th><th scope="col">Min.</th></tr></thead>
@@ -375,6 +384,44 @@
 <option value="guide" selected>The whole guide</option>
 </select>
 <div class="guide-actions"><button id="guide-forms-pack" type="button">Make handout pack</button></div>
+</div>
+
+<div id="guide-sec-details">
+<h2 id="guide-details-heading">Lesson details</h2>
+<p id="guide-details-where" class="hint" role="status" aria-live="polite"></p>
+<form id="guide-details-form">
+<label for="guide-details-purpose">Purpose</label>
+<textarea id="guide-details-purpose" rows="2" maxlength="400" placeholder="Why this lesson is in the guide"></textarea>
+<label for="guide-details-materials">Materials</label>
+<textarea id="guide-details-materials" rows="2" maxlength="400" placeholder="What the facilitator needs: flip chart, markers, handouts"></textarea>
+<label for="guide-details-method">Method</label>
+<select id="guide-details-method"></select>
+<label for="guide-details-mode">How people work together</label>
+<select id="guide-details-mode"></select>
+<label for="guide-details-group">Size of the group</label>
+<input id="guide-details-group" type="text" maxlength="60" placeholder="for example 4 to 6 people">
+<fieldset>
+<legend>Range of minutes (optional)</legend>
+<p class="hint">The minutes in the lesson's time line are the plan. The range is what the facilitator may take; the Review says when the plan is outside it.</p>
+<label for="guide-details-min">Least</label>
+<input id="guide-details-min" type="number" min="1" max="1440" step="1" inputmode="numeric">
+<label for="guide-details-max">Most</label>
+<input id="guide-details-max" type="number" min="1" max="1440" step="1" inputmode="numeric">
+</fieldset>
+<label for="guide-details-newday">This lesson starts a new day at (optional)</label>
+<input id="guide-details-newday" type="time">
+<label class="guide-check" for="guide-details-optional"><input id="guide-details-optional" type="checkbox"> This lesson may be left out</label>
+<fieldset>
+<legend>The facilitator chooses some of a set (optional)</legend>
+<label for="guide-details-choose-n">Choose</label>
+<input id="guide-details-choose-n" type="number" min="1" max="99" step="1" inputmode="numeric">
+<label for="guide-details-choose-m">of</label>
+<input id="guide-details-choose-m" type="number" min="1" max="99" step="1" inputmode="numeric">
+<label for="guide-details-choose-note">How to choose</label>
+<input id="guide-details-choose-note" type="text" maxlength="200" placeholder="for example: pick the ones that fit your group">
+</fieldset>
+<div class="guide-actions"><button id="guide-details-save" type="submit" class="primary">Save lesson details</button></div>
+</form>
 </div>
 
 <div id="guide-sec-align">

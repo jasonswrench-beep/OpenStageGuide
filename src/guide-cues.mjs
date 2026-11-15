@@ -83,7 +83,13 @@ export const CUES=Object.freeze([
   {id:'developer-note',group:'elearning',label:'Developer note',icon:'developer-note',audience:'facilitator',help:'A note for whoever builds the screen. Facilitator only.'},
   // For you
   {id:'trainer-notes',group:'you',label:'Trainer notes',icon:'trainer-notes',audience:'facilitator',help:'Advice for the facilitator.'},
-  {id:'transition',group:'you',label:'Transition',icon:'transitions',audience:'facilitator',help:'How to move to the next topic.'}
+  {id:'transition',group:'you',label:'Transition',icon:'transitions',audience:'facilitator',help:'How to move to the next topic.'},
+  // Script mechanics (kit slice K3). Their pictures are stand-ins drawn on 2026-11-15 (scripts/make-stand-in-icons.mjs), to be replaced by the author's own artwork.
+  {id:'expected-answer',group:'you',label:'Expected answer',icon:'expected-answer',audience:'facilitator',help:'What to listen for in the answers to the question above. Facilitator only.'},
+  {id:'debrief',group:'you',label:'Debrief',icon:'debrief',audience:'facilitator',help:'The questions to ask once an activity is over. Facilitator only.'},
+  {id:'option',group:'you',label:'Option',icon:'option',audience:'facilitator',help:'Material to use instead of, or as well as, what is above. Facilitator only.'},
+  {id:'set-up',group:'you',label:'Set-up',icon:'set-up',audience:'facilitator',help:'What to prepare in the room before learners come. Give its minutes.'},
+  {id:'clean-up',group:'you',label:'Clean-up',icon:'clean-up',audience:'facilitator',help:'What to put away and collect once learners have gone. Give its minutes.'}
 ]);
 export const AUDIENCES=Object.freeze([
   {id:'everyone',label:'Everyone'},

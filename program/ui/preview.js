@@ -153,6 +153,7 @@ const BY_STYLE = {
   "OSG Form Text": { tag: "p", cls: "g-formtext" },
   "OSG Form Source": { tag: "p", cls: "g-source" },
   "OSG Form Print": { tag: "p", cls: "g-print" },
+  "OSG Fact": { tag: "p", cls: "g-fact" },
   "OSG Form Card": { tag: "div", cls: "g-card" },
   "heading 1": { tag: "h2", cls: "g-heading" },
   "heading 2": { tag: "h3", cls: "g-heading2" },

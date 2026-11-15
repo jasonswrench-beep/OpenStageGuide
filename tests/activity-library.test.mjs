@@ -22,9 +22,9 @@ const buttonOf=(li,label)=>li.children[3].children.find(b=>b.textContent===label
 const activityAt=async a=>{const paras=await a.adapter.paragraphs();const i=paras.findIndex(p=>/^\s*Activity\b/.test(String(p.text)));return {paras,i};};
 
 test('there are eight ready-made activities, each whole: a title, minutes, a summary, an objective and steps',()=>{
-  assert.equal(STARTER_ACTIVITIES.length,8);
-  assert.equal(new Set(STARTER_ACTIVITIES.map(e=>e.id)).size,8,'every id is different');
-  assert.equal(new Set(STARTER_ACTIVITIES.map(e=>e.title)).size,8,'and every title');
+  assert.equal(STARTER_ACTIVITIES.length,13);
+  assert.equal(new Set(STARTER_ACTIVITIES.map(e=>e.id)).size,13,'every id is different');
+  assert.equal(new Set(STARTER_ACTIVITIES.map(e=>e.title)).size,13,'and every title');
   for(const e of STARTER_ACTIVITIES){
     assert.ok(e.title&&e.title.length<=60,`${e.id} title`);
     assert.ok(Number.isInteger(e.minutes)&&e.minutes>=1&&e.minutes<=60,`${e.id} minutes`);
@@ -50,7 +50,7 @@ test('the Activity Library opens on its own panel, with the ready-made activitie
   assert.equal(a.n('guide-sec-library').hidden,false);
   assert.equal(a.n('guide-sec-module').hidden,true);assert.equal(a.n('guide-sec-block').hidden,true);
   assert.deepEqual(itemTitles(a,'guide-lib-list'),STARTER_ACTIVITIES.map(e=>`${e.title} (${e.minutes} min)${e.kind}`));
-  assert.equal(a.n('guide-lib-count').textContent,'8 activities ready to use.');
+  assert.equal(a.n('guide-lib-count').textContent,'13 activities ready to use.');
   assert.match(a.n('guide-lib-mine-note').textContent,/You have not saved any yet/);
   const li=a.n('guide-lib-list').children[1];
   assert.equal(li.children[1].textContent,STARTER_ACTIVITIES[1].summary);
@@ -99,7 +99,7 @@ test('finding an activity narrows both lists by title, kind or summary',async()=
   a.type('guide-lib-find','zzz');a.n('guide-lib-find').oninput();
   assert.equal(a.n('guide-lib-count').textContent,'0 activities found.');assert.equal(a.n('guide-lib-list').children.length,0);
   a.type('guide-lib-find','');a.n('guide-lib-find').oninput();
-  assert.equal(a.n('guide-lib-list').children.length,8);
+  assert.equal(a.n('guide-lib-list').children.length,13);
   assert.ok(matches({title:'A',kind:'B',summary:'C d'},'c D'));assert.ok(!matches({title:'A',kind:'B',summary:'C'},'x'));
 });
 

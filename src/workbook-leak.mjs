@@ -25,8 +25,8 @@ const FORBIDDEN_ELEMENTS=['ins','del','moveFrom','moveTo','commentRangeStart','c
   'footnotes','endnotes','comments','customXml','customXmlPr','smartTagPr','pict','object','txbxContent','cellIns','cellDel','cellMerge','ruby'];
 const FIELD_OK=/^\s*(TOC|PAGE|NUMPAGES)\b/;
 const SAVED_FIELD_OK=/^\s*(TOC|PAGE|NUMPAGES|PAGEREF|HYPERLINK\s+\\l)\b/;
-const FACILITATOR_STYLE_NAMES=new Set([STYLE_NAMES.cueFacilitator,STYLE_NAMES.notes,STYLE_NAMES.answerKey,STYLE_NAMES.time,STYLE_NAMES.formTitleFacilitator,STYLE_NAMES.formPrint]);
-const FACILITATOR_STYLE_IDS=new Set([STYLE_IDS.cueFacilitator,STYLE_IDS.notes,STYLE_IDS.answerKey,STYLE_IDS.time,STYLE_IDS.formTitleFacilitator,STYLE_IDS.formPrint]);
+const FACILITATOR_STYLE_NAMES=new Set([STYLE_NAMES.cueFacilitator,STYLE_NAMES.notes,STYLE_NAMES.answerKey,STYLE_NAMES.time,STYLE_NAMES.formTitleFacilitator,STYLE_NAMES.formPrint,STYLE_NAMES.fact]);
+const FACILITATOR_STYLE_IDS=new Set([STYLE_IDS.cueFacilitator,STYLE_IDS.notes,STYLE_IDS.answerKey,STYLE_IDS.time,STYLE_IDS.formTitleFacilitator,STYLE_IDS.formPrint,STYLE_IDS.fact]);
 export const norm=s=>String(s??'').toLowerCase().replace(/[^\p{L}\p{N}]+/gu,'');
 const MIN_SEARCH=8; // shorter facilitator texts are matched as whole paragraphs, not searched for inside others
 

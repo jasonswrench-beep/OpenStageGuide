@@ -29,14 +29,15 @@ export const STYLE_NAMES=Object.freeze({
   formBox:'OSG Form Box',
   formSource:'OSG Form Source',
   formPrint:'OSG Form Print',
-  formCard:'OSG Form Card'
+  formCard:'OSG Form Card',
+  fact:'OSG Fact'
 });
 export const STYLE_IDS=Object.freeze({
   guideTitle:'OSGGuideTitle',module:'OSGModule',lesson:'OSGLesson',time:'OSGTime',cue:'OSGCue',cueFacilitator:'OSGCueFacilitator',
   cueLabel:'OSGCueLabel',body:'OSGCueBody',notes:'OSGNotes',
   assessment:'OSGAssessment',question:'OSGQuestion',option:'OSGOption',answerLine:'OSGAnswerLine',answerKey:'OSGAnswerKey',
   tableHead:'OSGTableHead',tableCell:'OSGTableCell',ratingBox:'OSGRatingBox',itemNote:'OSGItemNote',overview:'OSGOverview',keyTableHead:'OSGKeyTableHead',keyTableCell:'OSGKeyTableCell',formTitle:'OSGFormTitle',formTitleFacilitator:'OSGFormTitleFacilitator',
-  formText:'OSGFormText',formLine:'OSGFormLine',formField:'OSGFormField',formBox:'OSGFormBox',formSource:'OSGFormSource',formPrint:'OSGFormPrint',formCard:'OSGFormCard'
+  formText:'OSGFormText',formLine:'OSGFormLine',formField:'OSGFormField',formBox:'OSGFormBox',formSource:'OSGFormSource',formPrint:'OSGFormPrint',formCard:'OSGFormCard',fact:'OSGFact'
 });
 
 // w14 is Word's 2010 extension namespace, which holds the check box content control.
@@ -75,6 +76,7 @@ export function styleDefinitions(theme={}){
 <w:style w:type="paragraph" w:customStyle="1" w:styleId="${STYLE_IDS.formSource}"><w:name w:val="${STYLE_NAMES.formSource}"/><w:basedOn w:val="Normal"/><w:qFormat/><w:pPr><w:spacing w:before="60" w:after="120"/></w:pPr><w:rPr><w:i/><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr></w:style>
 <w:style w:type="paragraph" w:customStyle="1" w:styleId="${STYLE_IDS.formPrint}"><w:name w:val="${STYLE_NAMES.formPrint}"/><w:basedOn w:val="Normal"/><w:qFormat/><w:pPr><w:shd w:val="clear" w:color="auto" w:fill="${SHADE}"/><w:spacing w:before="0" w:after="120"/></w:pPr><w:rPr><w:i/><w:color w:val="${INK}"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr></w:style>
 <w:style w:type="paragraph" w:customStyle="1" w:styleId="${STYLE_IDS.formCard}"><w:name w:val="${STYLE_NAMES.formCard}"/><w:basedOn w:val="Normal"/><w:qFormat/><w:pPr><w:keepLines/><w:pBdr><w:top w:val="dashed" w:sz="6" w:space="8" w:color="${BAR}"/><w:left w:val="dashed" w:sz="6" w:space="8" w:color="${BAR}"/><w:bottom w:val="dashed" w:sz="6" w:space="8" w:color="${BAR}"/><w:right w:val="dashed" w:sz="6" w:space="8" w:color="${BAR}"/><w:between w:val="dashed" w:sz="6" w:space="8" w:color="${BAR}"/></w:pBdr><w:spacing w:before="160" w:after="160"/></w:pPr></w:style>
+<w:style w:type="paragraph" w:customStyle="1" w:styleId="${STYLE_IDS.fact}"><w:name w:val="${STYLE_NAMES.fact}"/><w:basedOn w:val="Normal"/><w:qFormat/><w:pPr><w:keepLines/><w:shd w:val="clear" w:color="auto" w:fill="${SHADE}"/><w:spacing w:before="0" w:after="40"/></w:pPr><w:rPr><w:color w:val="${INK}"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr></w:style>
 <w:style w:type="paragraph" w:customStyle="1" w:styleId="${STYLE_IDS.assessment}"><w:name w:val="${STYLE_NAMES.assessment}"/><w:basedOn w:val="Heading1"/><w:next w:val="Normal"/><w:qFormat/></w:style>
 <w:style w:type="paragraph" w:customStyle="1" w:styleId="${STYLE_IDS.question}"><w:name w:val="${STYLE_NAMES.question}"/><w:basedOn w:val="Normal"/><w:next w:val="${STYLE_IDS.option}"/><w:qFormat/><w:pPr><w:keepNext/><w:keepLines/><w:spacing w:before="240" w:after="80"/></w:pPr></w:style>
 <w:style w:type="paragraph" w:customStyle="1" w:styleId="${STYLE_IDS.option}"><w:name w:val="${STYLE_NAMES.option}"/><w:basedOn w:val="Normal"/><w:qFormat/><w:pPr><w:keepNext/><w:keepLines/><w:spacing w:after="60"/><w:ind w:left="1080" w:hanging="360"/></w:pPr></w:style>

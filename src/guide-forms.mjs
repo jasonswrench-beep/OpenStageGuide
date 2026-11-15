@@ -29,13 +29,16 @@ const clean=t=>String(t??'').replace(/[\r\n\u0007]+$/,'').trim();
 // ---- the guide's settings for forms (kept with the document, like the look and the slide memory)
 // scheme: how forms are numbered. group: how many people, teams and tables there will be, so that print lines can be added up.
 const count=v=>Number.isInteger(v)&&v>=1&&v<=9999?v:null;
+// The stated length of the programme, in minutes (kit slice K2). The settings are kept with the guide under the name the form settings always had.
+const length=v=>Number.isInteger(v)&&v>=1&&v<=99999?v:null;
 export function readSettings(text){
   let d=null;
   try{d=text?JSON.parse(text):null;}catch{d=null;}
   const group={people:count(d?.group?.people),teams:count(d?.group?.teams),tables:count(d?.group?.tables)};
-  return {scheme:SCHEMES.includes(d?.scheme)?d.scheme:'auto',...(Object.values(group).some(v=>v!==null)?{group}:{})};
+  const minutes=length(d?.time?.minutes);
+  return {scheme:SCHEMES.includes(d?.scheme)?d.scheme:'auto',...(Object.values(group).some(v=>v!==null)?{group}:{}),...(minutes!==null?{time:{minutes}}:{})};
 }
-export const writeSettings=s=>JSON.stringify({scheme:SCHEMES.includes(s?.scheme)?s.scheme:'auto',...(s?.group?{group:{people:count(s.group.people),teams:count(s.group.teams),tables:count(s.group.tables)}}:{})});
+export const writeSettings=s=>JSON.stringify({scheme:SCHEMES.includes(s?.scheme)?s.scheme:'auto',...(s?.group?{group:{people:count(s.group.people),teams:count(s.group.teams),tables:count(s.group.tables)}}:{}),...(length(s?.time?.minutes)!==null?{time:{minutes:length(s.time.minutes)}}:{})});
 
 // ---- the words of a form's title
 const TITLE=/^([A-Za-z][A-Za-z ]{0,30}?)(?:\s+(\d+(?:\.\d+)?|[A-Za-z]{1,2}))?\s*:\s*(\S.*)$/s;

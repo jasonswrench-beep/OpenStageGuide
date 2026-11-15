@@ -4,9 +4,10 @@
 import {allCues,CUE_GROUPS,AUDIENCES,ACTIVITY_PARTS,cueById,iconUrl,setCustomCues,customCueNames,checkCustomCueNames,CUSTOM_CUE_SLOTS} from './guide-cues.mjs';
 import {moduleHeading,lessonHeading,timeBlock,cueBlock,startGuide as startGuideBody,sampleGuide,acknowledgementsBody,perspectiveBody,appendixBody} from './guide-ooxml.mjs';
 import {cueFromText,updatePlan,guideIssues,outline,lessonMinutes,describeAt,blockAnchor,blockSpan,kindOf,transitionAnchor,lessonPlacement,modulePlacement,contentsState,readGuide,standardPageState,missingStandardPages,appendixPlacement,tidyTarget,tidyMove,tidyDeletion} from './guide-model.mjs';
-import {glanceBody,glanceState,glancePlacement,glanceRows,lessonForms,cuesBody,cuesState,cuesPlacement,cuesUsed,moduleAt,overviewFacts,overviewBody,overviewState,overviewPlacement,overviewsSummary} from './guide-pages.mjs';
+import {glanceBody,glanceState,glancePlacement,glanceRows,lessonForms,lessonMethods,cuesBody,cuesState,cuesPlacement,cuesUsed,moduleAt,overviewFacts,overviewBody,overviewState,overviewPlacement,overviewsSummary} from './guide-pages.mjs';
 import {checkParts} from './guide-check.mjs';
 import {citationControl} from './guide-forms-ooxml.mjs';
+import {readFacts,checkFacts,factsBlock,hoursWords,METHODS,MODES} from './guide-facts.mjs';
 import {readSettings as readFormSettings,writeSettings as writeFormSettings,readForms,copiesToMake,resolveScheme,printText} from './guide-forms.mjs';
 import {itemPlacement,sectionPlacement,itemSpan,itemTarget} from './guide-model.mjs';
 import {ITEM_TYPES,itemTypeById,LEVELS,levelById,parsePairs,parseLines,parseLabels,parseCriteria,parseRubricRows,DEFAULT_RUBRIC_LEVELS} from './guide-items.mjs';
@@ -146,7 +147,7 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
     $('guide-sec-selected').hidden=guide&&!t.selected;
     // A piece whose own heading says what the strip above already says (Add a module or lesson, E-Learning screens, Update from slides)
     // leaves the saying to the strip, so a screen reader does not read the same heading twice.
-    for(const id of ['guide-module-heading','guide-lesson-heading','guide-el-heading','guide-upd-heading','guide-lib-heading','guide-agenda-heading','guide-forms-heading','guide-align-heading','guide-ver-heading','guide-bk-heading','guide-rs-heading']){
+    for(const id of ['guide-module-heading','guide-lesson-heading','guide-el-heading','guide-upd-heading','guide-lib-heading','guide-agenda-heading','guide-forms-heading','guide-details-heading','guide-align-heading','guide-ver-heading','guide-bk-heading','guide-rs-heading']){
       const heading=$(id);
       if(heading)heading.hidden=!!t&&clean(heading.textContent).toLowerCase()===t.title.toLowerCase();
     }
@@ -661,7 +662,7 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
   function agendaRowsInto(body,rows){
     body.replaceChildren(...rows.map(r=>{
       const tr=doc.createElement('tr');
-      if(r.kind==='module'){tr.className='guide-agenda-module';const th=cellOf('th',r.text,'rowgroup');th.setAttribute('colspan','3');tr.append(th);return tr;}
+      if(r.kind==='module'||r.kind==='day'){tr.className='guide-agenda-module';const th=cellOf('th',r.text,'rowgroup');th.setAttribute('colspan','3');tr.append(th);return tr;}
       tr.className=r.kind==='lesson'?'guide-agenda-lesson':'guide-agenda-block';
       tr.append(cellOf('td',`${r.start} to ${r.end}`),cellOf('td',r.text),cellOf('td',String(r.minutes)));
       return tr;
@@ -683,10 +684,31 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
     catch(e){agendaShown='';$('guide-agenda-table').hidden=true;$('guide-agenda-body').replaceChildren();$('guide-agenda-notes').replaceChildren();$('guide-agenda-summary').textContent=e.message;return;}
     agendaShown=JSON.stringify([start,a.rows,a.notes]);
     $('guide-agenda-summary').textContent=agendaSummary(a);
+    drawLength(a.minutes);
     $('guide-agenda-table').hidden=!a.lessons;
     agendaRowsInto($('guide-agenda-body'),a.rows);
     $('guide-agenda-notes').replaceChildren(...a.notes.map(n=>listItem(n.text)));
     try{storage?.setItem(AGENDA_START_KEY,start);}catch{/* the start time is just not remembered */}
+  }
+  // The length of the programme as the author says it (kept with the guide's settings), next to what the lessons add up to.
+  function drawLength(total){
+    const stated=formSettings.time?.minutes??null,box=$('guide-length-hours');
+    if(doc.activeElement!==box&&doc.activeElement!==$('guide-length-minutes')){
+      $('guide-length-hours').value=stated===null?'':String(Math.floor(stated/60));
+      $('guide-length-minutes').value=stated===null?'':String(stated%60);
+    }
+    $('guide-length-note').textContent=stated===null?'':stated===total?`The lessons add up to ${hoursWords(total)}, as you say.`:`You say ${hoursWords(stated)}, but the lessons add up to ${hoursWords(total)}.`;
+  }
+  async function changeLength(){
+    const h=$('guide-length-hours').value.trim(),m=$('guide-length-minutes').value.trim();
+    const hours=h===''?0:Number(h),mins=m===''?0:Number(m);
+    if(!Number.isInteger(hours)||!Number.isInteger(mins)||hours<0||mins<0||mins>59)throw new Error('Give the hours as a whole number, and the minutes as a whole number from 0 to 59.');
+    const total=hours*60+mins,next={...formSettings};
+    if(total>0)next.time={minutes:total};else delete next.time;
+    await adapter.setFormSettings(writeFormSettings(next));
+    await load();
+    drawAgenda();
+    status(total>0?`The programme is ${hoursWords(total)}, as you say it. The Review says when the lessons add up to something else.`:'The length of the programme is not said any more.');
   }
   // -- forms: the guide's forms with their numbers and print lines, how they are numbered, and the copies to make
   const SCHEME_WORDS={unit:'by unit, each form taking the number of its module and its place in it (1.1, 1.2, 2.1)',letter:'by letter (A, B, C)',sequence:'by number (1, 2, 3)'};
@@ -760,6 +782,84 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
     const scope=$('guide-forms-pack-scope').value,w=doc.defaultView;
     if(w&&w.parent&&w.parent!==w){w.parent.postMessage({type:'osg-run',command:'pack',scope},w.location.origin);status('The handout pack is being made.');return;}
     status('The handout pack is made in the window of the program.');
+  }
+  // -- lesson details: the facts under a lesson's time line (guide-facts.mjs), for the lesson the cursor is in
+  let detailsFor='';
+  // The lesson the cursor is in: the last lesson heading at or above it, unless a module, an assessment or another heading comes between.
+  function lessonAt(list,here){
+    for(let i=Math.min(here,list.length-1);i>=0;i--){
+      const k=kindOf(list[i]);
+      if(k==='lesson')return readGuide(list).modules.flatMap(m=>m.lessons).find(l=>l.index===i)||null;
+      if(k==='module'||k==='assessment'||k==='guide-title'||/^heading\b/i.test(String(list[i].style||'')))return null;
+    }
+    return null;
+  }
+  function fillChoice(sel,values,current,none){
+    const opts=[['',none],...values.map(v=>[v,v])];
+    if(current&&!values.includes(current))opts.push([current,`${current} (not in the list)`]);
+    sel.replaceChildren(...opts.map(([value,label])=>{const o=doc.createElement('option');o.value=value;o.textContent=label;return o;}));
+    sel.value=current||'';
+  }
+  function drawDetails(force=false){
+    const lesson=lessonAt(paras,at),form=$('guide-details-form');
+    if(!lesson||lesson.timeIndex<0){
+      detailsFor='';
+      $('guide-details-where').textContent=lesson?`${lesson.text} has no time line, so it cannot hold details yet. Choose Update guide, or add its time line.`:'Put your cursor in a lesson to give its details.';
+      $('guide-details-save').disabled=true;
+      for(const id of ['purpose','materials','method','mode','group','min','max','newday','optional','choose-n','choose-m','choose-note'])$(`guide-details-${id}`).disabled=true;
+      return;
+    }
+    const {facts}=readFacts(paras,lesson),signature=JSON.stringify([lesson.index,lesson.text,facts]);
+    $('guide-details-where').textContent=`Details of ${lesson.text}.`;
+    $('guide-details-save').disabled=false;
+    for(const id of ['purpose','materials','method','mode','group','min','max','newday','optional','choose-n','choose-m','choose-note'])$(`guide-details-${id}`).disabled=false;
+    // What the author is typing is not replaced by drawing again, unless another lesson or other facts are now there.
+    if(!force&&signature===detailsFor)return;
+    detailsFor=signature;
+    $('guide-details-purpose').value=facts.purpose;$('guide-details-materials').value=facts.materials;
+    fillChoice($('guide-details-method'),METHODS,facts.method,'No method chosen');
+    fillChoice($('guide-details-mode'),MODES,facts.mode,'Not said');
+    $('guide-details-group').value=facts.group;
+    $('guide-details-min').value=facts.range?String(facts.range.min):'';$('guide-details-max').value=facts.range?String(facts.range.max):'';
+    $('guide-details-newday').value=facts.newDay?facts.newDay.replace(/^(\d):/,'0$1:'):'';
+    $('guide-details-optional').checked=facts.optional;
+    $('guide-details-choose-n').value=facts.choose?String(facts.choose.n):'';$('guide-details-choose-m').value=facts.choose?String(facts.choose.m):'';
+    $('guide-details-choose-note').value=facts.chooseNote;
+    void form;
+  }
+  const wholeNumber=(id,what)=>{
+    const v=$(id).value.trim();
+    if(v==='')return null;
+    const n=Number(v);
+    if(!Number.isInteger(n))throw new Error(`${what} must be a whole number.`);
+    return n;
+  };
+  async function saveDetails(){
+    const list=await adapter.paragraphs(),here=await adapter.cursorIndex(),lesson=lessonAt(list,here);
+    if(!lesson||lesson.timeIndex<0)throw new Error('Put your cursor in a lesson first.');
+    const {facts:before,span}=readFacts(list,lesson);
+    const min=wholeNumber('guide-details-min','The least minutes'),max=wholeNumber('guide-details-max','The most minutes');
+    if((min===null)!==(max===null))throw new Error('Give both the least and the most minutes, or neither.');
+    const n=wholeNumber('guide-details-choose-n','The number to choose'),m=wholeNumber('guide-details-choose-m','The size of the set');
+    if((n===null)!==(m===null))throw new Error('Give both how many to choose and out of how many, or neither.');
+    const method=$('guide-details-method').value,mode=$('guide-details-mode').value;
+    const facts=checkFacts({
+      purpose:$('guide-details-purpose').value,materials:$('guide-details-materials').value,method,methodKept:method===before.method,mode,modeKept:mode===before.mode,
+      group:$('guide-details-group').value,newDay:$('guide-details-newday').value,range:min===null?null:{min,max},optional:$('guide-details-optional').checked,
+      choose:n===null?null:{n,m},chooseNote:$('guide-details-choose-note').value,extra:before.extra
+    });
+    const block=factsBlock(facts);
+    if(!block&&!span){status('There are no details to save.');return;}
+    if(!block){
+      await adapter.deleteRange({start:span.start,end:span.end,guard:list[span.start].text});
+      status(`The details of ${lesson.text} are taken away.${tidy()} ${UNDO}`);
+    }else{
+      await adapter.insert(()=>block,{where:'after',after:span?span.end:lesson.timeIndex,select:'last',...(span?{remove:{start:span.start,end:span.end,guard:list[span.start].text}}:{})});
+      status(`The details of ${lesson.text} are saved.${tidy()} ${UNDO}`);
+    }
+    await keepOpen();
+    await load();
+    drawDetails(true);
   }
   // A new form is asked for in the program's own page (its Insert > Form dialog), which puts it where the author's cursor is.
   function newFormFromTool(){
@@ -897,6 +997,7 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
     try{
       if(tool==='timingAndAgenda')drawAgenda();
       else if(tool==='forms')drawForms();
+      else if(tool==='lessonDetails')drawDetails();
       else if(tool==='learningAlignment')drawAlignment();
       else if(tool==='deliveryVersions'){await readVersionsNow();drawVersions();}
     }catch{/* the panel stays as it was */}
@@ -1448,7 +1549,7 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
   const pageHow=(place,name)=>place.withHeading?`There was no ${name} heading, so one was added.`:place.replaces==='page'?'The earlier one was replaced.':place.replaces==='placeholder'?'It took the place of the placeholder text.':'It is under the heading, above your own text.';
   async function buildGlancePage(){
     const list=await adapter.paragraphs(),guide=readGuide(list),place=glancePlacement(list);
-    await adapter.insert(()=>glanceBody(guide,{withHeading:place.withHeading,used:lessonForms(list,guide)}),pageInsert(place));
+    await adapter.insert(()=>glanceBody(guide,{withHeading:place.withHeading,used:lessonForms(list,guide),methods:lessonMethods(list,guide)}),pageInsert(place));
     await adapter.refreshFields();
     await keepOpen();
     await load();
@@ -1994,9 +2095,11 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
   $('guide-add-module').onclick=()=>act(addModule);
   $('guide-add-lesson').onclick=()=>act(addLesson);
   $('guide-agenda-start').onchange=()=>drawAgenda();
+  for(const id of ['guide-length-hours','guide-length-minutes'])$(id).onchange=()=>act(changeLength);
   $('guide-agenda-refresh').onclick=()=>act(async()=>{await load();drawAgenda();});
   $('guide-agenda-download').onclick=()=>act(makeAgenda);
   $('guide-forms-new').onclick=()=>newFormFromTool();
+  $('guide-details-form').onsubmit=e=>{e?.preventDefault?.();return act(saveDetails);};
   $('guide-forms-pack').onclick=()=>packFromTool();
   $('guide-forms-scheme').onchange=()=>act(changeScheme);
   for(const id of ['guide-forms-people','guide-forms-teams','guide-forms-tables'])$(id).onchange=()=>act(changeGroup);

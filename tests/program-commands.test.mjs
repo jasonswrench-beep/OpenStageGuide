@@ -46,7 +46,7 @@ test('each menu holds the tools the author listed (2026-11-14), in that order; S
   const {menus}=make();
   const names=id=>menuEntries(menus,id).filter(i=>i!=='-').map(i=>i.label);
   assert.deepEqual(names('start'),['Guide overview','Course settings','Course outline']);
-  assert.deepEqual(names('sections'),['Add module','Learning outcomes','Add lesson']);
+  assert.deepEqual(names('sections'),['Add module','Learning outcomes','Add lesson','Lesson details']);
   assert.deepEqual(names('activities'),['Add activity','Instructional cues','Activity library','Forms']);
   assert.deepEqual(names('slides'),['Import slides','Update from slides']);
   assert.deepEqual(names('assessment'),['Assessments','Learning alignment']);

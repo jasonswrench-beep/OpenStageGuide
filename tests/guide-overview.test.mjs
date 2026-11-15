@@ -47,9 +47,9 @@ test('the facts: each lesson with its minutes and its objective, and the module\
   const a=await guide();
   const list=await a.adapter.paragraphs(),mod=readGuide(list).modules[0];
   assert.deepEqual(overviewFacts(list,mod),{name:'Module 1: Recognize',total:35,lessons:[
-    {name:'Lesson 1.1: Listen',minutes:20,objective:'Name the feeling.'},
-    {name:'Lesson 1.2: Reframe',minutes:15,objective:'No objective yet.'}
-  ],handouts:[],facilitatorForms:[]});
+    {name:'Lesson 1.1: Listen',minutes:20,objective:'Name the feeling.',method:''},
+    {name:'Lesson 1.2: Reframe',minutes:15,objective:'No objective yet.',method:''}
+  ],handouts:[],facilitatorForms:[],slides:0});
 });
 
 test('the first build writes the author\'s lines to type over, the time line and the lessons table, in one page under the heading',async()=>{
@@ -60,13 +60,15 @@ test('the first build writes the author\'s lines to type over, the time line and
   assert.deepEqual(intro(a,'Module 1'),[
     'OSG Overview: Goal: Say what learners will be able to do by the end of this module.',
     'OSG Overview: Overview: Describe what happens in this module and how it connects to the rest of the program.',
+    'OSG Overview: Key message: State the one idea learners should keep from this module.',
     ...TABLE,
     'OSG Overview: Materials needed: List the materials, equipment and room set-up this module needs.',
+    'OSG Overview: Teaching aids: List the slides, handouts and equipment used to teach this module.',
     'OSG Overview: References and resources: List any readings, links or other resources.'
   ]);
   assert.match(a.n('guide-status').textContent,/The overview of Module 1: Recognize is built from its 2 lessons\. Type over the sentence after Goal/);
   assert.match(a.n('guide-overview-note').textContent,/matches your guide\. 1 of 2 modules has an overview\./);
-  assert.equal(a.rows().filter(r=>r.startsWith('OSG Overview')).length,5,'only module 1 has one');
+  assert.equal(a.rows().filter(r=>r.startsWith('OSG Overview')).length,7,'only module 1 has one');
 });
 
 test('a module with an overview still reads as a guide: the lessons, time blocks and totals are unchanged',async()=>{
@@ -95,7 +97,7 @@ test('building again rewrites the time line and table only: the author\'s own wo
   assert.equal(body[0],'OSG Overview: Goal: Learners can name a feeling in one sentence.');
   assert.ok(body.includes('OSG Overview: Time: 45 minutes in 3 lessons.'));
   assert.ok(body.includes('OSG Table Cell: Lesson 1.3: Close'));
-  assert.equal(body.at(-2),'OSG Overview: Materials needed: Flip chart and markers.');
+  assert.equal(body.at(-3),'OSG Overview: Materials needed: Flip chart and markers.');
   assert.match(a.n('guide-status').textContent,/Your own lines were not touched/);
   assert.match(a.n('guide-overview-note').textContent,/matches your guide/);
 });

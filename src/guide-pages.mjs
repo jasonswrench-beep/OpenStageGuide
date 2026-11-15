@@ -8,6 +8,7 @@ import {STYLE_IDS} from './guide-styles.mjs';
 import {allCues,TIME_ICON} from './guide-cues.mjs';
 import {readGuide,lessonMinutes,kindOf,cueFromText,readBlock} from './guide-model.mjs';
 import {readForms} from './guide-forms.mjs';
+import {readFacts} from './guide-facts.mjs';
 
 const alnum=s=>String(s??'').replace(/[^\p{L}\p{N}]+/gu,'').toLowerCase();
 const isHeading2=p=>/^heading 2$/i.test(String(p.style||''))||/^Heading2$/.test(String(p.builtIn||''));
@@ -82,58 +83,78 @@ export function lessonForms(paras,guide){
   return byLesson;
 }
 
+// For each lesson (by the index of its heading) that says what method it uses, the method (kit slice K1). Empty when no lesson says, which is how the pages
+// know to leave out their method columns.
+export function lessonMethods(paras,guide){
+  const byLesson=new Map();
+  for(const l of guide.modules.flatMap(m=>m.lessons)){
+    const {facts}=readFacts(paras,l);
+    if(facts.method)byLesson.set(l.index,facts.method);
+  }
+  return byLesson;
+}
+
 // ---- Training at a Glance
 export const GLANCE_HEADING='Training at a Glance';
 export const GLANCE_INTRO='The minutes each module and lesson takes, and the minute of the session at which each one starts.';
 export const GLANCE_HEAD=['Module or lesson','Minutes','Starts at minute'];
 const GLANCE_WIDTHS=[5560,1900,1900];
-// A guide whose blocks cite forms gets a fourth column that lists them (the author's request, F1b of the forms spec); one that cites none keeps the three.
-const GLANCE_FORMS_HEAD='Forms used';
-const GLANCE_FORMS_WIDTHS=[4000,1200,1300,2860];
+// Two columns are added only when there is something to put in them: Method (a lesson says what method it uses) and Forms used (blocks cite forms). A guide
+// with neither keeps the three it always had.
+const GLANCE_METHOD_HEAD='Method',GLANCE_FORMS_HEAD='Forms used';
+const GLANCE_WIDTHS_BY={method:[4300,1200,1300,2560],forms:[4000,1200,1300,2860],both:[3300,1100,1200,1700,2060]};
+const glanceColumns=(used,methods)=>{
+  const method=methods.size>0,forms=used.size>0;
+  return {method,forms,heads:[...GLANCE_HEAD,...(method?[GLANCE_METHOD_HEAD]:[]),...(forms?[GLANCE_FORMS_HEAD]:[])],widths:method&&forms?GLANCE_WIDTHS_BY.both:method?GLANCE_WIDTHS_BY.method:forms?GLANCE_WIDTHS_BY.forms:GLANCE_WIDTHS};
+};
 const GLANCE_CLOSING='Total teaching time';
 const glanceTotal=total=>`${GLANCE_CLOSING}: ${plural(total,'minute')}.`;
 const GLANCE_SHAPE={intro:GLANCE_INTRO,firstHead:GLANCE_HEAD[0],closing:GLANCE_CLOSING};
 
 // One row for each module (its lessons' minutes added up) and each lesson. A lesson starts at the minutes taught before it,
 // the same cumulative time the lesson's own time block shows.
-export function glanceRows(guide,used=new Map()){
+export function glanceRows(guide,used=new Map(),methods=new Map()){
   const rows=[];let cumulative=0;
   for(const mod of guide.modules){
     const start=cumulative,inModule=[];
     const lessons=mod.lessons.map(l=>{
-      const minutes=lessonMinutes(l),names=used.get(l.index)||[],r={kind:'lesson',name:l.text||'Untitled lesson',minutes,starts:cumulative,forms:names.join(', ')};
+      const minutes=lessonMinutes(l),names=used.get(l.index)||[],r={kind:'lesson',name:l.text||'Untitled lesson',minutes,starts:cumulative,method:methods.get(l.index)||'',forms:names.join(', ')};
       for(const n of names)if(!inModule.includes(n))inModule.push(n);
       cumulative+=minutes;return r;
     });
-    if(mod.index>=0)rows.push({kind:'module',name:mod.text||'Untitled module',minutes:cumulative-start,starts:start,forms:inModule.join(', ')});
+    if(mod.index>=0)rows.push({kind:'module',name:mod.text||'Untitled module',minutes:cumulative-start,starts:start,method:'',forms:inModule.join(', ')});
     rows.push(...lessons);
   }
   return {rows,total:cumulative};
 }
-const glanceWords=(guide,used=new Map())=>{
-  const {rows,total}=glanceRows(guide,used),withForms=used.size>0;
-  return [GLANCE_INTRO,...GLANCE_HEAD,...(withForms?[GLANCE_FORMS_HEAD]:[]),...rows.flatMap(r=>[r.name,String(r.minutes),String(r.starts),...(withForms?[r.forms]:[])]),glanceTotal(total)];
+const glanceWords=(guide,used=new Map(),methods=new Map())=>{
+  const {rows,total}=glanceRows(guide,used,methods),c=glanceColumns(used,methods);
+  return [GLANCE_INTRO,...c.heads,...rows.flatMap(r=>[r.name,String(r.minutes),String(r.starts),...(c.method?[r.method]:[]),...(c.forms?[r.forms]:[])]),glanceTotal(total)];
 };
 
-// `used` is lessonForms' map: when it holds anything, the table has a fourth column naming the forms each lesson cites (a module row lists those of its lessons).
-export function glanceBody(guide,{withHeading=false,used=new Map()}={}){
-  const {rows,total}=glanceRows(guide,used),withForms=used.size>0;
+// `used` is lessonForms' map and `methods` lessonMethods': what each holds decides which of the two extra columns the table has (a module row lists the forms of
+// its lessons, and no method).
+export function glanceBody(guide,{withHeading=false,used=new Map(),methods=new Map()}={}){
+  const {rows,total}=glanceRows(guide,used,methods),c=glanceColumns(used,methods);
   if(!rows.some(r=>r.kind==='lesson'))throw new Error('Add a module and a lesson first. Training at a Glance lists them with their times.');
-  const widths=withForms?GLANCE_FORMS_WIDTHS:GLANCE_WIDTHS,heads=withForms?[...GLANCE_HEAD,GLANCE_FORMS_HEAD]:GLANCE_HEAD;
+  const widths=c.widths;
   const trs=[
-    row(heads.map((t,i)=>head(t,widths[i],i>0&&i<3)),{header:true}),
+    row(c.heads.map((t,i)=>head(t,widths[i],i>0&&i<3)),{header:true}),
     ...rows.map(r=>{
       const fill=r.kind==='module'?MODULE_FILL:undefined;
+      let at=3;
       return row([
         cell(widths[0],para(STYLE_IDS.tableCell,run(r.name,r.kind==='module'?STYLE_IDS.cueLabel:undefined)),{fill}),
         cell(widths[1],para(STYLE_IDS.tableCell,run(String(r.minutes)),CENTRED),{fill}),
         cell(widths[2],para(STYLE_IDS.tableCell,run(String(r.starts)),CENTRED),{fill}),
-        ...(withForms?[cell(widths[3],para(STYLE_IDS.tableCell,r.forms?run(r.forms):''),{fill})]:[])
+        ...(c.method?[cell(widths[at++],para(STYLE_IDS.tableCell,r.method?run(r.method):''),{fill})]:[]),
+        ...(c.forms?[cell(widths[at++],para(STYLE_IDS.tableCell,r.forms?run(r.forms):''),{fill})]:[])
       ]);
     })
   ];
+  const extras=[c.method?'the method of each lesson':'',c.forms?'the forms its blocks cite':''].filter(Boolean).join(' and ');
   return (withHeading?heading(2,GLANCE_HEADING):'')+para(null,run(GLANCE_INTRO))
-    +table(widths,trs,{caption:'Training at a Glance',description:`Each module and lesson of the guide, with the minutes it takes and the minute at which it starts${withForms?', and the forms its blocks cite':''}. Module rows give the total for their lessons.`})
+    +table(widths,trs,{caption:'Training at a Glance',description:`Each module and lesson of the guide, with the minutes it takes and the minute at which it starts${extras?`, and ${extras}`:''}. Module rows give the total for their lessons.`})
     +para(null,run(glanceTotal(total)));
 }
 
@@ -141,7 +162,7 @@ export function glanceBody(guide,{withHeading=false,used=new Map()}={}){
 export function glanceState(paras){
   const gi=headingIndex(paras,GLANCE_HEADING),built=gi>=0?findBuilt(paras,gi,GLANCE_SHAPE):null;
   const guide=readGuide(paras);
-  return {built:!!built,stale:built?!sameWords(paras,built,glanceWords(guide,lessonForms(paras,guide))):false};
+  return {built:!!built,stale:built?!sameWords(paras,built,glanceWords(guide,lessonForms(paras,guide),lessonMethods(paras,guide))):false};
 }
 // What building the page does to the document: what it replaces (a table built before, or the untouched placeholder and
 // nothing else), where it goes, and whether it must bring its own heading.
@@ -213,10 +234,12 @@ export const OVERVIEW_HEAD=['Lesson','Minutes','Objective'];
 const OVERVIEW_WIDTHS=[3200,1100,PAGE-4300];
 const OVERVIEW_TOP=[
   ['Goal:','Say what learners will be able to do by the end of this module.'],
-  ['Overview:','Describe what happens in this module and how it connects to the rest of the program.']
+  ['Overview:','Describe what happens in this module and how it connects to the rest of the program.'],
+  ['Key message:','State the one idea learners should keep from this module.']
 ];
 const OVERVIEW_BOTTOM=[
   ['Materials needed:','List the materials, equipment and room set-up this module needs.'],
+  ['Teaching aids:','List the slides, handouts and equipment used to teach this module.'],
   ['References and resources:','List any readings, links or other resources.']
 ];
 const NO_OBJECTIVE='No objective yet.';
@@ -236,31 +259,40 @@ export function overviewFacts(paras,mod){
         const b=readBlock(paras,i);
         if(b?.text.trim())objectives.push(b.text.replace(/\s*\n\s*/g,' ').trim());
       }
-    return {name:l.text||'Untitled lesson',minutes:lessonMinutes(l),objective:objectives.join('; ')||NO_OBJECTIVE};
+    return {name:l.text||'Untitled lesson',minutes:lessonMinutes(l),objective:objectives.join('; ')||NO_OBJECTIVE,method:readFacts(paras,l).facts.method};
   });
   // The forms the module's blocks cite, for the participants and for the facilitator only (empty unless the guide cites forms).
   const cited=formsCited(paras,mod.index,mod.end);
-  return {name:mod.text||'This module',lessons,total:lessons.reduce((n,l)=>n+l.minutes,0),handouts:cited.everyone,facilitatorForms:cited.facilitator};
+  // The slides of the module's lessons, counted from the Slide blocks (kit slice K1).
+  let slides=0;
+  for(let i=mod.index+1;i<=mod.end;i++)if(kindOf(paras[i])==='cue'&&cueFromText(paras[i].text)?.id==='slide')slides++;
+  return {name:mod.text||'This module',lessons,total:lessons.reduce((n,l)=>n+l.minutes,0),handouts:cited.everyone,facilitatorForms:cited.facilitator,slides};
 }
 // The lines under the lessons table that name the forms: "Participant handouts: Handout 1.1, Checklist 1.2." and, when there are any, "Facilitator forms: ...".
-const formLines=facts=>[...(facts.handouts?.length?[['Participant handouts:',` ${facts.handouts.join(', ')}.`]]:[]),...(facts.facilitatorForms?.length?[['Facilitator forms:',` ${facts.facilitatorForms.join(', ')}.`]]:[])];
-const FORM_LINE=/^[^A-Za-z]*(Participant handouts|Facilitator forms):/;
-const overviewWords=facts=>[timeLine(facts),...OVERVIEW_HEAD,...facts.lessons.flatMap(l=>[l.name,String(l.minutes),l.objective]),...formLines(facts).map(([a,b])=>`${a}${b}`)];
+const formLines=facts=>[...(facts.handouts?.length?[['Participant handouts:',` ${facts.handouts.join(', ')}.`]]:[]),...(facts.facilitatorForms?.length?[['Facilitator forms:',` ${facts.facilitatorForms.join(', ')}.`]]:[]),...(facts.slides>0?[['Slides:',` ${plural(facts.slides,'slide')}.`]]:[])];
+const FORM_LINE=/^[^A-Za-z]*(Participant handouts|Facilitator forms|Slides):/;
+// With any lesson that says its method the lessons table has a Method column; with none it keeps its three.
+const overviewColumns=facts=>{const method=facts.lessons.some(l=>l.method);return {method,heads:method?['Lesson','Minutes','Method','Objective']:OVERVIEW_HEAD,widths:method?[2700,1000,1700,PAGE-5400]:OVERVIEW_WIDTHS};};
+const overviewWords=facts=>{
+  const c=overviewColumns(facts);
+  return [timeLine(facts),...c.heads,...facts.lessons.flatMap(l=>[l.name,String(l.minutes),...(c.method?[l.method]:[]),l.objective]),...formLines(facts).map(([a,b])=>`${a}${b}`)];
+};
 
 // withAuthored is true for a first build, which also writes the author's own lines; otherwise only the time line and the lessons table.
 export function overviewBody(facts,{withAuthored=false}={}){
   if(!facts.lessons.length)throw new Error('Add a lesson to this module first. The overview lists its lessons with their minutes.');
-  const [w0,w1,w2]=OVERVIEW_WIDTHS;
+  const c=overviewColumns(facts),widths=c.widths;
   const trs=[
-    row(OVERVIEW_HEAD.map((t,i)=>head(t,OVERVIEW_WIDTHS[i],i===1)),{header:true}),
+    row(c.heads.map((t,i)=>head(t,widths[i],i===1)),{header:true}),
     ...facts.lessons.map(l=>row([
-      cell(w0,para(STYLE_IDS.tableCell,run(l.name))),
-      cell(w1,para(STYLE_IDS.tableCell,run(String(l.minutes)),CENTRED)),
-      cell(w2,para(STYLE_IDS.tableCell,run(l.objective)))
+      cell(widths[0],para(STYLE_IDS.tableCell,run(l.name))),
+      cell(widths[1],para(STYLE_IDS.tableCell,run(String(l.minutes)),CENTRED)),
+      ...(c.method?[cell(widths[2],para(STYLE_IDS.tableCell,l.method?run(l.method):''))]:[]),
+      cell(widths[c.method?3:2],para(STYLE_IDS.tableCell,run(l.objective)))
     ]))
   ];
   const generated=para(STYLE_IDS.overview,run('Time:',STYLE_IDS.cueLabel)+run(timeLine(facts).slice('Time:'.length)))
-    +table(OVERVIEW_WIDTHS,trs,{caption:`Lessons in ${facts.name}`,description:`Each lesson in ${facts.name}, with the minutes it takes and its objective.`})
+    +table(widths,trs,{caption:`Lessons in ${facts.name}`,description:`Each lesson in ${facts.name}, with the minutes it takes${c.method?', its method':''} and its objective.`})
     +formLines(facts).map(([a,b])=>para(STYLE_IDS.overview,run(a,STYLE_IDS.cueLabel)+run(b))).join('');
   return withAuthored?OVERVIEW_TOP.map(overviewLine).join('')+generated+OVERVIEW_BOTTOM.map(overviewLine).join(''):generated;
 }

@@ -82,6 +82,7 @@ export function classify(paras){
         else drop(formAudience==='facilitator'?'facilitator-form':(text?'own':'blank'));
         break;
       case 'form-print':drop('form-print');break;
+      case 'fact':drop('fact');break;
       case 'notes':drop('notes');break;
       case 'time':drop('time');break;
       case 'answer-key':case 'key-table-head':case 'key-table-cell':drop('key');break;
@@ -322,7 +323,7 @@ function flatten(source){
   const owner=entries.map(e=>e.localName==='p'?[flat.push(e)-1]:Array.from(e.getElementsByTagNameNS(W,'p')).map(p=>flat.push(p)-1));
   return {entries,owner,paras:flat.map(p=>paragraphInfo(p,source.styles))};
 }
-const FACILITATOR_REASONS=['facilitator-block','facilitator-form','form-print','notes','key','time'];
+const FACILITATOR_REASONS=['facilitator-block','facilitator-form','form-print','fact','notes','key','time'];
 // A facilitator paragraph starts with a label the pane wrote ("Facilitator notes:", "Answer key (...):", a cue's name), and
 // someone copying only its words would leave the label behind. So the whole paragraph and what is left after taking off a
 // block's minutes and the label are both searched for; the second only when it is long enough to be a safe thing to search for.

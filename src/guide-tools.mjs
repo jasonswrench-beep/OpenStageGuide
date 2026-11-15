@@ -29,7 +29,7 @@ export const GROUPS=Object.freeze([
 // form's lesson half, or half of Review guide. Save and Restore a backup are in File and Help is in Help, as before.
 export const PROGRAM_MENUS=Object.freeze([
   {id:'start',label:'Start',tools:['openDesigner','courseSettings','courseOutline']},
-  {id:'sections',label:'Sections',tools:['addModule','learningOutcomes','addLesson']},
+  {id:'sections',label:'Sections',tools:['addModule','learningOutcomes','addLesson','lessonDetails']},
   {id:'activities',label:'Activities',tools:['addActivity','instructionalCues','activityLibrary','forms']},
   {id:'slides',label:'Slides',tools:['importSlides','updateFromSlides']},
   {id:'assessment',label:'Assessment',tools:['assessments','learningAlignment']},
@@ -43,7 +43,7 @@ export const GUIDE_SECTIONS=Object.freeze([
   'guide-sec-module','guide-sec-lesson','guide-sec-block','guide-sec-owncues',
   'guide-sec-import','guide-sec-update',
   'guide-sec-look','guide-sec-standard','guide-sec-built',
-  'guide-sec-move','guide-sec-keeptidy','guide-sec-contents','guide-sec-library','guide-sec-agenda','guide-sec-forms','guide-sec-align','guide-sec-versions',
+  'guide-sec-move','guide-sec-keeptidy','guide-sec-contents','guide-sec-library','guide-sec-agenda','guide-sec-forms','guide-sec-details','guide-sec-align','guide-sec-versions',
   'guide-sec-backup','guide-sec-restore'
 ]);
 
@@ -119,7 +119,7 @@ export const TOOLS=Object.freeze(Object.fromEntries([
 export const PROGRAM_TOOLS=Object.freeze(Object.fromEntries([
   tool('addLesson',{label:'Add Lesson',icon:'AddLesson',group:'sections',kind:'guide',part:'add',sections:['guide-sec-lesson'],selected:true,
     title:'Add a lesson',note:'A lesson goes after the lesson your cursor is in.',
-    tip:'Add a lesson with its title and minutes; the program numbers it and gives it a time line.',related:['addModule','learningOutcomes','instructionalCues']}),
+    tip:'Add a lesson with its title and minutes; the program numbers it and gives it a time line.',related:['addModule','learningOutcomes','instructionalCues','lessonDetails']}),
   tool('learningOutcomes',{label:'Learning Outcomes',icon:'LearningOutcomes',group:'sections',kind:'guide',part:'add',sections:['guide-sec-block'],selected:true,preset:{cue:'objective',parts:false},
     title:'Learning outcomes',note:'What learners will be able to do, written as an Objective block.',
     tip:'Write what learners will be able to do after a lesson, as an Objective block.',related:['learningAlignment','addLesson','instructionalCues']}),
@@ -131,7 +131,10 @@ export const PROGRAM_TOOLS=Object.freeze(Object.fromEntries([
     tip:'Check the guide for what a screen reader and a reader with low vision need: heading levels, picture descriptions, table headers, color contrast and text size.',related:['reviewGuide','appearance','timingAndAgenda']}),
   tool('forms',{label:'Forms',icon:'Forms',group:'activities',kind:'guide',part:'organize',sections:['guide-sec-forms'],
     title:'Forms',note:'The handouts, worksheets and forms in your guide, how they are numbered and how many copies to make.',
-    tip:'See every form in the guide with its number and print line, start a new one, choose how forms are numbered, and say how many people, teams and tables there will be to work out the copies to make.',related:['addActivity','instructionalCues','reviewGuide']})
+    tip:'See every form in the guide with its number and print line, start a new one, choose how forms are numbered, and say how many people, teams and tables there will be to work out the copies to make.',related:['addActivity','instructionalCues','reviewGuide']}),
+  tool('lessonDetails',{label:'Lesson Details',icon:'LessonDetails',group:'sections',kind:'guide',part:'organize',sections:['guide-sec-details'],selected:true,
+    title:'Lesson details',note:'Purpose, materials, method, range of minutes, how people work together and whether the lesson may be left out.',
+    tip:'Write down a lesson\'s purpose, materials and method, the minutes the facilitator may take, how people work together, the size of the group, and whether it is optional or one to choose from.',related:['addLesson','timingAndAgenda','reviewGuide']})
 ]));
 
 export const TOOL_IDS=Object.freeze(Object.keys(TOOLS));
@@ -151,6 +154,7 @@ export const PROGRAM_NAMES=Object.freeze({
   instructionalCues:'Instructional cues',
   activityLibrary:'Activity library',
   forms:'Forms',
+  lessonDetails:'Lesson details',
   importSlides:'Import slides',
   updateFromSlides:'Update from slides',
   eLearningScreens:'E-learning screens',

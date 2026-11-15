@@ -6,6 +6,7 @@ import {ACK_HEADING,PERSPECTIVE_HEADING,APPENDIX_HEADING} from './guide-ooxml.mj
 import {allCues,ACTIVITY_PARTS} from './guide-cues.mjs';
 import {ITEM_TYPES,RATING_SCALES,itemTypeByKeyLabel,readNumericKey} from './guide-items.mjs';
 import {formPlan} from './guide-forms.mjs';
+import {factIssues,dayIssues,lengthIssue} from './guide-facts.mjs';
 
 const MODULE=/^Module\s+(\d+)\s*:\s*(.*)$/s;
 const LESSON=/^Lesson\s+(\d+)\.(\d+)\s*:\s*(.*)$/s;
@@ -36,6 +37,7 @@ export const kindOf=p=>{
   if(s===STYLE_NAMES.formSource)return 'form-source';
   if(s===STYLE_NAMES.formPrint)return 'form-print';
   if(s===STYLE_NAMES.formCard)return 'form-card';
+  if(s===STYLE_NAMES.fact)return 'fact';
   if(s===STYLE_NAMES.tableHead)return 'table-head';
   if(s===STYLE_NAMES.tableCell)return 'table-cell';
   if(s===STYLE_NAMES.ratingBox)return 'rating-box';
@@ -72,15 +74,20 @@ export function readGuide(paras){
       case 'lesson':{
         guide.isGuide=true;ensureModule();
         const m=LESSON.exec(text);
-        lesson={index,text,title:m?m[3].trim():text,numbered:!!m,timeIndex:-1,timeMinutes:null,timeCumulative:null,blockMinutes:0,cues:0,end:index};
+        lesson={index,text,title:m?m[3].trim():text,numbered:!!m,timeIndex:-1,headerEnd:-1,timeMinutes:null,timeCumulative:null,blockMinutes:0,cues:0,end:index};
         mod.lessons.push(lesson);break;
       }
       case 'time':{
         if(lesson&&lesson.timeIndex<0){
-          lesson.timeIndex=index;
+          lesson.timeIndex=index;lesson.headerEnd=index;
           const m=TIME.exec(text);
           if(m){lesson.timeMinutes=Number(m[1]);lesson.timeCumulative=Number(m[2]);}
         }
+        break;
+      }
+      // The facts about a lesson (purpose, materials, method, ...) sit straight under its time line; where they end is where its blocks begin.
+      case 'fact':{
+        if(lesson&&lesson.headerEnd>=0&&index===lesson.headerEnd+1)lesson.headerEnd=index;
         break;
       }
       case 'cue':{
@@ -102,7 +109,7 @@ export function readGuide(paras){
     let end=m.index;
     for(const l of m.lessons){
       let last=l.index;
-      for(let i=l.index+1;i<paras.length&&!isStop(i);i++)if(['time','cue','body','notes'].includes(kindOf(paras[i])))last=i;
+      for(let i=l.index+1;i<paras.length&&!isStop(i);i++)if(['time','fact','cue','body','notes'].includes(kindOf(paras[i])))last=i;
       l.end=last;end=Math.max(end,last);
     }
     if(m.transitionIndex>=0)end=Math.max(end,blockSpan(paras,m.transitionIndex).end);
@@ -135,7 +142,7 @@ export function blockAnchor(paras,at){
   }
   if(kindOf(paras[at]||{})==='lesson'){
     const lesson=readGuide(paras).modules.flatMap(m=>m.lessons).find(l=>l.index===at);
-    if(lesson&&lesson.timeIndex===at+1)return lesson.timeIndex;
+    if(lesson&&lesson.timeIndex===at+1)return lesson.headerEnd;
   }
   return Math.max(at,0);
 }
@@ -300,7 +307,11 @@ export function updatePlan(paras,options={}){
   }
   const forms=formPlan(paras,options.forms||{});
   edits.push(...forms.edits);
-  return {guide,assess,forms,edits,totalMinutes:cumulative};
+  // The ids of the cues of a lesson's blocks, so a day with no break in it can be found.
+  const cueIdsOf=l=>{const ids=[];for(let i=l.index+1;i<=l.end;i++)if(kindOf(paras[i])==='cue'){const c=cueFromText(paras[i].text);if(c)ids.push(c.id);}return ids;};
+  const length=lengthIssue(cumulative,options.forms?.time?.minutes);
+  const facts={issues:[...factIssues(paras,guide,lessonMinutes),...dayIssues(paras,guide,lessonMinutes,cueIdsOf),...(length?[length]:[])]};
+  return {guide,assess,forms,facts,edits,totalMinutes:cumulative};
 }
 
 // Whether the contents table lists the headings the guide has. Page numbers cannot be told from here, so a table
@@ -353,6 +364,7 @@ export function guideIssues(plan){
       if(item.options&&!item.hasKey)out.push({level:'warn',rule:'ITEM-KEY',message:`${item.label} has no answer key.`,paragraph:item.index});
   }
   out.push(...(plan.forms?.issues||[]));
+  out.push(...(plan.facts?.issues||[]));
   if(edits.length)out.push({level:'warn',rule:'OUT-OF-DATE',message:`${edits.length} number${edits.length===1?'':'s'} or time${edits.length===1?' is':'s are'} out of date. Choose Update guide.`,paragraph:edits[0].index});
   return out;
 }

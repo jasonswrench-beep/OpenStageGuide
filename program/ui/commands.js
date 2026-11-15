@@ -38,6 +38,7 @@ export const TOOL_ICONS = {
   instructionalCues: "message-square",
   activityLibrary: "library",
   forms: "file-text",
+  lessonDetails: "id-card",
   importSlides: "presentation",
   updateFromSlides: "refresh-cw",
   eLearningScreens: "monitor-play",

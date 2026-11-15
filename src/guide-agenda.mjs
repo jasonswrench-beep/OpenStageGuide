@@ -8,6 +8,7 @@ import {readGuide,kindOf,cueFromText,lessonMinutes} from './guide-model.mjs';
 import {para,run,esc} from './guide-ooxml.mjs';
 import {NS,stylesPart} from './guide-styles.mjs';
 import {clockLabel} from './planning.mjs';
+import {readFacts,CLOCK} from './guide-facts.mjs';
 
 export const START_TIME=/^([01]?\d|2[0-3]):([0-5]\d)$/;
 const BLOCK_MINUTES=/\s*\((\d+) min\)\s*$/;
@@ -36,15 +37,27 @@ export function guideAgenda(paras,start='09:00'){
   if(!m)throw new Error('Choose a valid start time.');
   const begin=Number(m[1])*3600+Number(m[2])*60;
   const guide=readGuide(paras),rows=[],notes=[];
-  let cursor=begin;
+  let cursor=begin,total=0,day=0;
+  // A lesson whose facts say "New day: 9:00" starts a day of its own: the clock goes back to that time, and the agenda says which day it is (kit slice K2).
+  const several=guide.modules.some(m=>m.lessons.some(l=>readFacts(paras,l).facts.newDay));
   for(const mod of guide.modules){
     if(!mod.lessons.length)continue;
-    rows.push({kind:'module',text:mod.text||mod.title,index:mod.index});
+    let moduleRowDone=false;
     for(const l of mod.lessons){
+      const facts=readFacts(paras,l).facts;
+      const startsDay=several&&(day===0||facts.newDay);
+      if(startsDay){
+        day++;
+        if(facts.newDay){const c=CLOCK.exec(facts.newDay);cursor=Number(c[1])*3600+Number(c[2])*60;}
+        rows.push({kind:'day',text:`Day ${day}`,index:l.index});
+        moduleRowDone=false;
+      }
+      if(!moduleRowDone){rows.push({kind:'module',text:mod.text||mod.title,index:mod.index});moduleRowDone=true;}
       const minutes=lessonMinutes(l),first=cursor,last=cursor+minutes*60;
+      total+=minutes;
       if(!minutes)notes.push({index:l.index,text:`${l.text} has no minutes, so it takes no time here. Give it a time, or minutes on its blocks.`});
       else if(l.blockMinutes>0&&l.timeMinutes!==null&&l.timeMinutes!==l.blockMinutes)notes.push({index:l.index,text:`${l.text}: its time line says ${l.timeMinutes} minutes but its blocks add up to ${l.blockMinutes}. The agenda uses ${l.blockMinutes}. Choose Update guide to bring them together.`});
-      rows.push({kind:'lesson',text:l.text,index:l.index,start:clockLabel(first),end:clockLabel(last),minutes});
+      rows.push({kind:'lesson',text:`${l.text}${facts.mode?` (${facts.mode})`:''}`,index:l.index,start:clockLabel(first),end:clockLabel(last),minutes,...(facts.mode?{mode:facts.mode}:{})});
       let t=first;
       for(const b of blocksOf(paras,l)){
         if(b.minutes<=0)continue;
@@ -55,12 +68,14 @@ export function guideAgenda(paras,start='09:00'){
     }
   }
   const lessons=rows.filter(r=>r.kind==='lesson').length;
-  return {title:guide.title||'Guide',start:clockLabel(begin),end:clockLabel(cursor),minutes:(cursor-begin)/60,lessons,rows,notes};
+  return {title:guide.title||'Guide',start:clockLabel(begin),end:clockLabel(cursor),minutes:total,lessons,days:Math.max(day,lessons?1:0),rows,notes};
 }
 
 // What the pane says above the table.
 export const agendaSummary=a=>a.lessons
-  ?`${a.lessons} ${a.lessons===1?'lesson':'lessons'}, ${a.minutes} ${a.minutes===1?'minute':'minutes'}, ${a.start} to ${a.end}.`
+  ?(a.days>1
+    ?`${a.lessons} ${a.lessons===1?'lesson':'lessons'} in ${a.days} days, ${a.minutes} ${a.minutes===1?'minute':'minutes'}, the first day from ${a.start}.`
+    :`${a.lessons} ${a.lessons===1?'lesson':'lessons'}, ${a.minutes} ${a.minutes===1?'minute':'minutes'}, ${a.start} to ${a.end}.`)
   :'There are no lessons yet. Add a module and a lesson, then give them minutes.';
 
 // ---- the agenda as a Word file: a table for each module (header row, repeated on each page), lessons in bold, timed blocks indented
@@ -82,7 +97,8 @@ export function agendaFiles(a,{language='en-US'}={}){
   let group=null;
   const flush=()=>{if(group&&group.rows.length)body.push(para('Heading1',run(group.text)),tableOf(group.rows),para(null,''));};
   for(const r of a.rows){
-    if(r.kind==='module'){flush();group={text:r.text,rows:[]};}
+    if(r.kind==='day'){flush();group=null;body.push(para('Heading1',run(r.text)));}
+    else if(r.kind==='module'){flush();group={text:r.text,rows:[]};}
     else if(group)group.rows.push(r);
   }
   flush();
