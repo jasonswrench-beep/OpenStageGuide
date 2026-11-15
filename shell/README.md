@@ -52,7 +52,15 @@ The icons in `src-tauri/icons` are made from the product icon (`public/assets/ri
 
 ## State (2026-11-14)
 
-**Latest: v0.1.0-alpha.4**, published the same day as a pre-release (tag on 8af0500; on GitHub `OpenStage-Guide-0.1.0-alpha.4-Setup.exe`, 29,092,600 bytes,
+**Latest: v0.1.0-alpha.5**, published the same day as a pre-release (tag on 8bd69c8; on GitHub `OpenStage-Guide-0.1.0-alpha.5-Setup.exe`, 29,099,424 bytes,
+SHA-256 `68fa136c63bec5883f13bfda14b10bf9811631d094b1aaae7bb9925b7bcbd028`, About reads build `b1b05fdd`), built with `python -I tools/build_installer.py --sign`. It adds
+only the new wording of the Accessibility screen (the Word check is advised for a Word file saved from the guide; Go there says "in the guide"). Signed and timestamped as below
+(8 of our files by Jason Wrench; Node keeps its makers' signature), unpacked: 259 files of the program identical to the commit, `release.txt` says `v0.1.0-alpha.5`, the five
+browser checks pass on the unpacked files with the setup's own Node (112, 29, 217, 7, 6), and its signed window, started from the unpacked folder, showed the fourteen menus
+on one row at 1360 by 900. Downloaded again from GitHub without signing in, the file has the same hash and a valid signature, and a copy that says it is alpha 4 asked
+Check for updates and was told alpha 5 is out. Not yet seen installed by the author.
+
+**v0.1.0-alpha.4**, published the same day as a pre-release (tag on 8af0500; on GitHub `OpenStage-Guide-0.1.0-alpha.4-Setup.exe`, 29,092,600 bytes,
 SHA-256 `b174758911e0395313f37e1678c476a113fd0b61c1571f0798cbaeaf1f36f236`, About reads build `e27dca16`), built with `python -I tools/build_installer.py --sign`. It adds
 the fourteen menus (Start, Sections, Activities, Slides, Assessment, eLearning, Check & Plan, Make between View and Help; `PROGRAM_MENUS` in `src/guide-tools.mjs`), the four
 tools only the program has (Add Lesson, Learning Outcomes, E-Learning Cues, Accessibility) and the blocks' icons drawn on the guide's page. Signed and timestamped as below
