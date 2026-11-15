@@ -615,7 +615,8 @@ try{
   ok(await fpage.locator('dialog[open] #dlg-name').inputValue()==='Pasted workshop','the pasted guide is offered the first line as its name');
   await fpage.locator('dialog[open]').getByRole('button',{name:'Make the guide'}).click();
   await fpage.waitForFunction(()=>/^Pasted workshop/.test(document.title)&&/Module 1: Welcome/.test(document.querySelector('#work-guide')?.innerText||'')&&/Say hello to everyone\./.test(document.querySelector('#work-guide')?.innerText||''),null,{timeout:20000});
-  const pasted=await fpage.locator('#work-guide').innerText();
+  // (the page draws the new guide more than once while it opens: read it again until it holds the lines, rather than once at the moment the wait ended)
+  let pasted='';for(let i=0;i<40&&!(/Lesson 1\.1: Hello/.test(pasted)&&/Say hello to everyone\./.test(pasted));i++){pasted=await fpage.locator('#work-guide').innerText();if(!/Say hello to everyone\./.test(pasted))await fpage.waitForTimeout(250);}
   ok(/Lesson 1\.1: Hello/.test(pasted)&&/Say hello to everyone\./.test(pasted),'the pasted lines are the guide: a module, a lesson and a plain line: '+pasted.replace(/\s+/g,' ').slice(0,160));
   ok(files(GUIDES).some(f=>/^Pasted workshop\.guide-project\.json$/.test(f))&&files(GUIDES).some(f=>f==='Forms check.guide-project.json'),'it is a new guide beside the first, which is not changed');
   // ---- the kit's tools in the program: lesson details, reference pages, the layout of the Word file and the materials list
