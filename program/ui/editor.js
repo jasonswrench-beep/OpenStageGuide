@@ -13,6 +13,8 @@ import { KINDS, canBullet, isBulleted, isHeading, joinWords, kindChange, nextPar
 import { applyChange, cleanChange, rprAt, slice, summarize } from "../../src/guide-runs.mjs";
 import { canFormat, readParagraphFormat, withParagraphFormat } from "../../src/guide-format.mjs";
 import { idForName } from "../../src/guide-styles-edit.mjs";
+import { lessonSpan, topSpan, tidyMove, tidyTarget, updatePlan } from "../../src/guide-model.mjs";
+import { readSettings } from "../../src/guide-forms.mjs";
 import { addColumn, addRow, deleteColumn, deleteRow, mergeCell, readTable, setCellWords, setTableAlt, splitCell, ALT_LIMITS } from "../../src/guide-table.mjs";
 import { readPicture, setPicture, DESCRIPTION_LIMIT } from "../../src/guide-picture.mjs";
 import { PICTURE_WIDTHS } from "../../src/image-prepare.mjs";
@@ -125,10 +127,19 @@ export function mountEditor(doc, host, guide, ui) {
   }
 
   /** @param {Row} row @param {Entry} entry */
+  /** The kinds of heading that start a part of the guide that moves as a whole. */
+  const SECTIONS = /** @type {Record<string, string>} */ ({ "OSG Module": "module", "OSG Assessment": "assessment section", "OSG Lesson": "lesson" });
+
   function decorate(row, entry) {
     const info = readParagraph(entry.xml ?? "", entry.style ?? "Normal", io);
     row.el.dataset.editable = info.editable ? "true" : "false";
     row.el.setAttribute("aria-description", info.editable ? "Press Enter to change the words." : info.reason ?? "This part is changed with the tools beside the guide.");
+    // A module, a lesson or an assessment section can be dragged to another place; the keys Alt+Shift+Up and Alt+Shift+Down (and the Edit menu) do the same without a mouse.
+    const section = SECTIONS[entry.style ?? ""];
+    row.el.draggable = !!section;
+    row.el.classList.toggle("g-draggable", !!section);
+    if (section) row.el.title = `Drag to move this ${section}, with everything in it`;
+    else row.el.removeAttribute("title");
   }
 
   /** How the guide's styles look now (the changes the author made, drawn over the usual look), remade only when those change. */
@@ -819,6 +830,126 @@ export function mountEditor(doc, host, guide, ui) {
   }
 
   /** The rows a command is for: the ones chosen together, or the one the author is on. */
+  // ---- moving a whole module or lesson (from the keyboard, the Edit menu or by dragging a heading)
+  /**
+   * The span that moves with the heading of the paragraph `at`, and its name: a lesson with its blocks, or a module with its lessons.
+   * @param {number} at @returns {{ kind: string, span: { start: number, end: number }, text: string, module: any } | null}
+   */
+  function sectionAt(at) {
+    return tidyTarget(entries, at);
+  }
+
+  /**
+   * Put a part of the guide after paragraph `after`, then bring the numbers, the lesson times and the contents up to date, all as one step of Undo.
+   * @param {{ start: number, end: number }} span @param {number} after @param {string} what
+   */
+  async function putSection(span, after, what) {
+    stopEdit();
+    const group = `move-${Date.now()}-${Math.random()}`;
+    try {
+      const moved = await guide.moveRange({ start: span.start, end: span.end, guard: entries[span.start]?.text ?? "", after, group });
+      const list = guide.exportState().paragraphs;
+      const plan = updatePlan(list, { forms: readSettings(await guide.formSettings?.()) });
+      if (plan.edits.length) await guide.applyEdits(plan.edits, { group });
+      await guide.refreshFields?.();
+      render();
+      select(moved.at, moved.at + (span.end - span.start));
+      focusRow(rowNear(moved.at));
+      ui.say(`${what} moved. The numbers, the times and the contents are up to date. Ctrl+Z takes it back.`);
+    } catch (e) {
+      ui.say(messageOf(e), true);
+    }
+  }
+
+  /** @param {number} step -1 for up, 1 for down */
+  async function moveSection(step) {
+    const rows = targetRows();
+    if (!rows.length) return;
+    await settle();
+    const target = sectionAt(idx(rows[0]));
+    if (!target) return ui.say("Put your cursor inside a module or a lesson first.");
+    const move = tidyMove(entries, target, step);
+    if (move.message) return ui.say(move.message);
+    await putSection(move.span, move.after, target.text);
+  }
+
+  /** @type {{ index: number, kind: string } | null} */
+  let dragging = null;
+  /** @type {HTMLElement | null} */
+  let dropMark = null;
+  const clearDropMark = () => {
+    if (dropMark) dropMark.classList.remove("g-drop-before", "g-drop-after");
+    dropMark = null;
+  };
+  /**
+   * Where a dragged heading would go if it were dropped on `row` at the pointer's height: before or after that heading's part, or nowhere (a module goes among the
+   * modules and assessment sections, a lesson among the lessons of its own module).
+   * @param {Row} row @param {number} clientY
+   * @returns {{ after: number, side: "before" | "after" } | null}
+   */
+  function dropPlace(row, clientY) {
+    if (!dragging) return null;
+    const over = entries[idx(row)];
+    const kindOver = SECTIONS[over?.style ?? ""];
+    const wasModule = dragging.kind !== "lesson";
+    if (!kindOver || (kindOver === "lesson") === wasModule) return null;
+    if (kindOver === "lesson") {
+      const mine = sectionAt(dragging.index),
+        there = sectionAt(idx(row));
+      if (!mine || !there || there.kind !== "lesson" || there.module !== mine.module && there.module?.index !== mine.module?.index) return null;
+    }
+    const rect = row.el.getBoundingClientRect();
+    const side = clientY < rect.top + rect.height / 2 ? "before" : "after";
+    const span = kindOver === "lesson" ? lessonSpan(entries, idx(row)) : topSpan(entries, idx(row));
+    const after = side === "before" ? span.start - 1 : span.end;
+    const own = dragging.kind === "lesson" ? lessonSpan(entries, dragging.index) : topSpan(entries, dragging.index);
+    // Dropped on itself, or where it already is: nothing to do.
+    if (after >= own.start - 1 && after <= own.end) return null;
+    return { after, side };
+  }
+  page.addEventListener("dragstart", (ev) => {
+    const row = rowOf(ev.target);
+    const kind = row ? SECTIONS[entries[idx(row)]?.style ?? ""] : undefined;
+    // A heading whose words are being changed is not dragged: the mouse there chooses words.
+    if (!row || !kind || !ev.dataTransfer || row.el.classList.contains("g-editing")) {
+      ev.preventDefault();
+      return;
+    }
+    dragging = { index: idx(row), kind };
+    ev.dataTransfer.effectAllowed = "move";
+    ev.dataTransfer.setData("text/plain", entries[idx(row)]?.text ?? "");
+    row.el.classList.add("g-dragging");
+  });
+  page.addEventListener("dragover", (ev) => {
+    const row = rowOf(ev.target);
+    const place = row ? dropPlace(row, ev.clientY) : null;
+    clearDropMark();
+    if (!row || !place) return;
+    ev.preventDefault();
+    if (ev.dataTransfer) ev.dataTransfer.dropEffect = "move";
+    row.el.classList.add(place.side === "before" ? "g-drop-before" : "g-drop-after");
+    dropMark = row.el;
+  });
+  page.addEventListener("drop", (ev) => {
+    const row = rowOf(ev.target);
+    const place = row ? dropPlace(row, ev.clientY) : null;
+    const from = dragging;
+    clearDropMark();
+    if (!row || !place || !from) return;
+    ev.preventDefault();
+    const target = sectionAt(from.index);
+    if (!target) return;
+    void (async () => {
+      await settle();
+      await putSection(target.span, place.after, target.text);
+    })();
+  });
+  page.addEventListener("dragend", () => {
+    clearDropMark();
+    dragging = null;
+    for (const r of shown) r.el.classList.remove("g-dragging");
+  });
+
   /**
    * Bullets on, or off: the chosen paragraphs (or the one the author is on) join the guide's bulleted list, or leave it. When every one of them is bulleted already the
    * bullets are taken off, otherwise they are all made bullets. Headings, the title, a block's own line, the time line and the other lines the program writes are not.
@@ -887,6 +1018,10 @@ export function mountEditor(doc, host, guide, ui) {
         return paste(null);
       case "bullets":
         return toggleBullets();
+      case "moveSectionUp":
+        return moveSection(-1);
+      case "moveSectionDown":
+        return moveSection(1);
       case "alignLeft":
       case "alignCenter":
       case "alignRight":

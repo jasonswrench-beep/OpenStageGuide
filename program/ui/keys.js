@@ -46,6 +46,7 @@ export const KEY_GROUPS = [
       { keys: "Shift+Down, Shift+Up", does: "Choose paragraphs together, a row at a time" },
       { keys: "Ctrl+A", does: "Choose every paragraph" },
       { keys: "Ctrl+Shift+L", does: "Bullets on or off for the paragraphs you are on or have chosen" },
+      { keys: "Alt+Shift+Up, Alt+Shift+Down", does: "Move the whole lesson (or module) you are in up or down, with everything in it; dragging its heading does the same" },
       { keys: "Alt+Up, Alt+Down", does: "Move the paragraph you are on, or the ones chosen, up or down" },
       { keys: "Delete", does: "Delete the paragraph you are on, or the ones chosen (Ctrl+Z brings them back)" },
       { keys: "Ctrl+Enter", does: "A new paragraph below, ready to type in" },

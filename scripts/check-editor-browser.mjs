@@ -1065,6 +1065,53 @@ try{
   await saved();
   ok(JSON.stringify(projectStyles())===stylesBeforeImport,'one Ctrl+Z takes back everything the import did, and nothing before it');
 
+  // ---- moving a whole module: the keys, the Edit menu and dragging a heading; the numbers follow, and one Ctrl+Z takes it all back
+  await page.getByRole('menuitem',{name:/^Sections/}).click();
+  await page.getByRole('menuitem',{name:/Add module/}).click();
+  await fr.locator('#guide-new-title').fill('Second');
+  await fr.locator('#guide-add-module').click();
+  await page.waitForFunction(()=>/Module 2: Second/.test(document.querySelector('#work-guide')?.innerText||''),null,{timeout:10000});
+  await saved();
+  const heads=()=>JSON.stringify(onDisk().filter(p=>/^OSG (Module|Lesson)$/.test(p.style)).map(p=>p.text.trim()));
+  const START=JSON.stringify(['Module 1: Naming feelings','Lesson 1.1: First','Module 2: Second']);
+  const SWAPPED=JSON.stringify(['Module 1: Second','Module 2: Naming feelings','Lesson 2.1: First']);
+  ok(heads()===START,'the guide has two modules: '+heads());
+  ok(await row(/^Module 2: Second/).getAttribute('draggable')==='true'&&/Drag to move this module/.test(await row(/^Module 2: Second/).getAttribute('title')||''),'a module heading can be dragged, and says so');
+  ok(await row(/Time: 10 minutes/).getAttribute('draggable')!=='true','but the paragraphs under it cannot');
+  await row(/^Module 2: Second/).focus();
+  await page.keyboard.press('Alt+Shift+ArrowUp');
+  await saved();
+  ok(heads()===SWAPPED,'Alt+Shift+Up moves the whole module above the one before it, and the numbers follow: '+heads());
+  ok(/moved\. The numbers, the times and the contents are up to date/.test(await status()),'and the program says so');
+  const shownOrder=async()=>(await page.locator('#work-guide [data-index]:not(.g-toc)').allInnerTexts());
+  ok((await shownOrder()).findIndex(t=>/^Module 1: Second/.test(t))<(await shownOrder()).findIndex(t=>/^Module 2: Naming feelings/.test(t)),'and the page shows the new order');
+  await page.keyboard.press('Control+z');
+  await saved();
+  ok(heads()===START,'one Ctrl+Z takes the move and the new numbers back together');
+  await row(/^Module 1: Naming feelings/).focus();
+  await page.keyboard.press('Alt+Shift+ArrowUp');
+  ok(/already the first module/.test(await status()),'the first module cannot go higher, and the program says so');
+  await page.getByRole('menuitem',{name:/^Edit/}).click();
+  await page.getByRole('menuitem',{name:/Move module or lesson down/}).click();
+  await saved();
+  ok(heads()===SWAPPED,'Edit, Move module or lesson down does the same from the menu: '+heads());
+  await page.keyboard.press('Control+z');
+  await saved();
+  ok(heads()===START,'and Ctrl+Z brings it back');
+  // dragging a heading to where it goes: the upper half of another module's heading is before it
+  await row(/^Module 2: Second/).dragTo(row(/^Module 1: Naming feelings/),{targetPosition:{x:40,y:2}});
+  await saved();
+  ok(heads()===SWAPPED,'dragging Module 2 onto the upper half of Module 1 puts it first, and the numbers follow: '+heads());
+  await page.keyboard.press('Control+z');
+  await saved();
+  ok(heads()===START,'one Ctrl+Z takes the drag back');
+  await row(/^Module 1: Naming feelings/).dragTo(row(/^Module 1: Naming feelings/),{targetPosition:{x:40,y:2}});
+  await saved();
+  ok(heads()===START,'dropping a module on itself changes nothing');
+  await row(/^Lesson 1\.1: First/).dragTo(row(/^Module 2: Second/),{targetPosition:{x:40,y:2}});
+  await saved();
+  ok(heads()===START,'a lesson dropped on a module changes nothing: a lesson moves only among the lessons of its own module');
+
   // ---- what cannot be changed is read, not rewritten
   await row(/Time: 10 minutes/).focus();
   await page.keyboard.press('Enter');

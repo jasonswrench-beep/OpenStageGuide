@@ -96,7 +96,7 @@ export function wordsKey(k) {
 /**
  * What a key does when a row of the guide has the keyboard and its words are not being edited.
  * @param {KeyInfo} k
- * @returns {"down" | "up" | "first" | "last" | "edit" | "undo" | "redo" | "extendDown" | "extendUp" | "moveDown" | "moveUp" | "delete" | "copy" | "cut" | "add" | "selectAll" | "clear" | "alignLeft" | "alignCenter" | "alignRight" | "alignJustify" | "bullets" | "bold" | "italic" | "underline" | "superscript" | "subscript" | "clearText" | null}
+ * @returns {"down" | "up" | "first" | "last" | "edit" | "undo" | "redo" | "extendDown" | "extendUp" | "moveDown" | "moveUp" | "delete" | "copy" | "cut" | "add" | "selectAll" | "clear" | "alignLeft" | "alignCenter" | "alignRight" | "alignJustify" | "bullets" | "moveSectionUp" | "moveSectionDown" | "bold" | "italic" | "underline" | "superscript" | "subscript" | "clearText" | null}
  */
 export function rowKey(k) {
   const text = textKey(k);
@@ -111,6 +111,11 @@ export function rowKey(k) {
   if (command && !k.shift && letter === "x") return "cut";
   if (command && !k.shift && letter === "a") return "selectAll";
   if (command && !k.shift && k.key === "Enter") return "add";
+  if (k.alt && k.shift && !k.ctrl && !k.meta) {
+    if (k.key === "ArrowUp") return "moveSectionUp";
+    if (k.key === "ArrowDown") return "moveSectionDown";
+    return null;
+  }
   if (k.alt && !k.ctrl && !k.meta && !k.shift) {
     if (k.key === "ArrowUp") return "moveUp";
     if (k.key === "ArrowDown") return "moveDown";

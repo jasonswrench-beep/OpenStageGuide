@@ -814,11 +814,11 @@ export function createDemoAdapter({DOMParserClass=globalThis.DOMParser,Serialize
       paras.splice(start,end-start+1);
       cursor=Math.max(0,Math.min(start,paras.length-1));
     },
-    async moveRange({start,end,guard,after}){
+    async moveRange({start,end,guard,after,group}){
       if(!paras[start]||!paras[end]||end<start||norm(paras[start].text)!==norm(guard))throw new Error(CHANGED);
       if(after>=start&&after<=end)throw new Error('A part of the guide cannot be moved into itself.');
       if(after>=paras.length)throw new Error('That part of the document is no longer there. Choose Refresh and try again.');
-      remember();
+      remember(group);
       const block=paras.splice(start,end-start+1),at=(after>end?after-block.length:after)+1;
       paras.splice(at,0,...block);
       cursor=at;
@@ -826,8 +826,8 @@ export function createDemoAdapter({DOMParserClass=globalThis.DOMParser,Serialize
     },
     async keepPaneOpen({manifestSupportsIt=false}={}){if(manifestSupportsIt===autoShow)return false;autoShow=manifestSupportsIt;return manifestSupportsIt;},
     onSelectionChanged(handler){selectionHandler=handler;return true;},
-    async applyEdits(edits){
-      remember();
+    async applyEdits(edits,{group}={}){
+      remember(group);
       for(const e of edits){
         const p=paras[e.index];if(!p)continue;
         if(e.kind==='question'){p.text=p.text.replace(e.from,e.to);p.xml=p.xml.replace(e.from,e.to);continue;}

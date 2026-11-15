@@ -158,6 +158,8 @@ export function buildMenus(ctx) {
       { label: "Kind of paragraph...", icon: "pilcrow", title: "Make this paragraph normal text, block text, a facilitator note or a heading", run: edits("kind"), enabled: can("hasRows") },
       { label: "Move up", icon: "arrow-up", keys: "Alt+Up", title: "Move the paragraphs you are on or have chosen above the one before", run: edits("moveUp"), enabled: can("hasRows") },
       { label: "Move down", icon: "arrow-down", keys: "Alt+Down", title: "Move the paragraphs you are on or have chosen below the one after", run: edits("moveDown"), enabled: can("hasRows") },
+      { label: "Move module or lesson up", icon: "arrow-up", keys: "Alt+Shift+Up", title: "Move the whole lesson (or, outside a lesson, the whole module) you are in above the one before it, with everything in it; the numbers, times and contents follow. You can also drag its heading", run: edits("moveSectionUp"), enabled: can("hasRows") },
+      { label: "Move module or lesson down", icon: "arrow-down", keys: "Alt+Shift+Down", title: "Move the whole lesson (or, outside a lesson, the whole module) you are in below the one after it, with everything in it; the numbers, times and contents follow. You can also drag its heading", run: edits("moveSectionDown"), enabled: can("hasRows") },
       { label: "Delete paragraph", icon: "trash", keys: "Delete", title: "Delete the paragraphs you are on or have chosen (Undo brings them back)", run: edits("delete"), enabled: can("hasRows") },
       "-",
       { label: "Add table row below", icon: "plus", keys: "Ctrl+Enter", title: "In a table: an empty row after the one you are in", run: edits("addRow"), enabled: can("inTable") },

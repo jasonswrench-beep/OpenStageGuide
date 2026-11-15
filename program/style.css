@@ -285,6 +285,10 @@ main:focus, main:focus-visible { outline: none; }
 .page .g-body { margin: 0 0 4px 12px; }
 .page .g-notes { border-left: 4px solid var(--heading); background: var(--subtle); padding: 6px 10px; margin: 6px 0; font-size: 0.93rem; }
 .page .g-para { margin: 0 0 8px; }
+.page .g-draggable { cursor: grab; }
+.page .g-dragging { opacity: 0.45; }
+.page .g-drop-before { box-shadow: 0 -3px 0 var(--accent); }
+.page .g-drop-after { box-shadow: 0 3px 0 var(--accent); }
 .page .g-bullet { position: relative; margin-left: 1.5em; }
 .page .g-bullet::before { content: "\2022"; position: absolute; left: -1.1em; }
 .page .g-toc { margin: 0 0 2px; font: 0.95rem "Segoe UI", system-ui, sans-serif; }
