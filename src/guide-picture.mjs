@@ -36,9 +36,10 @@ export function readPicture(xml,io){
 /**
  * The paragraph with the picture described, marked as decoration or not, and set to one of the widths the program offers (its height keeps the picture's shape).
  * A picture that is not decoration needs a description.
- * @param {string} xml @param {{description?:string, decorative?:boolean, width?:string}} change
+ * With `maxCx` (in EMU) the picture is never made wider than that: a picture in a table cell is kept inside its cell.
+ * @param {string} xml @param {{description?:string, decorative?:boolean, width?:string, maxCx?:number}} change
  */
-export function setPicture(xml,{description,decorative,width},io){
+export function setPicture(xml,{description,decorative,width,maxCx},io){
   const root=open(xml,io);
   const found=pictures(root);
   if(found.length!==1)throw new Error('This paragraph does not hold exactly one picture of yours, so it is changed in Word.');
@@ -59,6 +60,7 @@ export function setPicture(xml,{description,decorative,width},io){
     if(cx0>0&&cy0>0){
       let cx=Math.round(w.inches*EMU),cy=Math.round(cx*cy0/cx0);
       if(cy>MAX_HEIGHT){cx=Math.round(cx*MAX_HEIGHT/cy);cy=MAX_HEIGHT;}
+      if(maxCx&&cx>maxCx){cy=Math.round(cy*maxCx/cx);cx=maxCx;}
       extent.setAttribute('cx',String(cx));extent.setAttribute('cy',String(cy));
       for(const e of Array.from(d.getElementsByTagNameNS(A,'ext')))if(e.hasAttribute('cx')&&e.hasAttribute('cy')){e.setAttribute('cx',String(cx));e.setAttribute('cy',String(cy));}
     }

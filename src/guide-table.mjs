@@ -3,6 +3,7 @@
 // anything else is shown and left exactly as it is. The words of a cell are changed by the same code that changes the words of a paragraph
 // (guide-edit.mjs), so a cell is held to the same rules as any other paragraph.
 import {readParagraph,setWords} from './guide-edit.mjs';
+import {readPicture,setPicture} from './guide-picture.mjs';
 const W='http://schemas.openxmlformats.org/wordprocessingml/2006/main';
 export const TABLE_LIMITS=Object.freeze({rows:200});
 const kids=el=>Array.from(el.childNodes).filter(n=>n.nodeType===1);
@@ -280,5 +281,69 @@ export function setTableAlt(xml,{caption,description},io){
     if(!desc){desc=doc.createElementNS(W,'w:tblDescription');pr.appendChild(desc);}
     desc.setAttributeNS(W,'w:val',about);
   }else if(desc)pr.removeChild(desc);
+  return io.serialize(root);
+}
+
+// ---- pictures in cells
+// A cell holds at most one picture, in the cell's one paragraph, after its words. The picture is changed with the same code as a picture in a paragraph.
+const WP_NS='http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing';
+const NS_DECLARATIONS=`xmlns:w="${W}" xmlns:wp="${WP_NS}" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"`;
+const EMU_PER_TWIP=635;
+/** The room a picture has in a cell, in EMU: the cell's width less its margins, and at least half an inch. */
+export const cellRoom=twips=>Math.max(457200,(Number(twips)-240)*EMU_PER_TWIP);
+
+function onePictureCell(root,r,c){
+  const tc=cellAt(root,r,c);
+  const ps=kids(tc).filter(n=>n.localName==='p'&&n.namespaceURI===W);
+  const others=kids(tc).filter(n=>n.localName!=='tcPr'&&n.localName!=='p');
+  return {tc,paragraph:ps.length===1&&!others.length?ps[0]:null};
+}
+/**
+ * What a cell has to say about pictures: how much room it gives one (EMU), whether a picture can be put in it, and the picture it has.
+ * @returns {{room:number, canAdd:boolean, why:string, picture:ReturnType<typeof readPicture>}}
+ */
+export function cellPictureInfo(xml,r,c,io){
+  const root=open(xml,io);
+  const {tc,paragraph}=onePictureCell(root,r,c);
+  const w=named(named(tc,'tcPr')||{childNodes:[]},'tcW'),twips=Number(attr(w,'w'))||2000;
+  const room=cellRoom(twips);
+  if(!paragraph)return {room,canAdd:false,why:'This cell holds more than words, so it is changed in Word.',picture:null};
+  const picture=readPicture(io.serialize(paragraph),io);
+  if(picture)return {room,canAdd:false,why:'This cell already has a picture. Change it with Picture details.',picture};
+  const cell=cellParagraph(tc,io);
+  if(!cell.editable)return {room,canAdd:false,why:'This cell holds more than words, so a picture cannot be put in it here.',picture:null};
+  return {room,canAdd:true,why:'',picture:null};
+}
+
+/** The table with a picture in a cell: `runXml` is the picture's run (as pictureRun makes it), put after the cell's words. */
+export function addCellPicture(xml,r,c,runXml,io){
+  const info=cellPictureInfo(xml,r,c,io);
+  if(!info.canAdd)throw new Error(info.why);
+  const root=open(xml,io);
+  const {paragraph}=onePictureCell(root,r,c);
+  let run;
+  try{run=io.parse(`<w:holder ${NS_DECLARATIONS}>${runXml}</w:holder>`).documentElement.firstChild;}catch{run=null;}
+  if(!run||run.localName!=='r'||!run.getElementsByTagNameNS(W,'drawing').length)throw new Error('That picture could not be put in the cell.');
+  paragraph.appendChild(root.ownerDocument.importNode(run,true));
+  return io.serialize(root);
+}
+
+/** The table with the cell's picture described, marked as decoration or not, or made another width (kept inside the cell). */
+export function changeCellPicture(xml,r,c,change,io){
+  const root=open(xml,io);
+  const {paragraph}=onePictureCell(root,r,c);
+  if(!paragraph||!readPicture(io.serialize(paragraph),io))throw new Error('This cell has no picture of yours to change.');
+  const room=cellPictureInfo(xml,r,c,io).room;
+  const fresh=setPicture(io.serialize(paragraph),{...change,maxCx:room},io);
+  paragraph.parentNode.replaceChild(root.ownerDocument.importNode(io.parse(fresh).documentElement,true),paragraph);
+  return io.serialize(root);
+}
+
+/** The table with the cell's picture taken out; the words of the cell stay. */
+export function removeCellPicture(xml,r,c,io){
+  const root=open(xml,io);
+  const {paragraph}=onePictureCell(root,r,c);
+  if(!paragraph||!readPicture(io.serialize(paragraph),io))throw new Error('This cell has no picture of yours to take out.');
+  for(const run of kids(paragraph).filter(n=>n.localName==='r'&&n.getElementsByTagNameNS(W,'drawing').length))paragraph.removeChild(run);
   return io.serialize(root);
 }

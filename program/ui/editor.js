@@ -15,9 +15,10 @@ import { canFormat, readParagraphFormat, withParagraphFormat } from "../../src/g
 import { idForName } from "../../src/guide-styles-edit.mjs";
 import { lessonSpan, topSpan, tidyMove, tidyTarget, updatePlan } from "../../src/guide-model.mjs";
 import { readSettings } from "../../src/guide-forms.mjs";
-import { addColumn, addRow, deleteColumn, deleteRow, mergeCell, readTable, setCellWords, setTableAlt, splitCell, ALT_LIMITS } from "../../src/guide-table.mjs";
+import { addCellPicture, addColumn, addRow, cellPictureInfo, changeCellPicture, deleteColumn, deleteRow, mergeCell, readTable, removeCellPicture, setCellWords, setTableAlt, splitCell, ALT_LIMITS } from "../../src/guide-table.mjs";
 import { readPicture, setPicture, DESCRIPTION_LIMIT } from "../../src/guide-picture.mjs";
-import { PICTURE_WIDTHS } from "../../src/image-prepare.mjs";
+import { PICTURE_HELP, PICTURE_WIDTHS, pictureSize, prepareImage, toBase64 } from "../../src/image-prepare.mjs";
+import { makeContext, pictureRun } from "../../src/guide-ooxml.mjs";
 import { captionLine } from "../../src/guide-reference.mjs";
 import { previewStyles } from "../../src/guide-styles-edit.mjs";
 import { cellKey, cellWordsKey, reconcile, rowKey, rowSignature, sameList, wordsKey, wordsLabel } from "./editor-model.js";
@@ -981,6 +982,7 @@ export function mountEditor(doc, host, guide, ui) {
 
   /** Whether the paragraph the author is on holds one picture of theirs, which the Edit menu's Picture details can change. */
   function onPicture() {
+    if (grid && shown.includes(grid.row) && cellHasPicture(grid.row, grid.r, grid.c)) return true;
     const rows = targetRows();
     return rows.length === 1 && !!readPicture(entryOf(rows[0]).xml ?? "", io);
   }
@@ -1058,6 +1060,8 @@ export function mountEditor(doc, host, guide, ui) {
       case "splitCell":
       case "tableDetails":
         return grid ? tableChange(name, grid.row, grid.r, grid.c) : ui.say("Move into a table first: Enter on a table starts its cells.");
+      case "cellPicture":
+        return grid ? cellPicture(grid.row, grid.r, grid.c) : ui.say("Move into a table first: Enter on a table starts its cells.");
       case "pictureDetails":
         return pictureDetails();
       case "undo":
@@ -1555,8 +1559,116 @@ export function mountEditor(doc, host, guide, ui) {
     }
   }
 
+  /** Whether a cell of a table holds a picture of the author's. @param {Row} row @param {number} r @param {number} c */
+  function cellHasPicture(row, r, c) {
+    try {
+      return !!cellPictureInfo(entryOf(row).xml ?? "", r, c, io).picture;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * A picture in a cell of a table: chosen from a file and described like any picture, put after the words of the cell, and kept inside the cell.
+   * @param {Row} row @param {number} r @param {number} c
+   */
+  async function cellPicture(row, r, c) {
+    await settle();
+    stopCellEdit();
+    const entry = entryOf(row);
+    const at = idx(row);
+    if (!ui.ask) return ui.say("This cannot be changed here.", true);
+    let info;
+    try {
+      info = cellPictureInfo(entry.xml ?? "", r, c, io);
+    } catch (e) {
+      return ui.say(messageOf(e), true);
+    }
+    if (!info.canAdd) return ui.say(info.why, true);
+    const answer = await ui.ask({
+      title: "Picture in this cell",
+      intro: `${PICTURE_HELP} It goes after the words of the cell and is kept inside the cell. A picture needs a description for people who cannot see it, or a tick to say it is only decoration.`,
+      confirm: "Put in the cell",
+      fields: [
+        { id: "file", label: "Picture file", type: "file", accept: "image/png,image/jpeg,image/gif" },
+        { id: "alt", label: "Describe the picture in a few words", type: "text", hint: "For example: A flip chart with three columns." },
+        { id: "decorative", label: "This picture is only decoration", type: "check", value: false },
+        { id: "width", label: "Width (never wider than the cell)", type: "select", value: "small", options: PICTURE_WIDTHS.map((w) => ({ value: w.id, label: w.label })) },
+      ],
+      finish: async (/** @type {Record<string, any>} */ v) => {
+        if (!(v.file instanceof File)) throw new Error(`Choose a picture file first. ${PICTURE_HELP}`);
+        const image = await prepareImage(v.file);
+        let size = pictureSize(image, String(v.width));
+        if (size.cx > info.room) size = { cx: info.room, cy: Math.round((size.cy * info.room) / size.cx) };
+        const ctx = makeContext();
+        const run = pictureRun({ base64: toBase64(image.bytes), type: image.type, mime: image.mime, size, alt: String(v.alt), decorative: v.decorative === true, name: image.name }, ctx);
+        addCellPicture(entry.xml ?? "", r, c, run, io);
+        return { run, pictures: ctx.pictures };
+      },
+    });
+    if (!answer) {
+      focusCell(row, r, c);
+      return;
+    }
+    try {
+      const xml = addCellPicture(entry.xml ?? "", r, c, answer.run, io);
+      await guide.replaceTable({ start: at, guard: entry.text ?? "", xml, select: at, pictures: answer.pictures });
+    } catch (e) {
+      ui.say(messageOf(e), true);
+      return;
+    }
+    render();
+    const fresh = rowAt(at);
+    if (fresh) focusCell(fresh, r, c);
+    ui.say("The picture is in the cell. Picture details changes it. Ctrl+Z takes it back.");
+  }
+
+  /** The picture in a cell: its description, decoration, width, or taking it out. @param {Row} row @param {number} r @param {number} c */
+  async function cellPictureDetails(row, r, c) {
+    await settle();
+    stopCellEdit();
+    const entry = entryOf(row);
+    const at = idx(row);
+    if (!ui.ask) return ui.say("This cannot be changed here.", true);
+    const now = cellPictureInfo(entry.xml ?? "", r, c, io).picture;
+    if (!now) return;
+    const answer = await ui.ask({
+      title: "Picture in this cell",
+      intro: "A description is what a screen reader says in place of the picture. A picture that is only decoration says nothing.",
+      confirm: "Change",
+      fields: [
+        { id: "alt", label: "Describe the picture in a few words", type: "text", value: now.description, hint: `Up to ${DESCRIPTION_LIMIT} letters.` },
+        { id: "decorative", label: "This picture is only decoration", type: "check", value: now.decorative },
+        { id: "width", label: "Width (never wider than the cell)", type: "select", value: now.width || PICTURE_WIDTHS[2].id, options: PICTURE_WIDTHS.map((w) => ({ value: w.id, label: w.label })) },
+        { id: "remove", label: "Take the picture out of this cell", type: "check", value: false },
+      ],
+      finish: (/** @type {Record<string, any>} */ v) => {
+        const change = { description: String(v.alt), decorative: v.decorative === true, width: String(v.width) };
+        if (v.remove === true) removeCellPicture(entry.xml ?? "", r, c, io);
+        else changeCellPicture(entry.xml ?? "", r, c, change, io);
+        return { ...change, remove: v.remove === true };
+      },
+    });
+    if (!answer) {
+      focusCell(row, r, c);
+      return;
+    }
+    try {
+      const xml = answer.remove ? removeCellPicture(entry.xml ?? "", r, c, io) : changeCellPicture(entry.xml ?? "", r, c, { description: answer.description, decorative: answer.decorative, width: answer.width }, io);
+      await guide.replaceTable({ start: at, guard: entry.text ?? "", xml, select: at });
+    } catch (e) {
+      ui.say(messageOf(e), true);
+      return;
+    }
+    render();
+    const fresh = rowAt(at);
+    if (fresh) focusCell(fresh, r, c);
+    ui.say(answer.remove ? "The picture is out of the cell. Ctrl+Z puts it back." : "The picture is changed. Ctrl+Z takes it back.");
+  }
+
   /** The picture in the paragraph the author is on: its description, whether it is only decoration, its width and the caption under it. */
   async function pictureDetails() {
+    if (grid && shown.includes(grid.row) && cellHasPicture(grid.row, grid.r, grid.c)) return cellPictureDetails(grid.row, grid.r, grid.c);
     const rows = targetRows();
     if (rows.length !== 1) return ui.say("Choose a paragraph that holds a picture first.");
     const row = rows[0];

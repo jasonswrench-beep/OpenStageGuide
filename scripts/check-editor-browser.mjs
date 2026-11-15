@@ -528,6 +528,45 @@ try{
   ok(/adec:decorative/.test(pictureXml())&&/descr=""/.test(pictureXml()),'a picture marked as only decoration has no description and says so');
   ok(!order().includes('Figure: A new caption.'),'and emptying the caption takes the caption paragraph away');
 
+  // ---- a picture inside a table cell: put in, kept inside the cell, changed, and taken out; the words of the cell stay
+  const subjectTable=()=>page.locator('#work-guide table.g-table').filter({hasText:'Intro notes'}).first();
+  const sessionXml=()=>onDisk().find(p=>/^<w:tbl/.test(p.xml)&&/Session notes|Notes for the session/.test(p.xml)).xml;
+  await subjectTable().focus();
+  await page.keyboard.press('Enter');
+  await page.keyboard.press('ArrowDown');
+  await page.getByRole('menuitem',{name:/^Edit/}).click();
+  await page.getByRole('menuitem',{name:/Picture in this cell/}).click();
+  await page.setInputFiles('dialog[open] #dlg-f-file',{name:'tiny.png',mimeType:'image/png',buffer:Buffer.from(TINY_PNG,'base64')});
+  await page.getByRole('button',{name:'Put in the cell'}).click();
+  await page.locator('dialog[open] .problem:not([hidden])').waitFor({timeout:5000});
+  ok(/Describe the picture/.test(await page.locator('dialog[open] .problem').innerText()),'a picture with no description is refused in the dialog, which stays open');
+  await page.locator('dialog[open] #dlg-f-alt').fill('A picture in a cell');
+  await page.getByRole('button',{name:'Put in the cell'}).click();
+  await saved();
+  ok(/<w:drawing/.test(sessionXml())&&/descr="A picture in a cell"/.test(sessionXml()),'the picture is in the table, with its description, on disk');
+  ok(await subjectTable().locator('td img.g-picture').count()===1,'and it is drawn inside a cell of the table');
+  ok(/The picture is in the cell/.test(await status()),'and the program says so');
+  ok(/"media"/.test(fs.readFileSync(path.join(GUIDES,fs.readdirSync(GUIDES).find(n=>n.endsWith('.guide-project.json'))),'utf8'))&&fs.readFileSync(path.join(GUIDES,fs.readdirSync(GUIDES).find(n=>n.endsWith('.guide-project.json'))),'utf8').includes(TINY_PNG),'the picture itself is in the project file');
+  await page.getByRole('menuitem',{name:/^Edit/}).click();
+  await page.getByRole('menuitem',{name:/Picture in this cell/}).click();
+  ok(/already has a picture/.test(await status()),'a second picture in the same cell is refused, and the program says why');
+  await page.getByRole('menuitem',{name:/^Edit/}).click();
+  await page.getByRole('menuitem',{name:/Picture details/}).click();
+  ok(await page.locator('dialog[open] #dlg-f-alt').inputValue()==='A picture in a cell','Picture details opens on the picture in the cell');
+  await page.locator('dialog[open] #dlg-f-alt').fill('The same picture, described again');
+  await page.locator('dialog[open] #dlg-f-width').selectOption('large');
+  await page.getByRole('button',{name:'Change'}).click();
+  await saved();
+  const cellCx=Number(/<wp:extent cx="(\d+)"/.exec(sessionXml())[1]);
+  ok(/descr="The same picture, described again"/.test(sessionXml())&&cellCx<Math.round(4.8*914400),'it is changed, and "large" is kept to the width of the cell ('+cellCx+' EMU)');
+  await page.getByRole('menuitem',{name:/^Edit/}).click();
+  await page.getByRole('menuitem',{name:/Picture details/}).click();
+  await page.locator('dialog[open] #dlg-f-remove').check();
+  await page.getByRole('button',{name:'Change'}).click();
+  await saved();
+  ok(!/<w:drawing/.test(sessionXml()),'taking the picture out leaves the cell without it');
+  ok(await subjectTable().locator('td img.g-picture').count()===0,'and the page draws none in the table');
+
   // ---- how a paragraph sits: alignment, space, line spacing and indents
   const sayRow=row(/^Say where this program fits/);
   const jc=text=>{const q=onDisk().find(p=>p.text===text);const m=q&&/<w:jc w:val="([a-z]+)"\/>/.exec(q.xml);return m?m[1]:null;};

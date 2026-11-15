@@ -151,6 +151,7 @@ p{margin:0 0 .6rem}
 table.g-table{border-collapse:collapse;width:100%;margin:.6rem 0 1rem;font-size:.95rem}
 table.g-table th,table.g-table td{border:1px solid var(--line);padding:.35rem .55rem;text-align:left;vertical-align:top}
 table.g-table th{background:var(--tint)}
+table.g-table img{max-width:100%;height:auto}
 @media (forced-colors:active){.g-rule,.g-box,.g-fieldline,.g-card,table.g-table th,table.g-table td{border-color:CanvasText}h4.g-form,.g-quote,.g-notes,.g-cue.facilitator{border-left-color:CanvasText}}
 @media print{body{background:#fff;color:#000}.skip{display:none}main{max-width:none;padding:0}a{color:inherit;text-decoration:none}h1,h2,h3,h4{break-after:avoid}table.g-table,.g-card,.g-quote,.g-notes{break-inside:avoid}.g-picture{break-inside:avoid}}
 `.trim();

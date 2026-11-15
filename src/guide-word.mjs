@@ -651,8 +651,17 @@ export function createDemoAdapter({DOMParserClass=globalThis.DOMParser,Serialize
   const retext=(xml,text)=>xml.replace(/(<w:t[^>]*>)[^<]*(<\/w:t>)/,`$1${esc(text)}$2`);
   // The pictures a block was made with (each with the id its XML names) are kept under ids that no other block's pictures have, so two
   // blocks that each had "their first picture" do not share one. What is not a picture of a kind Word holds is refused before anything changes.
+  // The pictures are checked and kept first (`registerPictures` says which new id each took); the ids in the XML are changed after, in as many pieces of XML as share them.
   const keepPictures=(body,pics)=>{
     if(!pics.length)return body;
+    return renamePictures(body,registerPictures(pics));
+  };
+  const renamePictures=(text,renamed)=>{
+    let out=text;
+    for(const r of renamed)out=out.split(`r:embed="${r.from}"`).join(`r:embed="${r.id}"`);
+    return out;
+  };
+  const registerPictures=pics=>{
     const renamed=[];
     for(const p of pics){
       if(!p||typeof p.rid!=='string'||!/^rIdPic[A-Za-z0-9_-]{1,60}$/.test(p.rid)||!PICTURE_MIMES[p.mime]||typeof p.base64!=='string'||!p.base64||!PICTURE_B64.test(p.base64)||p.base64.length%4!==0)throw new Error('A picture could not be added: it is not a PNG, JPG or GIF.');
@@ -660,10 +669,8 @@ export function createDemoAdapter({DOMParserClass=globalThis.DOMParser,Serialize
       do id=`rIdPic${Math.random().toString(36).slice(2,10)}`;while(media[id]||renamed.some(r=>r.id===id));
       renamed.push({id,from:p.rid,mime:p.mime,base64:p.base64});
     }
-    let out=body;
-    for(const r of renamed)out=out.split(`r:embed="${r.from}"`).join(`r:embed="${r.id}"`);
     for(const r of renamed)media[r.id]={mime:r.mime,base64:r.base64};
-    return out;
+    return renamed;
   };
   // The pictures the paragraphs still use (a picture whose paragraph was deleted is dropped when the document is saved).
   const usedMedia=()=>{
@@ -950,12 +957,14 @@ export function createDemoAdapter({DOMParserClass=globalThis.DOMParser,Serialize
     // Replace the table that starts at paragraph `start` by another table (the same table with a cell's words changed, or a row more or less).
     // The table's first entry holds all its XML and the entries after it that have none are its other cells, so all of them are replaced
     // by the cells of the new table. `guard` is the words of the first cell the editor last saw.
-    async replaceTable({start,guard,xml,select,group}){
+    async replaceTable({start,guard,xml,select,group,pictures=null}){
       const first=paras[start];
       if(!Number.isInteger(start)||!first||!/^<w:tbl[\s>]/.test(first.xml||'')||norm(first.text)!==norm(guard))throw new Error(CHANGED);
       let d=null;
       try{d=parseXml(xml);}catch{d=null;}
       if(typeof xml!=='string'||!d||!d.documentElement||d.getElementsByTagName('parsererror').length||d.documentElement.localName!=='tbl')throw new Error('That table could not be made.');
+      // Pictures that came with the table (one put in a cell) are kept under ids of their own, as they are for a block.
+      if(pictures?.length)xml=renamePictures(xml,registerPictures(pictures));
       const added=parseBody(xml);
       if(!added.length||!/^<w:tbl[\s>]/.test(added[0].xml||''))throw new Error('That table could not be made.');
       let end=start+1;
@@ -965,7 +974,7 @@ export function createDemoAdapter({DOMParserClass=globalThis.DOMParser,Serialize
       cursor=Math.max(0,Math.min(select===undefined?start:select,paras.length-1));
       return {at:start,count:added.length};
     },
-    async replaceParagraphs({start,count,guard,xmls,select,group}){
+    async replaceParagraphs({start,count,guard,xmls,select,group,pictures=null}){
       if(!Number.isInteger(start)||!Number.isInteger(count)||start<0||count<0||start+count>paras.length||!Array.isArray(xmls))throw new Error(CHANGED);
       const old=paras.slice(start,start+count);
       if(count&&norm(old[0].text)!==norm(guard))throw new Error(CHANGED);
@@ -975,6 +984,8 @@ export function createDemoAdapter({DOMParserClass=globalThis.DOMParser,Serialize
         try{d=parseXml(x);}catch{d=null;}
         if(!d||!d.documentElement||d.getElementsByTagName('parsererror').length||d.documentElement.localName!=='p')throw new Error('That paragraph could not be made.');
       }
+      // Pictures that came with the paragraphs (copied from another guide) are kept under ids of their own; the ids are changed in every paragraph that names them.
+      if(pictures?.length){const renamed=registerPictures(pictures);xmls=xmls.map(x=>renamePictures(x,renamed));}
       const added=xmls.length?parseBody(xmls.join('')):[];
       if(added.length!==xmls.length)throw new Error('That paragraph could not be made.');
       remember(group);

@@ -285,6 +285,7 @@ main:focus, main:focus-visible { outline: none; }
 .page .g-body { margin: 0 0 4px 12px; }
 .page .g-notes { border-left: 4px solid var(--heading); background: var(--subtle); padding: 6px 10px; margin: 6px 0; font-size: 0.93rem; }
 .page .g-para { margin: 0 0 8px; }
+.page table.g-table img.g-picture { max-width: 100%; height: auto; }
 .page .g-draggable { cursor: grab; }
 .page .g-dragging { opacity: 0.45; }
 .page .g-drop-before { box-shadow: 0 -3px 0 var(--accent); }

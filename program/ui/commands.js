@@ -168,9 +168,10 @@ export function buildMenus(ctx) {
       { label: "Delete table column", icon: "trash", title: "In a table: delete the column you are in, with the words in it (the last column stays)", run: edits("deleteColumn"), enabled: can("inTable") },
       { label: "Join cell with the next", icon: "table", title: "In a table: make this cell and the one after it a single cell, with both their words (the header row is not joined)", run: edits("mergeCell"), enabled: can("inTable") },
       { label: "Split joined cell", icon: "table", title: "In a table: make a joined cell into cells again, the words staying in the first", run: edits("splitCell"), enabled: can("inTable") },
+      { label: "Picture in this cell...", icon: "image", title: "In a table: put a picture in the cell you are in, after its words, kept inside the cell. Picture details changes it", run: edits("cellPicture"), enabled: can("inTable") },
       { label: "Table title and description...", icon: "info", title: "In a table: change what a screen reader says about it", run: edits("tableDetails"), enabled: can("inTable") },
       "-",
-      { label: "Picture details...", icon: "image", title: "On a picture: change its description, mark it as only decoration, make it wider or narrower, or change its caption", run: edits("pictureDetails"), enabled: can("onPicture") },
+      { label: "Picture details...", icon: "image", title: "On a picture, or in a table cell that has one: change its description, mark it as only decoration, make it wider or narrower, or change its caption", run: edits("pictureDetails"), enabled: can("onPicture") },
     ],
   };
   /** @type {MenuDef} */
