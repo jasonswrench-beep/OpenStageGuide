@@ -11,7 +11,7 @@
 //            `build(ctx)` returns the body XML to insert.
 import {makeContext,buildPackage,timeText,esc,SPARE_PARAGRAPH} from './guide-ooxml.mjs';
 import {REF_TAG_PREFIX} from './guide-forms.mjs';
-import {NS,STYLE_IDS,STYLE_NAMES,stylesPart,numberingPart} from './guide-styles.mjs';
+import {NS,STYLE_IDS,STYLE_NAMES,stylesPart,numberingPart,BULLET_NUM_ID} from './guide-styles.mjs';
 import {iconUrl,ICON_FILES} from './guide-cues.mjs';
 import {cleanStyleEdits,applyStyleEdits,listStyles} from './guide-styles-edit.mjs';
 import {cleanParagraphXml} from './guide-xml-clean.mjs';
@@ -760,6 +760,8 @@ export function createDemoAdapter({DOMParserClass=globalThis.DOMParser,Serialize
       const made=makeContext();
       let body=build(made);
       body=keepPictures(body,pictures||made.pictures||[]);
+      // The steps of an activity are a bulleted list: in the guide they share the one bulleted list, so the program's Word file shows bullets, not letters.
+      for(const n of made.bullets||[])body=body.split(`<w:numId w:val="${n}"/>`).join(`<w:numId w:val="${BULLET_NUM_ID}"/>`);
       if(remove&&norm(paras[remove.start]?.text)!==norm(remove.guard))throw new Error('That block has changed since you chose it. Select it again, then choose Edit this block.');
       const at=where==='start'||!paras.length?0:after+1;
       if(where!=='start'&&paras.length&&!paras[after])throw new Error('That part of the document is no longer there. Choose Refresh and try again.');
@@ -843,7 +845,8 @@ export function createDemoAdapter({DOMParserClass=globalThis.DOMParser,Serialize
     async sourcePackage(){
       const body=paras.map(p=>p.xml).join('');
       const ids=[...new Set([...body.matchAll(/r:embed="([^"]+)"/g)].map(m=>m[1]))];
-      const lists=Math.max(0,...[...body.matchAll(/<w:numId w:val="(\d+)"/g)].map(m=>Number(m[1])));
+      const lists=Math.max(0,...[...body.matchAll(/<w:numId w:val="(\d+)"/g)].map(m=>Number(m[1])).filter(n=>n!==BULLET_NUM_ID));
+      const bulleted=body.includes(`<w:numId w:val="${BULLET_NUM_ID}"/>`);
       const part=(name,type,inner)=>`<pkg:part pkg:name="${name}" pkg:contentType="${type}"><pkg:xmlData>${inner}</pkg:xmlData></pkg:part>`;
       const png='iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
       // The cue icons the guide uses are the real pictures when the program can load them; the author's own pictures are always the real ones.
@@ -856,8 +859,8 @@ export function createDemoAdapter({DOMParserClass=globalThis.DOMParser,Serialize
         const icon=iconNames.find(n=>iconRid(n)===id);
         return {id,name:`image${i+1}.png`,type:'image/png',data:(icon&&real[icon])||png};
       });
-      const rels=`<Relationship Id="rIdStyles" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>${lists?'<Relationship Id="rIdNumbering" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/numbering" Target="numbering.xml"/>':''}${files.map(f=>`<Relationship Id="${f.id}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/${f.name}"/>`).join('')}`;
-      return `<pkg:package xmlns:pkg="${PKG}">${part('/word/document.xml','application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml',`<w:document ${NS}><w:body>${body}</w:body></w:document>`)}${part('/word/_rels/document.xml.rels','application/vnd.openxmlformats-package.relationships+xml',`<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${rels}</Relationships>`)}${part('/word/styles.xml','application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml',currentStyles())}${lists?part('/word/numbering.xml','application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml',numberingPart(lists)):''}${files.map(f=>`<pkg:part pkg:name="/word/media/${f.name}" pkg:contentType="${f.type}" pkg:compression="store"><pkg:binaryData>${f.data}</pkg:binaryData></pkg:part>`).join('')}</pkg:package>`;
+      const rels=`<Relationship Id="rIdStyles" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>${lists||bulleted?'<Relationship Id="rIdNumbering" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/numbering" Target="numbering.xml"/>':''}${files.map(f=>`<Relationship Id="${f.id}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/${f.name}"/>`).join('')}`;
+      return `<pkg:package xmlns:pkg="${PKG}">${part('/word/document.xml','application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml',`<w:document ${NS}><w:body>${body}</w:body></w:document>`)}${part('/word/_rels/document.xml.rels','application/vnd.openxmlformats-package.relationships+xml',`<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${rels}</Relationships>`)}${part('/word/styles.xml','application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml',currentStyles())}${lists||bulleted?part('/word/numbering.xml','application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml',numberingPart(lists,new Set(),bulleted)):''}${files.map(f=>`<pkg:part pkg:name="/word/media/${f.name}" pkg:contentType="${f.type}" pkg:compression="store"><pkg:binaryData>${f.data}</pkg:binaryData></pkg:part>`).join('')}</pkg:package>`;
     },
     // The preview has no second window: it keeps what it was asked to open, for the tests to look at.
     async openDocument(base64,fileName){

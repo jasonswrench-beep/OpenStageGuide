@@ -8,6 +8,7 @@
 import { formatOf } from "../../src/guide-format.mjs";
 import { fmtOfEl, runCss } from "../../src/guide-runs.mjs";
 import { ICON_FILES, iconUrl } from "../../src/guide-cues.mjs";
+import { BULLET_NUM_ID } from "../../src/guide-styles.mjs";
 
 const W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
 const W14 = "http://schemas.microsoft.com/office/word/2010/wordml";
@@ -165,6 +166,12 @@ const BY_STYLE = {
   Title: { tag: "h1", cls: "g-title" },
 };
 
+/** Whether a paragraph is in the guide's shared bulleted list. @param {Element} p */
+function isBulletParagraph(p) {
+  const id = first(p, W, "numId");
+  return !!id && Number(id.getAttributeNS(W, "val")) === BULLET_NUM_ID;
+}
+
 /** A paragraph with nothing in it: no words, no tab, no check box, no picture. @param {Element} p */
 function isBlank(p) {
   return inlineParts(p).length === 0 && p.getElementsByTagNameNS(W, "drawing").length === 0;
@@ -201,9 +208,10 @@ function plainParagraphNode(p, style, media, styles) {
   if (!words && !parts.some((x) => x.t === "check" || x.t === "cite" || x.t === "picture")) return null;
   // A style of the author's starts from the look of the built-in style it is based on.
   const known = BY_STYLE[style] ?? BY_STYLE[styles?.baseOf(style) ?? ""];
-  if (known) return { tag: known.tag, cls: known.cls, children: inlineNodes(parts, media) };
+  const bullet = isBulletParagraph(p) ? " g-bullet" : "";
+  if (known) return { tag: known.tag, cls: known.cls + bullet, children: inlineNodes(parts, media) };
   if (/^toc \d$/i.test(style)) return { tag: "p", cls: "g-toc", children: inlineNodes(parts, media) };
-  return { tag: "p", cls: /^OSG /.test(style) ? "g-para" : "g-para", children: inlineNodes(parts, media) };
+  return { tag: "p", cls: `g-para${bullet}`, children: inlineNodes(parts, media) };
 }
 
 /**

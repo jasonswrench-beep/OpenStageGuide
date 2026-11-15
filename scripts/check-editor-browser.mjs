@@ -581,6 +581,34 @@ try{
   await page.keyboard.press('Escape');
   await shot('11-format.png');
 
+  // ---- bullets: Ctrl+Shift+L and Format > Bullets make a paragraph a bullet and take it off again; a heading cannot be one
+  const bulletOf=()=>/<w:numId w:val="100"\/>/.test(onDisk().find(p=>p.text===SAY)?.xml||'');
+  await sayRow.focus();
+  await page.keyboard.press('Control+Shift+l');
+  await saved();
+  ok(bulletOf(),'Ctrl+Shift+L makes the paragraph a bullet, on disk');
+  ok(await row(/^Say where this program fits/).evaluate(e=>e.classList.contains('g-bullet')||!!e.querySelector('.g-bullet')),'and it is drawn as one');
+  ok(/Bullets on/.test(await status()),'and the program says so');
+  await page.getByRole('menuitem',{name:/^Format/}).click();
+  await page.getByRole('menuitem',{name:/^Bullets/}).click();
+  await saved();
+  ok(!bulletOf(),'Format, Bullets takes the bullet off again');
+  await page.keyboard.press('Control+z');
+  await saved();
+  ok(bulletOf(),'Ctrl+Z puts the bullet back');
+  await page.keyboard.press('Control+z');
+  await saved();
+  ok(!bulletOf(),'and again takes it off');
+  await page.getByRole('button',{name:'Bullets'}).click();
+  await saved();
+  ok(bulletOf(),'the Bullets button on the formatting bar makes it a bullet');
+  await page.getByRole('button',{name:'Bullets'}).click();
+  await saved();
+  await row(/^Getting Started/).focus();
+  await page.keyboard.press('Control+Shift+l');
+  ok(/cannot be a bullet/.test(await status()),'a heading cannot be a bullet, and the program says why');
+  ok(!onDisk().some(p=>/Getting Started/.test(p.text)&&/numId/.test(p.xml)),'and is not changed');
+
   // ---- styles: change one, make one, give it to a paragraph, make one from a paragraph
   const projectStyles=()=>{const f=fs.readdirSync(GUIDES).find(n=>n.endsWith('.guide-project.json'));return parseProject(fs.readFileSync(path.join(GUIDES,f),'utf8')).guide.styles;};
   const formatMenu=async label=>{await page.getByRole('menuitem',{name:/^Format/}).click();await page.getByRole('menuitem',{name:label}).click();};
@@ -856,7 +884,7 @@ try{
 
   // ---- the formatting bar: the same looks as buttons, which show whether the chosen words have them
   const bar=page.getByRole('toolbar',{name:'Text formatting'});
-  ok(await bar.count()===1&&await bar.getByRole('button').count()===15,'the guide has a formatting bar with its buttons: twelve for the words and three for zoom');
+  ok(await bar.count()===1&&await bar.getByRole('button').count()===16,'the guide has a formatting bar with its buttons: thirteen for the words and three for zoom');
   ok(await bar.getByRole('group',{name:'Zoom'}).getByRole('button').count()===3,'the last three, in their own group, are Zoom out, the size, and Zoom in');
   ok(await bar.locator('button[tabindex="0"]').count()===1,'with one Tab stop, and the arrow keys along it');
   const boldButton=bar.getByRole('button',{name:'Bold'});

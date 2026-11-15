@@ -285,6 +285,8 @@ main:focus, main:focus-visible { outline: none; }
 .page .g-body { margin: 0 0 4px 12px; }
 .page .g-notes { border-left: 4px solid var(--heading); background: var(--subtle); padding: 6px 10px; margin: 6px 0; font-size: 0.93rem; }
 .page .g-para { margin: 0 0 8px; }
+.page .g-bullet { position: relative; margin-left: 1.5em; }
+.page .g-bullet::before { content: "\2022"; position: absolute; left: -1.1em; }
 .page .g-toc { margin: 0 0 2px; font: 0.95rem "Segoe UI", system-ui, sans-serif; }
 .page .g-toc-2 { margin-left: 1.4rem; }
 .page h4.g-form { font: 700 1.05rem "Segoe UI", system-ui, sans-serif; margin: 22px 0 6px; padding: 6px 10px; border-left: 5px solid var(--accent); background: var(--tint); color: var(--text); }

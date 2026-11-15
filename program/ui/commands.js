@@ -93,6 +93,8 @@ const FORMAT_ITEMS = /** @type {({ name: string, label: string, icon: UiIconName
   { name: "alignRight", label: "Align right", icon: "text-align-end", keys: "Ctrl+R", title: "Line the paragraphs up on the right" },
   { name: "alignJustify", label: "Justify", icon: "text-align-justify", keys: "Ctrl+J", title: "Spread the lines to both edges (the gaps between words vary, which is harder to read)" },
   "-",
+  { name: "bullets", label: "Bullets", icon: "list", keys: "Ctrl+Shift+L", title: "Make the chosen paragraphs bullets, or take their bullets off (headings and the lines the program writes cannot be bullets)" },
+  "-",
   { name: "paragraph", label: "Paragraph...", icon: "pilcrow", title: "Alignment, the space around a paragraph, line spacing and indents" },
   { name: "clearFormat", label: "Clear paragraph formatting", icon: "eraser", title: "Let the paragraphs' styles decide how they look again" },
   "-",

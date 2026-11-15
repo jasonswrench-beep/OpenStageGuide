@@ -92,6 +92,7 @@ export const UI_ICONS = /** @type {const} */ ({
   "layers": [{"tag":"path","d":"M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z"},{"tag":"path","d":"M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12"},{"tag":"path","d":"M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17"}],
   "layout-dashboard": [{"tag":"rect","width":7,"height":9,"x":3,"y":3,"rx":1},{"tag":"rect","width":7,"height":5,"x":14,"y":3,"rx":1},{"tag":"rect","width":7,"height":9,"x":14,"y":12,"rx":1},{"tag":"rect","width":7,"height":5,"x":3,"y":16,"rx":1}],
   "library": [{"tag":"path","d":"m16 6 4 14"},{"tag":"path","d":"M12 6v14"},{"tag":"path","d":"M8 8v12"},{"tag":"path","d":"M4 4v16"}],
+  "list": [{"tag":"path","d":"M3 5h.01"},{"tag":"path","d":"M3 12h.01"},{"tag":"path","d":"M3 19h.01"},{"tag":"path","d":"M8 5h13"},{"tag":"path","d":"M8 12h13"},{"tag":"path","d":"M8 19h13"}],
   "list-checks": [{"tag":"path","d":"M13 5h8"},{"tag":"path","d":"M13 12h8"},{"tag":"path","d":"M13 19h8"},{"tag":"path","d":"m3 17 2 2 4-4"},{"tag":"path","d":"m3 7 2 2 4-4"}],
   "list-plus": [{"tag":"path","d":"M16 5H3"},{"tag":"path","d":"M11 12H3"},{"tag":"path","d":"M16 19H3"},{"tag":"path","d":"M18 9v6"},{"tag":"path","d":"M21 12h-6"}],
   "list-todo": [{"tag":"path","d":"M13 5h8"},{"tag":"path","d":"M13 12h8"},{"tag":"path","d":"M13 19h8"},{"tag":"path","d":"m3 17 2 2 4-4"},{"tag":"rect","x":3,"y":4,"width":6,"height":6,"rx":1}],

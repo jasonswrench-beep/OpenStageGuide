@@ -9,7 +9,7 @@
  *
  * The design is in docs/EDITING-SURFACE-DESIGN-2026-11-13.md. The page writes text and attributes only, never markup.
  */
-import { KINDS, isHeading, joinWords, kindChange, nextParagraphSpec, paragraphWith, paragraphWithSpans, readParagraph, setSpans, splitWords, withStyle } from "../../src/guide-edit.mjs";
+import { KINDS, canBullet, isBulleted, isHeading, joinWords, kindChange, nextParagraphSpec, paragraphWith, paragraphWithSpans, readParagraph, setSpans, splitWords, withBullet, withStyle } from "../../src/guide-edit.mjs";
 import { applyChange, cleanChange, rprAt, slice, summarize } from "../../src/guide-runs.mjs";
 import { canFormat, readParagraphFormat, withParagraphFormat } from "../../src/guide-format.mjs";
 import { idForName } from "../../src/guide-styles-edit.mjs";
@@ -819,6 +819,35 @@ export function mountEditor(doc, host, guide, ui) {
   }
 
   /** The rows a command is for: the ones chosen together, or the one the author is on. */
+  /**
+   * Bullets on, or off: the chosen paragraphs (or the one the author is on) join the guide's bulleted list, or leave it. When every one of them is bulleted already the
+   * bullets are taken off, otherwise they are all made bullets. Headings, the title, a block's own line, the time line and the other lines the program writes are not.
+   */
+  async function toggleBullets() {
+    const rows = targetRows();
+    if (!rows.length) return;
+    await settle();
+    const items = rows.map((r) => ({ at: idx(r), entry: entryOf(r), span: spanOf(r) }));
+    if (items.some((i) => i.span !== 1 || !canBullet(i.entry.xml ?? "", i.entry.style ?? "Normal", io)))
+      return ui.say(items.length === 1 ? "This paragraph cannot be a bullet: headings, the title, a block's own line and the lines the program writes are not." : "Some of the chosen paragraphs cannot be bullets (headings, the title, blocks' own lines and the lines the program writes are not), so none was changed.");
+    const on = !items.every((i) => isBulleted(i.entry.xml ?? "", io));
+    stopEdit();
+    // (every paragraph of one choice is one step of Undo; two choices are two)
+    const group = `bullets-${Date.now()}-${Math.random()}`;
+    try {
+      for (const i of items) {
+        const xml = withBullet(i.entry.xml ?? "", on, io);
+        if (xml !== i.entry.xml) await guide.replaceParagraphs({ start: i.at, count: 1, guard: i.entry.text ?? "", xmls: [xml], select: i.at, group });
+      }
+    } catch (e) {
+      ui.say(messageOf(e), true);
+      return;
+    }
+    render();
+    focusRow(rowAt(items[0].at));
+    ui.say(on ? "Bullets on. Ctrl+Z takes them off." : "Bullets off. Ctrl+Z puts them back.");
+  }
+
   /** Whether the paragraph the author is on holds one picture of theirs, which the Edit menu's Picture details can change. */
   function onPicture() {
     const rows = targetRows();
@@ -856,6 +885,8 @@ export function mountEditor(doc, host, guide, ui) {
         return copy(true);
       case "paste":
         return paste(null);
+      case "bullets":
+        return toggleBullets();
       case "alignLeft":
       case "alignCenter":
       case "alignRight":
@@ -1555,6 +1586,7 @@ export function mountEditor(doc, host, guide, ui) {
     ["alignLeft", "Align left", "text-align-start"],
     ["alignCenter", "Center", "text-align-center"],
     ["alignRight", "Align right", "text-align-end"],
+    ["bullets", "Bullets", "list"],
     "-",
     ["text", "Text...", "type"],
     ["charStyle", "Character style...", "baseline"],

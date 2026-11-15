@@ -125,6 +125,8 @@ p{margin:0 0 .6rem}
 .g-icon{width:1.6em;height:1.6em;vertical-align:middle;margin-right:.4rem}
 .g-body{margin:0 0 .3rem .8rem}
 .g-notes{border-left:4px solid var(--shell);background:var(--tint);padding:.4rem .7rem;margin:.5rem 0;font-size:.93rem}
+.g-bullet{position:relative;margin-left:1.5em}
+.g-bullet::before{content:"•";position:absolute;left:-1.1em}
 .g-toc{margin:0 0 .15rem;font-size:.95rem}
 .g-toc-2{margin-left:1.4rem}
 .g-formtext,.g-source,.g-print{margin:0 0 .4rem}

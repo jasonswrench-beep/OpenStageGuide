@@ -101,15 +101,19 @@ export function styleDefinitions(theme={}){
 <w:style w:type="paragraph" w:customStyle="1" w:styleId="${STYLE_IDS.keyTableCell}"><w:name w:val="${STYLE_NAMES.keyTableCell}"/><w:basedOn w:val="Normal"/><w:qFormat/><w:pPr><w:spacing w:before="60" w:after="60" w:line="240" w:lineRule="auto"/></w:pPr><w:rPr><w:color w:val="${INK}"/></w:rPr></w:style>`;
 }
 
+// The one bulleted list every bulleted paragraph of the guide belongs to (a paragraph made bulleted with Format > Bullets, and an activity's steps): a bullet does not
+// count, so they can all share it. The lettered lists of the items of an assessment use the numbers below it.
+export const BULLET_NUM_ID=100;
 // The lettered list that gives each multiple-choice option its a, b, c. Each item gets its own copy that starts again at a.
 // `bullets` names the lists that are bulleted (an activity's steps) instead of lettered; they use the second definition below.
-export function numberingPart(listCount,bullets=new Set()){
+export function numberingPart(listCount,bullets=new Set(),sharedBullet=false){
   const nums=Array.from({length:listCount},(_,i)=>bullets.has(i+1)
     ?`<w:num w:numId="${i+1}"><w:abstractNumId w:val="1"/></w:num>`
     :`<w:num w:numId="${i+1}"><w:abstractNumId w:val="0"/><w:lvlOverride w:ilvl="0"><w:startOverride w:val="1"/></w:lvlOverride></w:num>`).join('');
   const lettered=`<w:abstractNum w:abstractNumId="0"><w:multiLevelType w:val="singleLevel"/><w:lvl w:ilvl="0"><w:start w:val="1"/><w:numFmt w:val="lowerLetter"/><w:lvlText w:val="%1."/><w:lvlJc w:val="left"/><w:pPr><w:ind w:left="1080" w:hanging="360"/></w:pPr></w:lvl></w:abstractNum>`;
   const bulleted=`<w:abstractNum w:abstractNumId="1"><w:multiLevelType w:val="singleLevel"/><w:lvl w:ilvl="0"><w:start w:val="1"/><w:numFmt w:val="bullet"/><w:lvlText w:val="&#8226;"/><w:lvlJc w:val="left"/><w:pPr><w:ind w:left="${HANG+360}" w:hanging="360"/></w:pPr><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial" w:hint="default"/></w:rPr></w:lvl></w:abstractNum>`;
-  return `<w:numbering ${NS}>${lettered}${bullets.size?bulleted:''}${nums}</w:numbering>`;
+  const shared=sharedBullet?`<w:num w:numId="${BULLET_NUM_ID}"><w:abstractNumId w:val="1"/></w:num>`:'';
+  return `<w:numbering ${NS}>${lettered}${bullets.size||sharedBullet?bulleted:''}${nums}${shared}</w:numbering>`;
 }
 
 // The style definitions as a list, so a document can carry only the ones it uses.

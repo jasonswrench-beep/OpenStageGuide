@@ -96,13 +96,14 @@ export function wordsKey(k) {
 /**
  * What a key does when a row of the guide has the keyboard and its words are not being edited.
  * @param {KeyInfo} k
- * @returns {"down" | "up" | "first" | "last" | "edit" | "undo" | "redo" | "extendDown" | "extendUp" | "moveDown" | "moveUp" | "delete" | "copy" | "cut" | "add" | "selectAll" | "clear" | "alignLeft" | "alignCenter" | "alignRight" | "alignJustify" | "bold" | "italic" | "underline" | "superscript" | "subscript" | "clearText" | null}
+ * @returns {"down" | "up" | "first" | "last" | "edit" | "undo" | "redo" | "extendDown" | "extendUp" | "moveDown" | "moveUp" | "delete" | "copy" | "cut" | "add" | "selectAll" | "clear" | "alignLeft" | "alignCenter" | "alignRight" | "alignJustify" | "bullets" | "bold" | "italic" | "underline" | "superscript" | "subscript" | "clearText" | null}
  */
 export function rowKey(k) {
   const text = textKey(k);
   if (text) return text === "clear" ? "clearText" : text;
   const command = (k.ctrl || k.meta) && !k.alt;
   const letter = k.key.length === 1 ? k.key.toLowerCase() : "";
+  if (command && k.shift && letter === "l") return "bullets";
   if (command && !k.shift && ALIGN_KEYS[letter]) return /** @type {"alignLeft" | "alignCenter" | "alignRight" | "alignJustify"} */ (`align${ALIGN_KEYS[letter][0].toUpperCase()}${ALIGN_KEYS[letter].slice(1)}`);
   if (command && letter === "z") return k.shift ? "redo" : "undo";
   if (command && letter === "y" && !k.shift) return "redo";

@@ -13,6 +13,7 @@
 // rewritten by the editor, so nothing in it can be lost. Paragraphs the program writes itself (the time line, form lines and boxes, the
 // contents) are locked for the same reason.
 import {normalize,parseRpr,rprText,replaceText,sameSpans,slice,textOf} from './guide-runs.mjs';
+import {BULLET_NUM_ID} from './guide-styles.mjs';
 const W='http://schemas.openxmlformats.org/wordprocessingml/2006/main';
 const WP='http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing';
 export const MAX_WORDS=100000;
@@ -271,5 +272,46 @@ export function withStyle(xml,style,styleId,io){
     if(/^Heading\d$/.test(styleId)){const list=named(pPr,'numPr');if(list)pPr.removeChild(list);}
   }
   if(pPr&&!kids(pPr).length)root.removeChild(pPr);
+  return serialize(root,io);
+}
+
+// ---- bullets
+// A bulleted paragraph is one that belongs to the guide's shared bulleted list (src/guide-styles.mjs). Headings, the title, the time line and the other paragraphs
+// the program writes are never made bulleted.
+const BULLET_NUM_PR=`<w:numPr><w:ilvl w:val="0"/><w:numId w:val="${BULLET_NUM_ID}"/></w:numPr>`;
+export function isBulleted(xml,io){
+  let root;
+  try{root=io.parse(xml).documentElement;}catch{return false;}
+  const pPr=root&&named(root,'pPr'),numPr=pPr&&named(pPr,'numPr'),id=numPr&&named(numPr,'numId');
+  return !!id&&Number(attr(id,'val'))===BULLET_NUM_ID;
+}
+/** Whether a paragraph can be made bulleted: words the editor changes, in a style that is not a heading or locked. */
+export function canBullet(xml,style,io){
+  if(isHeading(style)||isLocked(style)||/^(OSG Cue|OSG Cue Facilitator)$/.test(style||''))return false;
+  if(!/^<w:p[\s>]/.test(xml||''))return false;
+  return readParagraph(xml,style,io).editable;
+}
+// Where the list mark goes among a paragraph's properties: after its style and the keeps that follow it, before the rest.
+const AFTER_NUMPR=/^(pStyle|keepNext|keepLines|pageBreakBefore|framePr|widowControl)$/;
+/** The paragraph with its bullet put on (on=true) or taken off. Nothing else about it changes. */
+export function withBullet(xml,on,io){
+  const root=io.parse(xml).documentElement;
+  const doc=root.ownerDocument;
+  let pPr=named(root,'pPr');
+  const had=pPr&&named(pPr,'numPr');
+  if(!on){
+    if(!had||!isBulleted(xml,io))return xml;
+    pPr.removeChild(had);
+    if(!kids(pPr).length)root.removeChild(pPr);
+    return serialize(root,io);
+  }
+  if(isBulleted(xml,io))return xml;
+  if(!pPr){pPr=doc.createElementNS(W,'w:pPr');root.insertBefore(pPr,root.firstChild);}
+  if(had)pPr.removeChild(had);
+  const holder=io.parse(`<w:x xmlns:w="${W}">${BULLET_NUM_PR}</w:x>`).documentElement.firstChild;
+  const mark=doc.importNode(holder,true);
+  let after=null;
+  for(const k of kids(pPr)){if(AFTER_NUMPR.test(k.localName))after=k;else break;}
+  pPr.insertBefore(mark,after?after.nextSibling:pPr.firstChild);
   return serialize(root,io);
 }
