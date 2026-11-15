@@ -13,7 +13,10 @@ import { KINDS, isHeading, joinWords, kindChange, nextParagraphSpec, paragraphWi
 import { applyChange, cleanChange, rprAt, slice, summarize } from "../../src/guide-runs.mjs";
 import { canFormat, readParagraphFormat, withParagraphFormat } from "../../src/guide-format.mjs";
 import { idForName } from "../../src/guide-styles-edit.mjs";
-import { addRow, deleteRow, readTable, setCellWords } from "../../src/guide-table.mjs";
+import { addColumn, addRow, deleteColumn, deleteRow, mergeCell, readTable, setCellWords, setTableAlt, splitCell, ALT_LIMITS } from "../../src/guide-table.mjs";
+import { readPicture, setPicture, DESCRIPTION_LIMIT } from "../../src/guide-picture.mjs";
+import { PICTURE_WIDTHS } from "../../src/image-prepare.mjs";
+import { captionLine } from "../../src/guide-reference.mjs";
 import { previewStyles } from "../../src/guide-styles-edit.mjs";
 import { cellKey, cellWordsKey, reconcile, rowKey, rowSignature, sameList, wordsKey, wordsLabel } from "./editor-model.js";
 import { describeGuide, drawNodes } from "./preview.js";
@@ -37,7 +40,7 @@ const SELECTION_DELAY = 250;
  * @param {Document} doc
  * @param {HTMLElement} host where the guide is drawn
  * @param {any} guide the guide's document, with its saving
- * @param {{ zoom?: { more: () => unknown, less: () => unknown, actual: () => unknown, level: () => number }, say: (message: string, bad?: boolean) => void, askText: (current: any, validate: (change: any) => void) => Promise<any>, openStyles: (startId?: string) => Promise<void>, askName: (options: any) => Promise<string | null>, askFormat: (current: any, validate: (fmt: any) => void) => Promise<any>, choose: (options: { title: string, intro?: string, confirm: string, options: { id: string, label: string, note?: string }[], current?: string }) => Promise<string | null> }} ui
+ * @param {{ zoom?: { more: () => unknown, less: () => unknown, actual: () => unknown, level: () => number }, say: (message: string, bad?: boolean) => void, askText: (current: any, validate: (change: any) => void) => Promise<any>, openStyles: (startId?: string) => Promise<void>, askName: (options: any) => Promise<string | null>, ask?: (options: any) => Promise<any>, askFormat: (current: any, validate: (fmt: any) => void) => Promise<any>, choose: (options: { title: string, intro?: string, confirm: string, options: { id: string, label: string, note?: string }[], current?: string }) => Promise<string | null> }} ui
  */
 export function mountEditor(doc, host, guide, ui) {
   const page = doc.createElement("article");
@@ -816,6 +819,12 @@ export function mountEditor(doc, host, guide, ui) {
   }
 
   /** The rows a command is for: the ones chosen together, or the one the author is on. */
+  /** Whether the paragraph the author is on holds one picture of theirs, which the Edit menu's Picture details can change. */
+  function onPicture() {
+    const rows = targetRows();
+    return rows.length === 1 && !!readPicture(entryOf(rows[0]).xml ?? "", io);
+  }
+
   function targetRows() {
     const chosen = selectedRows();
     if (chosen.length) return chosen;
@@ -877,6 +886,14 @@ export function mountEditor(doc, host, guide, ui) {
         return grid ? addTableRow(grid.row, grid.r, grid.c, false) : ui.say("Move into a table first: Enter on a table starts its cells.");
       case "deleteRow":
         return grid ? deleteTableRow(grid.row, grid.r, grid.c) : ui.say("Move into a table first: Enter on a table starts its cells.");
+      case "addColumn":
+      case "deleteColumn":
+      case "mergeCell":
+      case "splitCell":
+      case "tableDetails":
+        return grid ? tableChange(name, grid.row, grid.r, grid.c) : ui.say("Move into a table first: Enter on a table starts its cells.");
+      case "pictureDetails":
+        return pictureDetails();
       case "undo":
         return history(false, false);
       case "redo":
@@ -1310,6 +1327,124 @@ export function mountEditor(doc, host, guide, ui) {
     ui.say("Row deleted. Ctrl+Z brings it back.");
   }
 
+  /**
+   * A change to the table's columns or cells, or to its title and description: made on the table's XML (src/guide-table.mjs) and put back as the table.
+   * `c` is the cell the author is in, which is the place in its row; the column it is in is found from the cells before it.
+   * @param {string} name @param {Row} row @param {number} r @param {number} c
+   */
+  async function tableChange(name, row, r, c) {
+    await settle();
+    stopCellEdit();
+    const entry = entryOf(row);
+    const at = idx(row);
+    const xml0 = entry.xml ?? "";
+    try {
+      let xml = xml0;
+      let said = "";
+      // The grid column a cell begins at: the cells before it, each as wide as the columns it covers.
+      const column = readTable(xml0, io).rows[r]?.cells.slice(0, c).reduce((n, cell) => n + (cell.span || 1), 0) ?? 0;
+      if (name === "addColumn") {
+        xml = addColumn(xml0, column + ((readTable(xml0, io).rows[r]?.cells[c]?.span || 1) - 1), io);
+        said = "Column added after this one. Name it in the header row. Ctrl+Z takes it back.";
+      } else if (name === "deleteColumn") {
+        xml = deleteColumn(xml0, column, io);
+        said = "Column taken out, with the words in it. Ctrl+Z brings it back.";
+      } else if (name === "mergeCell") {
+        xml = mergeCell(xml0, r, c, io);
+        said = "This cell and the next are one cell now. Ctrl+Z takes it back.";
+      } else if (name === "splitCell") {
+        xml = splitCell(xml0, r, c, io);
+        said = "The joined cell is cells again. Ctrl+Z takes it back.";
+      } else {
+        const now = readTable(xml0, io);
+        if (!ui.ask) return ui.say("This cannot be changed here.", true);
+        const answer = await ui.ask({
+          title: "Table title and description",
+          intro: "What a screen reader says about the table: its title first, then the description when the person asks for more.",
+          confirm: "Change",
+          fields: [
+            { id: "caption", label: "Title (a few words naming the table)", type: "text", value: now.caption },
+            { id: "description", label: "Description (what the table shows)", type: "lines", rows: 3, value: now.description, hint: `Up to ${ALT_LIMITS.description} letters. It may be left empty.` },
+          ],
+          finish: (/** @type {Record<string, any>} */ v) => {
+            setTableAlt(xml0, { caption: String(v.caption), description: String(v.description) }, io);
+            return { caption: String(v.caption), description: String(v.description) };
+          },
+        });
+        if (!answer) {
+          focusCell(row, r, c);
+          return;
+        }
+        xml = setTableAlt(xml0, answer, io);
+        said = "The table's title and description are changed. Ctrl+Z takes it back.";
+      }
+      await guide.replaceTable({ start: at, guard: entry.text ?? "", xml, select: at });
+      render();
+      const fresh = rowAt(at);
+      const cells = fresh ? tableOf(fresh).rows[r]?.cells.length ?? 1 : 1;
+      if (fresh) focusCell(fresh, r, Math.max(0, Math.min(c, cells - 1)));
+      ui.say(said);
+    } catch (e) {
+      ui.say(messageOf(e), true);
+    }
+  }
+
+  /** The picture in the paragraph the author is on: its description, whether it is only decoration, its width and the caption under it. */
+  async function pictureDetails() {
+    const rows = targetRows();
+    if (rows.length !== 1) return ui.say("Choose a paragraph that holds a picture first.");
+    const row = rows[0];
+    await settle();
+    const at = idx(row);
+    const entry = entryOf(row);
+    const now = readPicture(entry.xml ?? "", io);
+    if (!now) return ui.say("This paragraph does not hold exactly one picture of yours. The icons of blocks are the program's own and are not changed.");
+    if (!ui.ask) return ui.say("This cannot be changed here.", true);
+    const below = entries[at + 1];
+    const hasCaption = below?.style === "OSG Caption";
+    const written = hasCaption ? String(below.text ?? "").replace(/^Figure\s*[\d.]*\s*:\s*/, "").trim() : "";
+    stopEdit();
+    const answer = await ui.ask({
+      title: "Picture details",
+      intro: "A description is what a screen reader says in place of the picture. A picture that is only decoration says nothing.",
+      confirm: "Change",
+      fields: [
+        { id: "alt", label: "Describe the picture in a few words", type: "text", value: now.description, hint: `Up to ${DESCRIPTION_LIMIT} letters.` },
+        { id: "decorative", label: "This picture is only decoration", type: "check", value: now.decorative },
+        { id: "width", label: "Width", type: "select", value: now.width || PICTURE_WIDTHS[0].id, options: PICTURE_WIDTHS.map((w) => ({ value: w.id, label: w.label })) },
+        { id: "caption", label: "Caption under the picture (optional)", type: "text", value: written, hint: "Update guide numbers captions: Figure 1.1, Figure 1.2." },
+      ],
+      finish: (/** @type {Record<string, any>} */ v) => {
+        setPicture(entry.xml ?? "", { description: String(v.alt), decorative: v.decorative === true, width: String(v.width) }, io);
+        if (String(v.caption).trim()) captionLine({ caption: String(v.caption) });
+        return { alt: String(v.alt), decorative: v.decorative === true, width: String(v.width), caption: String(v.caption).trim() };
+      },
+    });
+    if (!answer) {
+      focusRow(row);
+      return;
+    }
+    try {
+      const xml = setPicture(entry.xml ?? "", { description: answer.alt, decorative: answer.decorative, width: answer.width }, io);
+      await guide.replaceParagraphs({ start: at, count: 1, guard: entry.text ?? "", xmls: [xml], select: at });
+      // The caption is its own paragraph in the caption style, straight under the picture: changed, added or taken away.
+      const wanted = answer.caption;
+      const nowBelow = (guide.exportState().paragraphs ?? [])[at + 1];
+      const isCaption = nowBelow?.style === "OSG Caption";
+      if (wanted) {
+        const line = captionLine({ caption: wanted }).replace(/^<w:p>/, '<w:p xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">');
+        if (isCaption) await guide.replaceParagraphs({ start: at + 1, count: 1, guard: nowBelow.text ?? "", xmls: [line], select: at });
+        else await guide.replaceParagraphs({ start: at + 1, count: 0, guard: "", xmls: [line], select: at });
+      } else if (isCaption) await guide.replaceParagraphs({ start: at + 1, count: 1, guard: nowBelow.text ?? "", xmls: [], select: at });
+    } catch (e) {
+      ui.say(messageOf(e), true);
+      return;
+    }
+    render();
+    focusRow(rowAt(at));
+    ui.say("The picture is changed. Ctrl+Z takes it back.");
+  }
+
   /** Whether the keys belong to a box being typed in (a plain text box or the box for a paragraph's words). @param {EventTarget | null} target */
   function isTextBox(target) {
     return target instanceof HTMLTextAreaElement || (target instanceof HTMLElement && target.isContentEditable);
@@ -1549,7 +1684,7 @@ export function mountEditor(doc, host, guide, ui) {
     /** What the Edit menu needs to know to dim what cannot be done now. */
     state() {
       const h = guide.historyState();
-      return { canUndo: h.undo > 0, canRedo: h.redo > 0, hasRows: targetRows().length > 0, inTable: !!grid && shown.includes(grid.row) };
+      return { canUndo: h.undo > 0, canRedo: h.redo > 0, hasRows: targetRows().length > 0, inTable: !!grid && shown.includes(grid.row), onPicture: onPicture() };
     },
     /** Put the keyboard on the row of the cursor. */
     focusCursor() {

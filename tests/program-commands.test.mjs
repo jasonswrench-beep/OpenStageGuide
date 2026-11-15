@@ -117,10 +117,10 @@ test('the Edit menu: Undo and Redo, cut copy paste, add, kind, move and delete, 
   const {menus}=buildMenus(ctx);
   const edit=menus.find(m=>m.id==='edit');
   const by=label=>edit.items.find(i=>i!=='-'&&i.label===label);
-  assert.deepEqual(edit.items.filter(i=>i!=='-').map(i=>i.label),['Undo','Redo','Cut','Copy','Paste','Add paragraph below','Kind of paragraph...','Move up','Move down','Delete paragraph','Add table row below','Delete table row']);
+  assert.deepEqual(edit.items.filter(i=>i!=='-').map(i=>i.label),['Undo','Redo','Cut','Copy','Paste','Add paragraph below','Kind of paragraph...','Move up','Move down','Delete paragraph','Add table row below','Delete table row','Add table column right','Delete table column','Join cell with the next','Split joined cell','Table title and description...','Picture details...']);
   assert.deepEqual([by('Undo').keys,by('Redo').keys,by('Cut').keys,by('Copy').keys,by('Paste').keys,by('Move up').keys,by('Move down').keys,by('Delete paragraph').keys,by('Add paragraph below').keys],
     ['Ctrl+Z','Ctrl+Y','Ctrl+X','Ctrl+C','Ctrl+V','Alt+Up','Alt+Down','Delete','Ctrl+Enter']);
-  for(const label of ['Undo','Redo','Cut','Copy','Paste','Add paragraph below','Kind of paragraph...','Move up','Move down','Delete paragraph','Add table row below','Delete table row']){
+  for(const label of ['Undo','Redo','Cut','Copy','Paste','Add paragraph below','Kind of paragraph...','Move up','Move down','Delete paragraph','Add table row below','Delete table row','Add table column right','Delete table column','Join cell with the next','Split joined cell','Table title and description...','Picture details...']){
     const item=by(label);
     assert.ok(item.icon&&UI_ICONS[item.icon],`${label} has an icon the program has`);
     assert.ok(item.title&&item.title.length>10,`${label} says what it does`);
@@ -128,11 +128,17 @@ test('the Edit menu: Undo and Redo, cut copy paste, add, kind, move and delete, 
   assert.equal(by('Undo').enabled(),true);
   assert.equal(by('Redo').enabled(),false,'nothing to redo');
   state={canUndo:false,canRedo:true,hasRows:false,inTable:false};
+  assert.deepEqual([by('Add table column right').enabled(),by('Picture details...').enabled()],[false,false],'dimmed outside a table and off a picture');
+  state={canUndo:false,canRedo:false,hasRows:true,inTable:true,onPicture:false};
+  assert.deepEqual([by('Add table column right').enabled(),by('Join cell with the next').enabled(),by('Picture details...').enabled()],[true,true,false]);
+  state={canUndo:false,canRedo:false,hasRows:true,inTable:false,onPicture:true};
+  assert.deepEqual([by('Add table column right').enabled(),by('Picture details...').enabled()],[false,true]);
+  state={canUndo:false,canRedo:true,hasRows:false,inTable:false};
   assert.deepEqual([by('Undo').enabled(),by('Redo').enabled(),by('Delete paragraph').enabled(),by('Paste').enabled(),by('Add table row below').enabled(),by('Delete table row').enabled()],[false,true,false,false,false,false]);
   guide=false;state={canUndo:true,canRedo:true,hasRows:true,inTable:true};
   assert.equal(by('Undo').enabled(),false,'no guide, nothing to edit');
-  for(const label of ['Undo','Redo','Cut','Copy','Paste','Add paragraph below','Kind of paragraph...','Move up','Move down','Delete paragraph','Add table row below','Delete table row'])by(label).run();
-  assert.deepEqual(told,['undo','redo','cut','copy','paste','add','kind','moveUp','moveDown','delete','addRow','deleteRow']);
+  for(const label of ['Undo','Redo','Cut','Copy','Paste','Add paragraph below','Kind of paragraph...','Move up','Move down','Delete paragraph','Add table row below','Delete table row','Add table column right','Delete table column','Join cell with the next','Split joined cell','Table title and description...','Picture details...'])by(label).run();
+  assert.deepEqual(told,['undo','redo','cut','copy','paste','add','kind','moveUp','moveDown','delete','addRow','deleteRow','addColumn','deleteColumn','mergeCell','splitCell','tableDetails','pictureDetails']);
 });
 
 test('with no editor the Edit menu is there, dimmed, and does nothing',()=>{

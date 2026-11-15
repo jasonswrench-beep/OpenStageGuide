@@ -334,10 +334,10 @@ try{
   await saved();
   ok(onDisk().some(p=>p.style==='OSG Form Title'&&p.text==='Checklist: Preparation list'),'a form from the Checklist template is in the guide, with its title');
   ok(onDisk().some(p=>p.style==='OSG Form Print'),'with its print line');
-  await page.getByRole('button',{name:'Update guide'}).click();
   let numbered=false;
-  for(let i=0;i<60&&!numbered;i++){await saved();numbered=onDisk().some(p=>/^Checklist [A-Z0-9.]+: Preparation list$/.test(p.text));}
-  ok(numbered,'Update guide numbers it');
+  // The button is pressed again if the tools were still reading the guide the first time, until the form is numbered.
+  for(let i=0;i<60&&!numbered;i++){if(i%12===0)await page.getByRole('button',{name:'Update guide'}).click();await page.waitForTimeout(250);await saved();numbered=onDisk().some(p=>/^Checklist [A-Z0-9.]+: Preparation list$/.test(p.text));}
+  ok(numbered,'Update guide numbers it: '+JSON.stringify(onDisk().filter(p=>/Preparation list/.test(p.text)).map(p=>p.text))+' '+await status());
   await shot('8-form.png');
 
   // ---- the cells of a table
@@ -429,6 +429,45 @@ try{
   await page.keyboard.press('Escape');
   void checklist;
 
+  // ---- columns, joined cells, and the title and description of a table
+  const widthsOf=()=>{const x=onDisk().find(p=>/^<w:tbl/.test(p.xml)&&/Session notes|Notes for the session/.test(p.xml)).xml;return Array.from(x.matchAll(/<w:gridCol w:w="(\d+)"/g)).map(m=>Number(m[1]));};
+  const tableMenu=async name=>{await page.getByRole('menuitem',{name:/^Edit/}).click();await page.getByRole('menuitem',{name}).click();};
+  // (its first column is named Subject by now)
+  await page.locator('#work-guide table.g-table').filter({hasText:'Subject'}).first().focus();
+  await page.keyboard.press('Enter');
+  await page.keyboard.press('ArrowDown');
+  const columnsBefore=widthsOf().length;
+  await tableMenu(/Add table column right/);
+  await saved();
+  ok(widthsOf().length===columnsBefore+1&&widthsOf().reduce((a,b)=>a+b,0)===9360,'Edit, Add table column right adds a column and the table is as wide as it was: '+widthsOf().join(','));
+  ok(session().rows.every(r=>r.cells.length===columnsBefore+1),'every row has a cell in it');
+  ok((await page.locator('#work-guide table.g-table').filter({hasText:'Subject'}).first().locator('th').count())===columnsBefore+1,'and the table is drawn with the new header cell');
+  await tableMenu(/Join cell with the next/);
+  await saved();
+  ok(session().rows[1].cells[0].span===2,'Edit, Join cell with the next makes one cell of two');
+  await tableMenu(/Split joined cell/);
+  await saved();
+  ok(session().rows[1].cells.every(c=>c.span===1)&&session().rows[1].cells.length===columnsBefore+1,'Edit, Split joined cell makes cells of it again');
+  await page.keyboard.press('Control+Home');
+  await tableMenu(/Join cell with the next/);
+  ok(/header row names each column/.test(await status()),'the header row is not joined, and the program says why');
+  await tableMenu(/Delete table column/);
+  await saved();
+  ok(widthsOf().length===columnsBefore&&widthsOf().reduce((a,b)=>a+b,0)===9360,'Edit, Delete table column takes a column away: '+widthsOf().join(','));
+  await tableMenu(/Table title and description/);
+  await page.locator('dialog[open] #dlg-f-caption').fill('Notes for the session');
+  await page.locator('dialog[open] #dlg-f-description').fill('Topic and notes for each part of the session.');
+  await page.getByRole('button',{name:'Change'}).click();
+  await saved();
+  const alt=readTable(onDisk().find(p=>/^<w:tbl/.test(p.xml)&&/Notes for the session/.test(p.xml)).xml,tableIo);
+  ok(alt.caption==='Notes for the session'&&alt.description==='Topic and notes for each part of the session.','Edit, Table title and description changes what a screen reader says about the table');
+  await tableMenu(/Table title and description/);
+  await page.locator('dialog[open] #dlg-f-caption').fill('   ');
+  await page.getByRole('button',{name:'Change'}).click();
+  await page.locator('dialog[open] .problem:not([hidden])').waitFor({timeout:5000});
+  ok(/Give the table a title/.test(await page.locator('dialog[open] .problem').innerText()),'a table with no title is refused in the dialog, which stays open');
+  await page.getByRole('button',{name:'Cancel'}).click();
+
   // ---- a picture, with its description
   const TINY_PNG='iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
   await row(/^Say where this program fits/).focus();
@@ -456,6 +495,38 @@ try{
   ok(await page.locator('#work-guide img.g-picture').count()===1,'closed and opened again, the picture is still there');
   ok(await page.locator('#work-guide img.g-picture').evaluate(i=>i.complete&&i.naturalWidth>0),'and is a real picture, not a broken one');
   await shot('10-picture.png');
+
+  // ---- a picture that is in: its description, width and caption are changed
+  const pictureRow=page.locator('#work-guide [data-index]').filter({has:page.locator('img.g-picture')}).first();
+  const pictureXml=()=>onDisk().find(p=>/r:embed="rIdPic/.test(p.xml)).xml;
+  const widthBefore=Number(/<wp:extent cx="(\d+)"/.exec(pictureXml())[1]);
+  await pictureRow.focus();
+  await page.getByRole('menuitem',{name:/^Edit/}).click();
+  await page.getByRole('menuitem',{name:/Picture details/}).click();
+  ok(await page.locator('dialog[open] #dlg-f-alt').inputValue()==='A tiny test picture','Edit, Picture details opens with the description it has');
+  await page.locator('dialog[open] #dlg-f-alt').fill('   ');
+  await page.getByRole('button',{name:'Change'}).click();
+  await page.locator('dialog[open] .problem:not([hidden])').waitFor({timeout:5000});
+  ok(/Describe the picture/.test(await page.locator('dialog[open] .problem').innerText()),'a picture with no description is refused here too, and the dialog stays open');
+  await page.locator('dialog[open] #dlg-f-alt').fill('A tiny picture, described again');
+  await page.locator('dialog[open] #dlg-f-width').selectOption('small');
+  await page.locator('dialog[open] #dlg-f-caption').fill('A new caption');
+  await page.getByRole('button',{name:'Change'}).click();
+  await saved();
+  ok(/descr="A tiny picture, described again"/.test(pictureXml()),'the new description is on disk');
+  ok(Number(/<wp:extent cx="(\d+)"/.exec(pictureXml())[1])===Math.round(2.2*914400)&&Number(/<wp:extent cx="(\d+)"/.exec(pictureXml())[1])!==widthBefore,'and the picture is the small width');
+  ok(await page.locator('#work-guide img.g-picture').getAttribute('alt')==='A tiny picture, described again','the picture is drawn with its new description');
+  const captionAt=onDisk().findIndex(p=>p.text==='Figure: A new caption.');
+  ok(captionAt>0&&/r:embed="rIdPic/.test(onDisk()[captionAt-1].xml)&&onDisk()[captionAt].style==='OSG Caption','the caption is straight under the picture, in the caption style');
+  await pictureRow.focus();
+  await page.getByRole('menuitem',{name:/^Edit/}).click();
+  await page.getByRole('menuitem',{name:/Picture details/}).click();
+  await page.locator('dialog[open] #dlg-f-decorative').check();
+  await page.locator('dialog[open] #dlg-f-caption').fill('');
+  await page.getByRole('button',{name:'Change'}).click();
+  await saved();
+  ok(/adec:decorative/.test(pictureXml())&&/descr=""/.test(pictureXml()),'a picture marked as only decoration has no description and says so');
+  ok(!order().includes('Figure: A new caption.'),'and emptying the caption takes the caption paragraph away');
 
   // ---- how a paragraph sits: alignment, space, line spacing and indents
   const sayRow=row(/^Say where this program fits/);

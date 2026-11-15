@@ -258,7 +258,7 @@ const frame = startFrame(doc, {
   zoom,
   edit: {
     command: (name) => editor?.command(name),
-    state: () => editor?.state() ?? { canUndo: false, canRedo: false, hasRows: false, inTable: false },
+    state: () => editor?.state() ?? { canUndo: false, canRedo: false, hasRows: false, inTable: false, onPicture: false },
   },
   guide: () => (state.current ? { name: state.current.replace(/\.guide-project\.json$/i, "") } : null),
   openTool: (id) => openTool(id),
@@ -327,7 +327,7 @@ function openDocument() {
     () => {
       const host = doc.getElementById("work-guide");
       if (guideDoc !== made || !host) return;
-      editor = mountEditor(doc, host, made, { zoom: { more: zoom.more, less: zoom.less, actual: zoom.actual, level: () => zoomNow }, say, choose: (options) => chooseOne(doc, options), askFormat: (current, validate) => askParagraphFormat(doc, current, validate), askText: (current, validate) => askTextFormat(doc, current, validate), askName: (options) => askName(doc, options), openStyles: async (startId) => { if (guideDoc) await openStylesPanel(doc, guideDoc, say, startId); } });
+      editor = mountEditor(doc, host, made, { zoom: { more: zoom.more, less: zoom.less, actual: zoom.actual, level: () => zoomNow }, say, choose: (options) => chooseOne(doc, options), askFormat: (current, validate) => askParagraphFormat(doc, current, validate), askText: (current, validate) => askTextFormat(doc, current, validate), askName: (options) => askName(doc, options), ask: (options) => askFields(doc, options), openStyles: async (startId) => { if (guideDoc) await openStylesPanel(doc, guideDoc, say, startId); } });
     },
     () => {},
   );
