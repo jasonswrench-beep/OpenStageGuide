@@ -33,7 +33,8 @@ async function iconPictures(nodes) {
   const found = new Map();
   for (const src of wanted) {
     try {
-      const res = await fetch(`${ICON_DIR}${src.slice(ICON_DIR.length)}`);
+      const file = src.slice(ICON_DIR.length);
+      const res = await fetch(`${ICON_DIR}${file}`);
       if (res.ok) found.set(src, `data:image/png;base64,${toBase64(new Uint8Array(await res.arrayBuffer()))}`);
     } catch {
       /* an icon that cannot be fetched is left out: the words beside it say the same */
