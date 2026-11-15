@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {GROUPS,GUIDE_SECTIONS,TOOLS,TOOL_IDS,PROGRAM_TOOLS,PROGRAM_MENUS,toolFor,isTool,groupOf,relatedTools} from '../src/guide-tools.mjs';
+import {GROUPS,GUIDE_SECTIONS,TOOLS,TOOL_IDS,PROGRAM_TOOLS,PROGRAM_MENUS,PROGRAM_NAMES,programName,toolFor,isTool,groupOf,relatedTools} from '../src/guide-tools.mjs';
 
 const root=new URL('..',import.meta.url);
 const PARTS=['add','slides','elearning','look','organize'];
@@ -82,4 +82,16 @@ test('every tool can be reached from Open Designer through More tools, for the a
   const seen=new Set(['openDesigner']),queue=['openDesigner'];
   while(queue.length)for(const r of toolFor(queue.shift()).related)if(!seen.has(r)){seen.add(r);queue.push(r);}
   assert.deepEqual([...TOOL_IDS,...Object.keys(PROGRAM_TOOLS)].filter(id=>!seen.has(id)),[],'tools no list leads to');
+});
+
+test('the program has one name for each tool: the menus, More tools and the headings all say it',()=>{
+  const ids=[...TOOL_IDS,...Object.keys(PROGRAM_TOOLS)];
+  assert.deepEqual(Object.keys(PROGRAM_NAMES).sort(),[...ids].sort(),'a name for every tool and no name for a tool that is not there');
+  assert.equal(new Set(Object.values(PROGRAM_NAMES)).size,ids.length,'no two tools share a name');
+  for(const id of ids){
+    assert.equal(programName(id),PROGRAM_NAMES[id]);
+    assert.ok(!/[A-Z].* [A-Z]/.test(PROGRAM_NAMES[id].replace(/^[A-Z]/,'')),`${id}: "${PROGRAM_NAMES[id]}" is in sentence case, not the ribbon's Title Case`);
+  }
+  assert.equal(programName('openDesigner'),'Guide overview','the ribbon calls it Open Designer');
+  assert.equal(programName('nonsense'),'nonsense');
 });

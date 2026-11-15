@@ -1435,7 +1435,7 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
     fill('guide-review-fix',fix,'Nothing to fix.');
     fill('guide-review-look',look,'Nothing to look at.');
     fill('guide-review-check',checks.map(message=>({message})),'');
-    $('guide-review-heading').textContent=accessibility?'Accessibility':'Review this guide';
+    $('guide-review-heading').textContent=accessibility?'Accessibility':'Review guide';
     $('guide-review-pdf-part').hidden=accessibility;
     $('guide-review-summary').textContent=`${fix.length} to fix, ${look.length} to look at, ${checks.length} to check yourself. `+(accessibility
       ?'These checks do not replace a test with a screen reader, or Word\'s Accessibility Checker on a Word file saved from the guide.'

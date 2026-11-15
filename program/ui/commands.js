@@ -7,7 +7,7 @@
  * they are for and not in threes, which only the ribbon needed. Save and Restore a backup are in File, and Help is in Help. Kept apart from the page so
  * it can be tested without one.
  */
-import { PROGRAM_MENUS, PROGRAM_TOOLS, TOOLS } from "../../src/guide-tools.mjs";
+import { PROGRAM_MENUS, PROGRAM_NAMES, PROGRAM_TOOLS, TOOLS } from "../../src/guide-tools.mjs";
 
 /**
  * @typedef {import("./menubar.js").MenuCommand} MenuCommand
@@ -16,33 +16,14 @@ import { PROGRAM_MENUS, PROGRAM_TOOLS, TOOLS } from "../../src/guide-tools.mjs";
  * @typedef {import("./ui-icons.js").UiIconName} UiIconName
  */
 
-/** What each tool is called in a menu. */
+/**
+ * What each tool is called in a menu: its program name (src/guide-tools.mjs, the same name "More tools" and the tool's heading use), and the two that
+ * ask for a file get the three dots a command with a dialog has.
+ */
 export const TOOL_NAMES = /** @type {Record<string, string>} */ ({
-  openDesigner: "Guide overview",
-  courseSettings: "Course settings",
-  courseOutline: "Course outline",
-  addModule: "Add module",
-  addLesson: "Add lesson",
-  learningOutcomes: "Learning outcomes",
-  addActivity: "Add activity",
-  instructionalCues: "Instructional cues",
-  activityLibrary: "Activity library",
-  importSlides: "Import slides",
-  updateFromSlides: "Update from slides",
-  eLearningScreens: "E-learning screens",
-  eLearningCues: "E-learning cues",
-  accessibility: "Accessibility",
-  assessments: "Assessments",
-  learningAlignment: "Learning alignment",
-  reviewGuide: "Review guide",
-  timingAndAgenda: "Timing and agenda",
-  deliveryVersions: "Delivery versions",
-  appearance: "Appearance",
-  generateMaterials: "Generate materials",
-  participantWorkbook: "Participant workbook",
-  saveBackup: "Save a backup...",
-  restoreBackup: "Restore a backup...",
-  help: "Help",
+  ...PROGRAM_NAMES,
+  saveBackup: `${PROGRAM_NAMES.saveBackup}...`,
+  restoreBackup: `${PROGRAM_NAMES.restoreBackup}...`,
 });
 
 /** @type {Record<string, UiIconName>} */

@@ -133,6 +133,38 @@ export const PROGRAM_TOOLS=Object.freeze(Object.fromEntries([
 
 export const TOOL_IDS=Object.freeze(Object.keys(TOOLS));
 export const toolFor=id=>TOOLS[id]||PROGRAM_TOOLS[id]||null;
+
+// What each tool is called in the program, in one list: in its menu, in "More tools" and as the heading of its panel. (The `label` of a tool above is the
+// Word ribbon's name for it, "Open Designer" and "Add Lesson", and stays the add-in's.) The menus, the strip and the headings used to say three
+// different things; the manual's author found the lists disagreeing on 2026-11-14.
+export const PROGRAM_NAMES=Object.freeze({
+  openDesigner:'Guide overview',
+  courseSettings:'Course settings',
+  courseOutline:'Course outline',
+  addModule:'Add module',
+  addLesson:'Add lesson',
+  learningOutcomes:'Learning outcomes',
+  addActivity:'Add activity',
+  instructionalCues:'Instructional cues',
+  activityLibrary:'Activity library',
+  importSlides:'Import slides',
+  updateFromSlides:'Update from slides',
+  eLearningScreens:'E-learning screens',
+  eLearningCues:'E-learning cues',
+  accessibility:'Accessibility',
+  assessments:'Assessments',
+  learningAlignment:'Learning alignment',
+  reviewGuide:'Review guide',
+  timingAndAgenda:'Timing and agenda',
+  deliveryVersions:'Delivery versions',
+  appearance:'Appearance',
+  generateMaterials:'Generate materials',
+  participantWorkbook:'Participant workbook',
+  saveBackup:'Save a backup',
+  restoreBackup:'Restore a backup',
+  help:'Help'
+});
+export const programName=id=>PROGRAM_NAMES[id]||toolFor(id)?.label||id;
 export const isTool=id=>Object.hasOwn(TOOLS,id)||Object.hasOwn(PROGRAM_TOOLS,id);
 export const groupOf=id=>GROUPS.find(g=>g.tools.includes(id))||null;
 

@@ -272,7 +272,7 @@ test('Accessibility is the Review screen with only the document\'s checks, and R
   const listed=id=>a.n(id).children.map(li=>li.textContent);
   await a.p.openTool('reviewGuide');
   assert.equal(a.n('guide-review').hidden,false);
-  assert.equal(a.n('guide-review-heading').textContent,'Review this guide');
+  assert.equal(a.n('guide-review-heading').textContent,'Review guide');
   assert.ok(listed('guide-review-look').some(t=>/has no blocks yet/.test(t)),'Review lists what is missing in the guide');
   assert.ok(![...listed('guide-review-fix'),...listed('guide-review-look')].some(t=>/no title/.test(t)),'and not the document\'s title');
   assert.deepEqual(listed('guide-review-check').length,1);assert.match(listed('guide-review-check')[0],/spoken aloud/);
@@ -288,6 +288,6 @@ test('Accessibility is the Review screen with only the document\'s checks, and R
   await a.n('guide-review-run').onclick();
   assert.equal(a.n('guide-review-heading').textContent,'Accessibility','Review again stays on the tool it is in');
   await a.p.openTool('reviewGuide');
-  assert.equal(a.n('guide-review-heading').textContent,'Review this guide');
+  assert.equal(a.n('guide-review-heading').textContent,'Review guide');
   assert.equal(a.n('guide-review-pdf-part').hidden,false);
 });

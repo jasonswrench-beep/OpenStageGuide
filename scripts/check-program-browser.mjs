@@ -158,6 +158,22 @@ try{
     ok(JSON.stringify(got)===JSON.stringify(names),menu+' menu: '+got.join(', '));
     await page.keyboard.press('Escape');
   }
+  // Where each list lands, not only what it says: at the window's starting width (1360) and at 1140 and 1280 every list, the last menus' (Make, Help) included,
+  // has to sit inside the page with its words whole. They used to hang from the left edge of their menu's name and ran off the right edge.
+  const startSize=page.viewportSize();
+  const MENU_NAMES=['File','Edit','Insert','Format','View','Start','Sections','Activities','Slides','Assessment','eLearning','Check','Make','Help'];
+  for(const width of [1360,1280,1140]){
+    await page.setViewportSize({width,height:startSize.height});await page.waitForTimeout(250);
+    const out=[];
+    for(const name of MENU_NAMES){
+      await page.getByRole('menuitem',{name:new RegExp('^'+name)}).first().click();
+      const box=await page.evaluate(()=>{const m=[...document.querySelectorAll('[role=menu]')].find(e=>e.getBoundingClientRect().width>0);if(!m)return null;const b=m.getBoundingClientRect();return {left:Math.round(b.left),right:Math.round(b.right),page:document.documentElement.clientWidth,cut:[...m.querySelectorAll('[role=menuitem],[role=menuitemcheckbox]')].filter(e=>e.scrollWidth>e.clientWidth+1).length};});
+      if(!box||box.left<0||box.right>box.page||box.cut)out.push(name+' '+JSON.stringify(box));
+      await page.keyboard.press('Escape');
+    }
+    ok(out.length===0,'at '+width+' px wide every menu list is inside the page with its words whole'+(out.length?': '+out.join('; '):''));
+  }
+  await page.setViewportSize(startSize);await page.waitForTimeout(250);
   const openFromMenu=async(menu,item)=>{await page.getByRole('menuitem',{name:new RegExp('^'+menu)}).click();await page.getByRole('menuitem',{name:item}).click();await page.waitForTimeout(300);};
   await openFromMenu('Sections',/Add lesson/);
   await fr.locator('#guide-lesson-title').waitFor({state:'visible',timeout:10000});
@@ -175,8 +191,8 @@ try{
   await fr.locator('#guide-review-heading',{hasText:/^Accessibility$/}).waitFor({timeout:15000});
   ok((await fr.locator('#guide-review-heading').innerText())==='Accessibility'&&await fr.locator('#guide-review-pdf-part').isHidden(),'Accessibility opens the document checks, without Save as PDF');
   await openFromMenu('Check',/Review guide/);
-  await fr.locator('#guide-review-heading',{hasText:/^Review this guide$/}).waitFor({timeout:15000});
-  ok((await fr.locator('#guide-review-heading').innerText())==='Review this guide','and Review guide the guide\'s own');
+  await fr.locator('#guide-review-heading',{hasText:/^Review guide$/}).waitFor({timeout:15000});
+  ok((await fr.locator('#guide-review-heading').innerText())==='Review guide','and Review guide the guide\'s own');
   await page.getByRole('button',{name:'Make workbook'}).click();
   await fr.locator('#guide-workbook-go').waitFor({state:'visible',timeout:10000});
   const [download]=await Promise.all([page.waitForEvent('download',{timeout:20000}),fr.locator('#guide-workbook-go').click()]);

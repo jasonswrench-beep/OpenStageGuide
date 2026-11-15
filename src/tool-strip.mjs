@@ -1,7 +1,7 @@
 // The top of the pane while a tool is open: the tool's name and what it is for, and "More tools", a short list of the tools that
 // belong with it. It never lists all twenty-one (src/guide-tools.mjs says which belong together). It is only this strip; what
 // the tool shows below it is the pane's own work (guide-pane.mjs for the guide's tools, app.mjs for the older panels).
-import {toolFor,relatedTools} from './guide-tools.mjs';
+import {toolFor,relatedTools,programName} from './guide-tools.mjs';
 
 // Tools that name themselves on their own screen (Assessments, Review guide, a legacy panel) do not need the strip to say it again.
 export const namesItself=tool=>!!(tool.ownHeading||tool.titlebar||tool.kind==='legacy');
@@ -16,7 +16,8 @@ export function mountToolStrip(doc,{open}){
     const quiet=namesItself(tool);
     $('tool-strip').hidden=false;
     $('tool-title').hidden=quiet;
-    $('tool-title').textContent=tool.title;
+    // The name the tool has in its menu, so the menu, "More tools" and the heading all say the same.
+    $('tool-title').textContent=programName(id);
     $('tool-note').hidden=quiet;
     $('tool-note').textContent=tool.note;
     const more=relatedTools(id);
@@ -25,8 +26,9 @@ export function mountToolStrip(doc,{open}){
     $('tool-more').open=false;
     $('tool-more-list').replaceChildren(...more.map(t=>{
       const li=doc.createElement('li'),b=doc.createElement('button');
-      b.type='button';b.id=`tool-more-${t.id}`;b.dataset.tool=t.id;b.textContent=t.label;
-      b.setAttribute('aria-label',`${t.label}: ${t.tip}`);
+      const name=programName(t.id);
+      b.type='button';b.id=`tool-more-${t.id}`;b.dataset.tool=t.id;b.textContent=name;
+      b.setAttribute('aria-label',`${name}: ${t.tip}`);
       b.onclick=()=>open(t.id);
       li.append(b);return li;
     }));

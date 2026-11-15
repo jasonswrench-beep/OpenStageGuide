@@ -137,6 +137,24 @@ export function newItem(doc, cmd) {
   return button;
 }
 
+/**
+ * Keep an open menu's list inside the window. A list hangs from the left edge of its menu's name, so the lists of the last menus (Make, Help) ran past the
+ * right edge of a window of the starting width and their words were cut off. Call it after the list is shown: when its right edge is past the page's, it
+ * slides left by exactly that much, but never past the page's left edge. A list that already fits, or one the narrow-window rule stretches across
+ * the page, is left alone. Take the shift away again (`menu.style.left = ""`) when the list closes.
+ * @param {HTMLElement} menu
+ */
+export function keepInside(menu) {
+  menu.style.left = "";
+  const margin = 8;
+  const page = menu.ownerDocument.documentElement.clientWidth;
+  const box = menu.getBoundingClientRect();
+  if (box.right <= page - margin && box.left >= margin) return;
+  let shift = box.right > page - margin ? box.right - (page - margin) : 0;
+  if (box.left - shift < margin) shift = box.left - margin;
+  if (shift > 0) menu.style.left = `${-shift}px`;
+}
+
 /** @typedef {{ def: MenuDef, trigger: HTMLButtonElement, menu: HTMLElement, items: { button: HTMLElement, cmd: MenuCommand }[] }} Built */
 
 export class MenuBar {
@@ -235,6 +253,7 @@ export class MenuBar {
     if (at === -1) return;
     const b = /** @type {Built} */ (this.built[at]);
     b.menu.hidden = true;
+    b.menu.style.left = "";
     b.trigger.setAttribute("aria-expanded", "false");
     this.openAt = -1;
     if (focusTrigger) b.trigger.focus();
@@ -325,6 +344,7 @@ export class MenuBar {
     const b = /** @type {Built} */ (this.built[at]);
     for (const { button, cmd } of b.items) drawItem(this.doc, button, cmd);
     b.menu.hidden = false;
+    keepInside(b.menu);
     b.trigger.setAttribute("aria-expanded", "true");
     this.openAt = at;
     for (const x of this.built) x.trigger.setAttribute("tabindex", x === b ? "0" : "-1");

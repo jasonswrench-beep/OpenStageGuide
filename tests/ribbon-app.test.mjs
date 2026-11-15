@@ -5,7 +5,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {fixture,makeHost} from './helpers/mock-office.mjs';
 import {dom,settle} from './helpers/app-dom.mjs';
-import {TOOLS,TOOL_IDS} from '../src/guide-tools.mjs';
+import {TOOLS,TOOL_IDS,PROGRAM_NAMES} from '../src/guide-tools.mjs';
 
 async function boot(tag){
   const h=makeHost(fixture()),ui=dom(),ribbon=new Map();
@@ -34,7 +34,7 @@ test('the two backup buttons are guide tools now (rebuilt 2026-11-08): the guide
   for(const id of ['saveBackup','restoreBackup']){
     assert.equal(await press(id),1,`${id} completes its command`);
     assert.deepEqual(shown(),['view-guide'],id);
-    assert.equal(n('tool-strip').hidden,false);assert.equal(n('tool-title').textContent,TOOLS[id].title);
+    assert.equal(n('tool-strip').hidden,false);assert.equal(n('tool-title').textContent,PROGRAM_NAMES[id]);
     assert.ok(n('tool-more-list').children.length>=1,id);
   }
 });
@@ -52,7 +52,7 @@ test('from one tool to another and back to the same tool, the strip follows (fou
   await press('addModule');
   moreButton('courseOutline').onclick();await settle();
   moreButton('addModule').onclick();await settle();
-  assert.equal(n('tool-title').textContent,TOOLS.addModule.title);
+  assert.equal(n('tool-title').textContent,PROGRAM_NAMES.addModule);
   assert.deepEqual(more(),TOOLS.addModule.related);
 });
 
@@ -60,7 +60,7 @@ test('the Activity Library is a guide tool now: the guide pane with its own pane
   const {n,press,shown}=await boot('ribbon-tools-library');
   assert.equal(await press('activityLibrary'),1);
   assert.deepEqual(shown(),['view-guide']);
-  assert.equal(n('tool-title').textContent,TOOLS.activityLibrary.title);
+  assert.equal(n('tool-title').textContent,PROGRAM_NAMES.activityLibrary);
   // (this document has no guide yet, so the pane shows Start; the library's own panel is tested in activity-library.test.mjs)
   assert.ok(n('guide-lib-list').children.length>=5,'with ready-made activities to choose from');
 });
@@ -70,18 +70,18 @@ test('a guide tool shows the guide pane with the tool\'s own heading, and More t
   await press('timingAndAgenda');
   await press('addModule');
   assert.deepEqual(shown(),['view-guide']);
-  assert.equal(n('tool-title').textContent,TOOLS.addModule.title);assert.equal(n('tool-title').hidden,false);
+  assert.equal(n('tool-title').textContent,PROGRAM_NAMES.addModule);assert.equal(n('tool-title').hidden,false);
   const more=n('tool-more-list').children.map(li=>li.children[0].dataset.tool);
   assert.deepEqual(more,TOOLS.addModule.related);
   // from a guide tool to another tool, by More tools (Save Backup used to open the older panel; it is a guide tool now)
   await press('help');
   moreButton('saveBackup').onclick();await settle();
-  assert.deepEqual(shown(),['view-guide']);assert.equal(n('tool-title').textContent,TOOLS.saveBackup.title);
+  assert.deepEqual(shown(),['view-guide']);assert.equal(n('tool-title').textContent,PROGRAM_NAMES.saveBackup);
   // and back to a guide tool the same way
   await press('addActivity');
-  assert.equal(n('tool-title').textContent,TOOLS.addActivity.title);
+  assert.equal(n('tool-title').textContent,PROGRAM_NAMES.addActivity);
   moreButton('addModule').onclick();await settle();
-  assert.equal(n('tool-title').textContent,TOOLS.addModule.title);
+  assert.equal(n('tool-title').textContent,PROGRAM_NAMES.addModule);
   assert.deepEqual(shown(),['view-guide']);
 });
 
