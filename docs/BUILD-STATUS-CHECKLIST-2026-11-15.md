@@ -10,6 +10,7 @@ Brought up to date 2026-11-15 after the whole kit was built (the author's decisi
 - [x] A signed setup (Jason Wrench, timestamped) built by `python -I tools/build_installer.py --sign`; installs for one user with no administrator password; updates in place and keeps guides.
 - [x] Published as GitHub pre-releases (alpha 1 to 5); the setup has a checksum file; downloads without signing in.
 - [x] **Help > Check for updates...** (asks GitHub only when chosen, installs nothing); can be turned off by `OPENSTAGE_UPDATE_CHECK=off` or an `update-check.txt`.
+- [x] **Clear previous guides** (home screen): leaves the guides off the list, deletes nothing; **Show the N guides left off** brings them back; Open guide lists every guide. Built after alpha 7, in alpha 8 (built and signed, setup SHA-256 `189f62ac...c71f`, build `5105a1e7`, in `installers-signed-2026-11-15-alpha8`; not pushed or published).
 - [x] Closing the window saves the open guide first.
 - [x] What the author sets (activity library, workbook look, agenda start, zoom) is kept in `OpenStage Guide settings.json` in the guides folder.
 - [x] One guides folder for the window and the browser version (`Documents\OpenStage Guides`).
