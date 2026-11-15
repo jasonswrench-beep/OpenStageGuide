@@ -7,6 +7,7 @@ import {STYLES as FONT_STYLES,obfuscateFont,newGuid,packFontsUsed,namedOnlyUsed}
 import {cleanParagraphXml} from './guide-xml-clean.mjs';
 import {landscapeFlags} from './guide-forms.mjs';
 import {layoutParts,layoutBody,bodyWithLayoutRefs,withEvenAndOdd,SUMMARY_HEADING} from './guide-output-layout.mjs';
+import {layoutBlocks} from './guide-margin-layout.mjs';
 const W='http://schemas.openxmlformats.org/wordprocessingml/2006/main';
 const REL='http://schemas.openxmlformats.org/officeDocument/2006/relationships';
 const CT={main:'application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml',template:'application/vnd.openxmlformats-officedocument.wordprocessingml.template.main+xml',settings:'application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml',fontTable:'application/vnd.openxmlformats-officedocument.wordprocessingml.fontTable+xml',font:'application/vnd.openxmlformats-officedocument.obfuscatedFont'};
@@ -107,7 +108,7 @@ export async function docxFromPackage(pkgXml,JSZipClass,io,{template=false,entri
   const docPart=parts.find(p=>p.name==='/word/document.xml')?.xml??'';
   // The layout the author chose for the Word file (kit slice K6): page breaks, and the header and footer every section points at. A template carries none of it.
   const spec=template?null:layoutParts(layout,{title});
-  const bodyOf=template?'':bodyWithLayoutRefs(layoutBody(withSection(entries?bodyWithContents(entries,xml=>cleanParagraphXml(xml,io).xml):/<w:body>([\s\S]*)<\/w:body>/.exec(docPart)?.[1]??''),layout,{summaryHeading:SUMMARY_HEADING}),spec);
+  const bodyOf=template?'':bodyWithLayoutRefs(layoutBody(withSection(entries?bodyWithContents(layoutBlocks(entries,layout,io),xml=>cleanParagraphXml(xml,io).xml):/<w:body>([\s\S]*)<\/w:body>/.exec(docPart)?.[1]??''),layout,{summaryHeading:SUMMARY_HEADING}),spec);
   onNamed?.(namedOnlyUsed(parts.find(p=>p.name==='/word/styles.xml')?.xml,bodyOf).map(f=>({family:f.family})));
   const zip=new JSZipClass();
   // No entries for folders: some services that open Word files refuse a file that has them.

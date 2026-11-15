@@ -29,13 +29,13 @@ const sectPrs=xml=>xml.match(/<w:sectPr[\s\S]*?<\/w:sectPr>/g)||[];
 
 test('a layout is read from anything: unknown words fall back to the defaults, and the default layout is not kept',()=>{
   assert.deepEqual(cleanLayout(null),LAYOUT_DEFAULTS);
-  assert.deepEqual(cleanLayout({dividers:'yes',header:'bold',footer:'sideways',footerText:'  A  \n  line  '}),{dividers:false,header:'none',footer:'none',footerText:'A line'});
+  assert.deepEqual(cleanLayout({dividers:'yes',header:'bold',footer:'sideways',footerText:'  A  \n  line  '}),{...LAYOUT_DEFAULTS,footerText:'A line'});
   assert.equal(cleanLayout({footerText:'x'.repeat(500)}).footerText.length,120);
   assert.equal(isDefaultLayout({}),true);assert.equal(isDefaultLayout({dividers:true}),false);
   assert.equal(describeLayout({}),'');
   assert.match(describeLayout({dividers:true,header:'module',footer:'mirrored',footerText:'Acme'}),/each module starts on a new page; the name of the module runs along the top; the page number is on the outside of each page.*footer words/);
   const kept=readSettings(writeSettings({scheme:'auto',layout:{dividers:true,footer:'plain',footerText:'Acme'}}));
-  assert.deepEqual(kept.layout,{dividers:true,header:'none',footer:'plain',footerText:'Acme'});
+  assert.deepEqual(kept.layout,{...LAYOUT_DEFAULTS,dividers:true,footer:'plain',footerText:'Acme'});
   assert.equal('layout' in readSettings(writeSettings({scheme:'auto',layout:{}})),false,'the default is left out');
   assert.equal('layout' in readSettings('{"scheme":"auto","layout":{"header":"nonsense"}}'),false);
 });
@@ -142,7 +142,7 @@ test('the Layout tool keeps its choices with the guide, says what they do, and d
   a.type('guide-layout-header','module');await a.n('guide-layout-header').onchange();
   assert.equal(a.n('guide-layout-footertext').disabled,false);
   a.type('guide-layout-footertext','Acme');await a.n('guide-layout-footertext').onchange();
-  assert.deepEqual(readSettings(await a.adapter.formSettings()).layout,{dividers:true,header:'module',footer:'mirrored',footerText:'Acme'});
+  assert.deepEqual(readSettings(await a.adapter.formSettings()).layout,{...LAYOUT_DEFAULTS,dividers:true,header:'module',footer:'mirrored',footerText:'Acme'});
   assert.match(a.n('guide-layout-says').textContent,/each module starts on a new page.*name of the module.*outside of each page/);
   assert.match(a.n('guide-status').textContent,/kept with the guide/);
   // it is read back from the guide, not from the page

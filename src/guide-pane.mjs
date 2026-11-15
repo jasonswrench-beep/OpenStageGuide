@@ -852,6 +852,8 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
     fill('guide-layout-header',HEADER_LABELS);fill('guide-layout-footer',FOOTER_LABELS);
     const l=cleanLayout(formSettings.layout);
     $('guide-layout-dividers').checked=l.dividers;
+    $('guide-layout-icons').checked=l.marginIcons;
+    $('guide-layout-slides').checked=l.slideBeside;
     $('guide-layout-header').value=l.header;
     $('guide-layout-footer').value=l.footer;
     if($('guide-layout-footertext').value!==l.footerText)$('guide-layout-footertext').value=l.footerText;
@@ -860,7 +862,7 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
     $('guide-summary-note').textContent=pageNote('The one-page summary',summaryState(paras),summaryRows(paras,plan.guide).length?'':' It needs a module: add one first.');
   }
   async function changeLayout(){
-    const next=cleanLayout({dividers:$('guide-layout-dividers').checked,header:$('guide-layout-header').value,footer:$('guide-layout-footer').value,footerText:$('guide-layout-footertext').value});
+    const next=cleanLayout({dividers:$('guide-layout-dividers').checked,marginIcons:$('guide-layout-icons').checked,slideBeside:$('guide-layout-slides').checked,header:$('guide-layout-header').value,footer:$('guide-layout-footer').value,footerText:$('guide-layout-footertext').value});
     await saveFormSettings({...formSettings,layout:next});
     drawLayout();
     status('The layout is kept with the guide. It is used when you save the guide as a Word file.');
@@ -2200,7 +2202,7 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
     if(busy){if(tries<40)setTimeout(()=>void onLayoutChange(tries+1),150);return;}
     await act(changeLayout);
   };
-  for(const id of ['guide-layout-dividers','guide-layout-header','guide-layout-footer','guide-layout-footertext'])$(id).onchange=()=>onLayoutChange();
+  for(const id of ['guide-layout-dividers','guide-layout-icons','guide-layout-slides','guide-layout-header','guide-layout-footer','guide-layout-footertext'])$(id).onchange=()=>onLayoutChange();
   $('guide-build-summary').onclick=async()=>{await act(buildSummaryPage);focus('guide-build-summary');};
   for(const id of ['guide-forms-people','guide-forms-teams','guide-forms-tables'])$(id).onchange=()=>act(changeGroup);
   $('guide-bk-save').onclick=()=>act(async()=>saveBackup());

@@ -612,7 +612,7 @@ try{
   await fpage.locator('dialog[open] #dlg-name').waitFor({timeout:15000});
   ok(await fpage.locator('dialog[open] #dlg-name').inputValue()==='Pasted workshop','the pasted guide is offered the first line as its name');
   await fpage.locator('dialog[open]').getByRole('button',{name:'Make the guide'}).click();
-  await fpage.waitForFunction(()=>/^Pasted workshop/.test(document.title)&&/Module 1: Welcome/.test(document.querySelector('#work-guide')?.innerText||''),null,{timeout:20000});
+  await fpage.waitForFunction(()=>/^Pasted workshop/.test(document.title)&&/Module 1: Welcome/.test(document.querySelector('#work-guide')?.innerText||'')&&/Say hello to everyone\./.test(document.querySelector('#work-guide')?.innerText||''),null,{timeout:20000});
   const pasted=await fpage.locator('#work-guide').innerText();
   ok(/Lesson 1\.1: Hello/.test(pasted)&&/Say hello to everyone\./.test(pasted),'the pasted lines are the guide: a module, a lesson and a plain line: '+pasted.replace(/\s+/g,' ').slice(0,160));
   ok(files(GUIDES).some(f=>/^Pasted workshop\.guide-project\.json$/.test(f))&&files(GUIDES).some(f=>f==='Forms check.guide-project.json'),'it is a new guide beside the first, which is not changed');
@@ -667,6 +667,32 @@ try{
   ok(/Acme Training/.test(await layoutZip.file('word/footerLayout1.xml').async('string')),'and the author\'s words are in the footer');
   ok(/OSGModule"\/><w:pageBreakBefore\/>/.test(layoutDoc),'and each module starts on a page of its own');
   ok(/One-page summary/.test(layoutDoc)&&/Materials list/.test(layoutDoc),'and it holds the pages the tools built');
+  ok(!/Layout of a block/.test(layoutDoc),'and no block is a table while the icon column and the slide picture are not chosen');
+  // the icon column: a cue block becomes a table with its icon on the left, and the guide on the page does not change
+  // (the pasted guide has no cue block of its own: a highlight block is added from the Activities menu, as in the workbook step above)
+  await fpage.getByRole('menuitem',{name:/^Activities/}).click();
+  await fpage.getByRole('menuitem',{name:/Instructional cues/i}).click();
+  await ff.locator('#guide-cue-highlight').evaluate(e=>{e.checked=true;e.dispatchEvent(new Event('change',{bubbles:true}));});
+  await ff.locator('#guide-block-text').fill('Remember the names.');
+  await ff.locator('#guide-block-form').evaluate(f=>f.requestSubmit());
+  await fpage.waitForFunction(()=>/Remember the names\./.test(document.querySelector('#work-guide')?.innerText||''),null,{timeout:10000});
+  await kitTool('Make',/^Layout/);
+  await ff.locator('#guide-layout-icons').waitFor({state:'visible',timeout:10000});
+  ok(await ff.locator('#guide-layout-icons').isChecked()===false&&await ff.locator('#guide-layout-slides').isChecked()===false,'the Layout tool offers the icon column and the slide picture, both off to begin with');
+  await ff.locator('#guide-layout-icons').check();
+  const iconsKept=()=>/marginIcons\\*":true/.test(fs.readFileSync(path.join(GUIDES,'Pasted workshop.guide-project.json'),'utf8'));
+  for(let i=0;i<40&&!iconsKept();i++)await fpage.waitForTimeout(250);
+  ok(iconsKept(),'the choice is kept in the guide\'s file');
+  await fpage.getByRole('menuitem',{name:/^File/}).click();
+  const [iconsDownload]=await Promise.all([fpage.waitForEvent('download',{timeout:30000}),fpage.getByRole('menuitem',{name:/Save as Word file/}).click()]);
+  const iconsPath=path.join(RUN,'layout-icons.docx');
+  await iconsDownload.saveAs(iconsPath);
+  const iconsZip=await JSZip.loadAsync(fs.readFileSync(iconsPath));
+  const iconsDoc=await iconsZip.file('word/document.xml').async('string');
+  ok(/<w:tblCaption w:val="Layout of a block"\/>/.test(iconsDoc),'the Word file holds the block as a layout table when the icon column is chosen');
+  const blockTable=(iconsDoc.match(/<w:tbl[ >][\s\S]*?<\/w:tbl>/g)||[]).find(t=>/Layout of a block/.test(t))||'';
+  ok(/Remember the names\./.test(blockTable)&&/<w:drawing>/.test(blockTable.split('</w:tc>')[0])&&!/<w:drawing>/.test(blockTable.split('</w:tc>')[1]||''),'with the icon in the left cell and the words in the right');
+  ok(!/Layout of a block/.test(await fpage.locator('#work-guide').innerText()),'while the guide on the page is as it was');
   // ---- the home screen: Clear previous guides leaves the guides off the list and deletes nothing; Open guide still lists them; the list can be brought back
   await fpage.getByRole('menuitem',{name:/^File/}).click();
   await fpage.getByRole('menuitem',{name:/Close guide/}).click();

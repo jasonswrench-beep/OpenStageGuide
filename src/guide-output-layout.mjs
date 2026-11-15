@@ -11,7 +11,7 @@ export const FOOTER_LABELS=Object.freeze({none:'No footer',plain:'The page numbe
 export const FOOTER_WORDS_MAX=120;
 /** The heading of the one-page summary: the Word file puts the page on a sheet of its own. */
 export const SUMMARY_HEADING='One-page summary';
-export const LAYOUT_DEFAULTS=Object.freeze({dividers:false,header:'none',footer:'none',footerText:''});
+export const LAYOUT_DEFAULTS=Object.freeze({dividers:false,header:'none',footer:'none',footerText:'',marginIcons:false,slideBeside:false});
 
 const oneLine=(t,max)=>String(t??'').replace(/[\u0000-\u001f\u007f]+/g,' ').replace(/\s+/g,' ').trim().slice(0,max);
 /** Any stored value as a complete, safe layout: unknown words fall back to the defaults. */
@@ -21,10 +21,13 @@ export function cleanLayout(v){
     dividers:d.dividers===true,
     header:HEADERS.includes(d.header)?d.header:'none',
     footer:FOOTERS.includes(d.footer)?d.footer:'none',
-    footerText:oneLine(d.footerText,FOOTER_WORDS_MAX)
+    footerText:oneLine(d.footerText,FOOTER_WORDS_MAX),
+    // Each block's icon in a column of its own at the left, and a slide's picture beside its script (src/guide-margin-layout.mjs)
+    marginIcons:d.marginIcons===true,
+    slideBeside:d.slideBeside===true
   };
 }
-export const isDefaultLayout=l=>{const c=cleanLayout(l);return !c.dividers&&c.header==='none'&&c.footer==='none'&&!c.footerText;};
+export const isDefaultLayout=l=>{const c=cleanLayout(l);return !c.dividers&&c.header==='none'&&c.footer==='none'&&!c.footerText&&!c.marginIcons&&!c.slideBeside;};
 /** One sentence on what the layout does, for the message after the Word file is made; '' for the default layout. */
 export function describeLayout(layout){
   const l=cleanLayout(layout),said=[];
@@ -34,6 +37,8 @@ export function describeLayout(layout){
   if(l.footer==='plain')said.push('the page number is at the foot of each page');
   if(l.footer==='mirrored')said.push('the page number is on the outside of each page, for printing on both sides');
   if(l.footerText&&l.footer!=='none')said.push('your footer words are in the footer');
+  if(l.marginIcons)said.push('the icon of each block is in a column at the left');
+  if(l.slideBeside)said.push('the picture of each slide is beside its script');
   return said.length?`The layout you chose is in it: ${said.join('; ')}.`:'';
 }
 
