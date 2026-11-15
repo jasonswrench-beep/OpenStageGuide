@@ -282,8 +282,8 @@ test('Accessibility is the Review screen with only the document\'s checks, and R
   assert.equal(a.n('guide-review-heading').textContent,'Accessibility');
   assert.ok(listed('guide-review-fix').some(t=>/no title/.test(t)),'Accessibility lists the document\'s title');
   assert.ok(![...listed('guide-review-fix'),...listed('guide-review-look')].some(t=>/has no blocks yet/.test(t)),'and not what is missing in the guide');
-  assert.equal(listed('guide-review-check').length,2);assert.match(listed('guide-review-check').join(' '),/Check Accessibility[\s\S]*screen reader/);
-  assert.match(a.n('guide-review-summary').textContent,/This is not Word's Accessibility Checker and not a screen-reader test\./);
+  assert.equal(listed('guide-review-check').length,2);assert.match(listed('guide-review-check').join(' '),/If you save the guide as a Word file, run Word's own check on that file: Review > Check Accessibility[\s\S]*screen reader/);
+  assert.match(a.n('guide-review-summary').textContent,/These checks do not replace a test with a screen reader, or Word's Accessibility Checker on a Word file saved from the guide\./);
   assert.equal(a.n('guide-review-pdf-part').hidden,true,'Save as PDF stays with Review guide');
   await a.n('guide-review-run').onclick();
   assert.equal(a.n('guide-review-heading').textContent,'Accessibility','Review again stays on the tool it is in');

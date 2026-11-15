@@ -36,7 +36,7 @@ const CHECK_YOURSELF=[
   'Does each cue read sensibly when spoken aloud?'
 ];
 const CHECK_YOURSELF_ACCESSIBILITY=[
-  'Run Word\'s own check: Review > Check Accessibility.',
+  'If you save the guide as a Word file, run Word\'s own check on that file: Review > Check Accessibility.',
   'Read one page with a screen reader before you share the guide.'
 ];
 // A file window waits for the author, who may take minutes to find a file; its own limit (file-pick.mjs) is ten.
@@ -1426,7 +1426,7 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
           const there=paras[item.paragraph]?.text;
           const b=doc.createElement('button');
           b.type='button';b.className='guide-link';b.textContent='Go there';b.setAttribute('aria-label',`Go to: ${item.message}`);
-          b.onclick=()=>act(async()=>{await adapter.go(item.paragraph,there);await load();status('Moved to the place in the document.');});
+          b.onclick=()=>act(async()=>{await adapter.go(item.paragraph,there);await load();status('Moved to the place in the guide.');});
           li.append(b);
         }
         return li;
@@ -1438,7 +1438,7 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
     $('guide-review-heading').textContent=accessibility?'Accessibility':'Review this guide';
     $('guide-review-pdf-part').hidden=accessibility;
     $('guide-review-summary').textContent=`${fix.length} to fix, ${look.length} to look at, ${checks.length} to check yourself. `+(accessibility
-      ?'This is not Word\'s Accessibility Checker and not a screen-reader test.'
+      ?'These checks do not replace a test with a screen reader, or Word\'s Accessibility Checker on a Word file saved from the guide.'
       :'The checks of the document itself (heading levels, picture descriptions, tables, color, size of text) are in Accessibility.');
     status('');
     hidePdfMessages();
