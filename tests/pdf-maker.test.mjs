@@ -7,7 +7,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {EventEmitter} from 'node:events';
-import {makePdf,findEdge,pdfIsTagged,PdfError,PDF_MAX_HTML} from '../scripts/pdf-maker.mjs';
+import {makePdf,findEdge,pdfIsTagged,pdfHasOutline,PdfError,PDF_MAX_HTML} from '../scripts/pdf-maker.mjs';
 import {startProjectServer} from '../scripts/project-server.mjs';
 import {createProjectAdapter,NO_PDF} from '../src/guide-project-adapter.mjs';
 import {createDemoAdapter} from '../src/guide-word.mjs';
@@ -56,7 +56,7 @@ test('the PDF is made by Edge run on a page in a folder of its own, with fixed o
     const {exe,args,options}=seen[0];
     assert.equal(exe,'C:\\Edge\\msedge.exe');
     assert.equal(options.shell,false,'no shell');assert.equal(options.windowsHide,true);
-    for(const flag of ['--headless=new','--no-pdf-header-footer','--disable-extensions','--no-first-run'])assert.ok(args.includes(flag),flag);
+    for(const flag of ['--headless=new','--no-pdf-header-footer','--disable-extensions','--no-first-run','--generate-pdf-document-outline'])assert.ok(args.includes(flag),flag);
     const page=args.at(-1);
     assert.match(page,/^file:\/\/\/.*page\.html$/,'the one address it is given is the page\'s file');
     assert.ok(!args.some(a=>/^https?:/i.test(a)),'no address on a network');
@@ -101,6 +101,13 @@ test('with the real Edge on this computer, a guide\'s web page becomes a tagged 
   assert.equal(made.tagged,true,'Edge marks the PDF and gives it a structure tree');
   const text=made.bytes.toString('latin1');
   assert.match(text,/\/Lang\s*\(en/,'it says its language');assert.match(text,/\/Title\s*[(<]/,'and its title');
+  assert.equal(made.outlined,true,'and has bookmarks that follow its headings');
+});
+
+test('a PDF has bookmarks when it points at an outline, and not otherwise',()=>{
+  assert.equal(pdfHasOutline(Buffer.from('%PDF-1.4 /Type /Catalog /Outlines 12 0 R /Pages 2 0 R')),true);
+  assert.equal(pdfHasOutline(Buffer.from('%PDF-1.4 /Type /Catalog /Pages 2 0 R')),false);
+  assert.equal(pdfHasOutline(Buffer.from('%PDF-1.4 the word /Outlines in a sentence')),false);
 });
 
 // ---- the server's answer

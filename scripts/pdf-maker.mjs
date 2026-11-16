@@ -1,6 +1,7 @@
 // Makes a PDF of the guide, on this computer, for File > Save as PDF. The guide's web page (src/guide-html.mjs) is printed to a PDF by Microsoft Edge, which
 // comes with Windows and is the same engine the program's window shows its pages with. Edge writes a tagged PDF when it prints from the command line: the
-// headings, paragraphs and tables are marked, and it says its language and title. That is looked for in the file that comes back, not assumed.
+// headings, paragraphs and tables are marked, and it says its language and title; with --generate-pdf-document-outline it also writes bookmarks from the headings.
+// Both are looked for in the file that comes back, not assumed.
 //
 // The page is written to a temporary folder with a name nobody can guess, Edge is run on it with a fixed list of options (no shell, no address but that file's)
 // and a time limit, and the folder is removed again, whatever happens. The page has no script (and says so to the browser: Content-Security-Policy), so
@@ -26,6 +27,11 @@ export function findEdge({env=process.env,exists=existsSync}={}){
   return null;
 }
 
+/** Whether a PDF has bookmarks: an outline of its headings, which a reader can jump by. @param {Buffer} bytes */
+export function pdfHasOutline(bytes){
+  return /\/Outlines\s+\d+\s+\d+\s+R/.test(Buffer.from(bytes).toString('latin1'));
+}
+
 /** Whether a PDF is marked for screen readers: it holds a structure tree and says it is marked. (The PDF Edge writes keeps these names in the clear.) @param {Buffer} bytes */
 export function pdfIsTagged(bytes){
   const text=Buffer.from(bytes).toString('latin1');
@@ -39,7 +45,7 @@ export class PdfError extends Error{
 /**
  * The PDF of a page, as bytes, and whether it is tagged. `run` and `edge` are replaced in tests.
  * @param {string} html @param {{ edge?: string | null, run?: typeof spawn, tmp?: string, timeoutMs?: number }} [options]
- * @returns {Promise<{ bytes: Buffer, tagged: boolean }>}
+ * @returns {Promise<{ bytes: Buffer, tagged: boolean, outlined: boolean }>}
  */
 export async function makePdf(html,{edge=findEdge(),run=spawn,tmp=os.tmpdir(),timeoutMs=PDF_TIMEOUT_MS}={}){
   if(typeof html!=='string'||!html.trim())throw new PdfError('There is nothing to make a PDF of.','empty');
@@ -50,7 +56,7 @@ export async function makePdf(html,{edge=findEdge(),run=spawn,tmp=os.tmpdir(),ti
   try{
     const page=path.join(dir,'page.html'),out=path.join(dir,'out.pdf');
     await fs.writeFile(page,html,{encoding:'utf8',flag:'wx'});
-    const args=['--headless=new','--disable-gpu','--no-pdf-header-footer','--no-first-run','--no-default-browser-check','--disable-extensions','--disable-sync','--disable-background-networking',
+    const args=['--headless=new','--disable-gpu','--no-pdf-header-footer','--no-first-run','--no-default-browser-check','--disable-extensions','--disable-sync','--disable-background-networking','--generate-pdf-document-outline',
       `--user-data-dir=${path.join(dir,'profile')}`,`--print-to-pdf=${out}`,pathToFileURL(page).href];
     await new Promise((resolve,reject)=>{
       let child,done=false;
@@ -63,7 +69,7 @@ export async function makePdf(html,{edge=findEdge(),run=spawn,tmp=os.tmpdir(),ti
     let bytes;
     try{bytes=await fs.readFile(out);}catch{throw new PdfError('Edge did not make a PDF.','no-output');}
     if(bytes.length<64||bytes.subarray(0,5).toString('latin1')!=='%PDF-')throw new PdfError('Edge made something that is not a PDF.','bad-output');
-    return {bytes,tagged:pdfIsTagged(bytes)};
+    return {bytes,tagged:pdfIsTagged(bytes),outlined:pdfHasOutline(bytes)};
   }finally{
     await fs.rm(dir,{recursive:true,force:true}).catch(()=>{});
   }

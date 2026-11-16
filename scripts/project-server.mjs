@@ -232,7 +232,7 @@ export async function startProjectServer({file,folder,port=3850,snapshot,maxByte
       pdfBusy=true;
       try{
         const made=await pdfMaker(body.html);
-        send(res,200,made.bytes,'application/pdf',{'X-Pdf-Tagged':made.tagged?'yes':'no'});
+        send(res,200,made.bytes,'application/pdf',{'X-Pdf-Tagged':made.tagged?'yes':'no','X-Pdf-Outlined':made.outlined?'yes':'no'});
       }catch(e){
         const code=e instanceof PdfError?e.code:'failed';
         json(res,code==='no-edge'?501:code==='refused'||code==='empty'||code==='too-large'?400:500,{error:e instanceof PdfError?e.message:'The PDF could not be made.',code});

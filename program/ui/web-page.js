@@ -89,9 +89,10 @@ export async function savePdfFile(doc, guide, { name, say }) {
     const file = `${safeFileName(name)}.pdf`;
     downloadFile(doc, made.bytes, file, "application/pdf");
     const tagged = made.header("X-Pdf-Tagged") === "yes";
+    const bookmarks = made.header("X-Pdf-Outlined") === "yes" ? " Its bookmarks follow the headings." : "";
     say(
       tagged
-        ? `${file} is the guide as a PDF. It is tagged: its headings, paragraphs and tables are marked for screen readers, and it names its language and its title. It holds the whole guide, including the facilitator's notes and answer keys: for learners, make the workbook. Run your PDF reader's accessibility check on it before you rely on it.`
+        ? `${file} is the guide as a PDF. It is tagged: its headings, paragraphs and tables are marked for screen readers, and it names its language and its title.${bookmarks} It holds the whole guide, including the facilitator's notes and answer keys: for learners, make the workbook. Run your PDF reader's accessibility check on it before you rely on it.`
         : `${file} is the guide as a PDF, but it is NOT tagged for screen readers. For a tagged PDF, save the Word file and make the PDF in Word.`,
       !tagged,
     );
