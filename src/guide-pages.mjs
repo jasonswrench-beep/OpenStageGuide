@@ -245,7 +245,8 @@ export function materialsRows(paras,guide,settings={}){
   for(const r of copiesToMake(paras,settings).rows){
     const each=r.per==='fixed'?`${r.n} ${r.n===1?'copy':'copies'}`:r.per==='room'?String(r.n):`${r.n} each`;
     const total=r.total===null?(['room','fixed'].includes(r.per)?'':'; how many in all is not known yet'):(['room','fixed'].includes(r.per)?'':` (${r.total} in all)`);
-    rows.push({group:GROUP_OF[r.per]||'The room',item:r.text,quantity:`${each}${total}`.replace(/^; /,'')});
+    // A form for the facilitator only is the facilitator's to have ready (the planning forms, an observer's form), whoever it is printed for.
+    rows.push({group:r.audience==='facilitator'?'The facilitator':GROUP_OF[r.per]||'The room',item:r.text,quantity:`${each}${total}`.replace(/^; /,'')});
   }
   return rows.map((r,i)=>({r,i})).sort((a,b)=>GROUP_ORDER.indexOf(a.r.group)-GROUP_ORDER.indexOf(b.r.group)||a.i-b.i).map(x=>x.r);
 }
