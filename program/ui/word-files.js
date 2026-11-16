@@ -113,7 +113,7 @@ export async function saveWordFile(doc, guide, { name, template, say }) {
 export async function readGuideFromWord(doc) {
   return askFields(doc, {
     title: "Import a Word file",
-    intro: "Choose a Word document made from a guide, by this program or by the Word add-in. It opens as a new guide, so no guide you have is changed. The file is only read: it is not opened in Word, run or changed.",
+    intro: "Choose a Word document made from a guide. It opens as a new guide, so no guide you have is changed. The file is only read: it is not opened in Word, run or changed.",
     confirm: "Read the file",
     fields: [{ id: "file", label: "Word file (.docx)", type: "file", accept: ".docx" }],
     finish: async (values) => {
