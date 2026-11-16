@@ -196,6 +196,26 @@ export async function newForm(doc, guide) {
     title: "New form",
     intro: "A start to write over. The words in it say what to type where. Update guide numbers the form.",
     confirm: "Insert",
+    // The planning forms are for the facilitator whatever is ticked (src/guide-forms-templates.mjs): the box says so, ticked and dimmed, while one of them is chosen,
+    // and goes back to what the author had chosen when another kind is.
+    wire: (inputs) => {
+      const select = /** @type {HTMLSelectElement} */ (inputs.get("template"));
+      const box = /** @type {HTMLInputElement} */ (inputs.get("facilitator"));
+      const words = box.closest("label")?.querySelector("span");
+      const plain = words?.textContent ?? "";
+      let own = box.checked;
+      box.addEventListener("change", () => {
+        if (!box.disabled) own = box.checked;
+      });
+      const follow = () => {
+        const always = FORM_TEMPLATES.find((t) => t.id === select.value)?.facilitator === true;
+        box.disabled = always;
+        box.checked = always || own;
+        if (words) words.textContent = always ? `${plain} Always, for this kind of form.` : plain;
+      };
+      select.addEventListener("change", follow);
+      follow();
+    },
     fields: [
       {
         id: "template",

@@ -330,6 +330,14 @@ try{
 
   await row(/^Say where this program fits/).focus();
   await insertMenu(/^Form\.\.\./);
+  // the four planning forms are for the facilitator whatever is ticked: the box shows it, ticked and dimmed, and is free again for the other kinds
+  const facBox=page.locator('dialog[open] #dlg-f-facilitator');
+  ok(!(await facBox.isChecked())&&!(await facBox.isDisabled()),'the facilitator-only box starts empty and free');
+  await page.locator('dialog[open] #dlg-f-template').selectOption('timeline');
+  ok((await facBox.isChecked())&&(await facBox.isDisabled()),'a planning form (Planning timeline) ticks it and dims it');
+  ok(/Always, for this kind of form/.test(await page.locator('dialog[open] label[for="dlg-f-facilitator"]').innerText()),'and the box says why');
+  await page.locator('dialog[open] #dlg-f-template').selectOption('worksheet');
+  ok(!(await facBox.isChecked())&&!(await facBox.isDisabled())&&!/Always/.test(await page.locator('dialog[open] label[for="dlg-f-facilitator"]').innerText()),'another kind of form gives the box back, empty as it was');
   await page.locator('dialog[open] #dlg-f-template').selectOption('checklist');
   await page.locator('dialog[open] #dlg-f-title').fill('Preparation list');
   await page.getByRole('button',{name:'Insert'}).click();
