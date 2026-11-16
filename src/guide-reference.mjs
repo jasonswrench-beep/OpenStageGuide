@@ -128,3 +128,13 @@ export function findLicence(paras){
   while(end+1<paras.length&&!isHeading1(paras[end+1])&&['Normal',''].includes(String(paras[end+1].style||'Normal'))&&String(paras[end+1].builtIn||'')!=='Title')end++;
   return {start:gi,end};
 }
+// The paragraphs of the reference pages that are not entries but that learners have with them: the Glossary and References headings (when entries follow them) and the
+// licence page, heading and lines. The participant workbook keeps these with the entries, so the pages have their names there (found in the alpha 7 manual, 2026-11-15).
+export function referencePageParts(paras){
+  const out=new Set();
+  const glossary=sectionOf(paras,GLOSSARY_HEADING,STYLE_NAMES.term),references=sectionOf(paras,REFERENCES_HEADING,STYLE_NAMES.reference),licence=findLicence(paras);
+  if(glossary&&glossary.end>glossary.heading)out.add(glossary.heading);
+  if(references&&references.end>references.heading)out.add(references.heading);
+  if(licence)for(let i=licence.start;i<=licence.end;i++)out.add(i);
+  return out;
+}
