@@ -50,6 +50,7 @@ export const KEY_GROUPS = [
       { keys: "Alt+Up, Alt+Down", does: "Move the paragraph you are on, or the ones chosen, up or down" },
       { keys: "Delete", does: "Delete the paragraph you are on, or the ones chosen (Ctrl+Z brings them back)" },
       { keys: "Ctrl+Enter", does: "A new paragraph below, ready to type in" },
+      { keys: "Ctrl+Shift+Enter", does: "Add a block (Say, Ask, Activity and the rest) after the one you are on, ready to type its words" },
       { keys: "Ctrl+C, Ctrl+X, Ctrl+V", does: "Copy, cut and paste paragraphs; several lines pasted into the words become a paragraph each" },
       { keys: "Ctrl+B, Ctrl+I, Ctrl+U", does: "Bold, italic or underline the chosen words (with none chosen while changing the words, the next ones typed); on a paragraph, all its words" },
       { keys: "Ctrl+=, Ctrl+Shift+=, Ctrl+Space", does: "Lower or raise the chosen words (subscript, superscript), or take away their looks" },

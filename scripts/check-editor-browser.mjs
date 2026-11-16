@@ -315,6 +315,50 @@ try{
   await saved();
   ok(styles().filter(x=>x==='OSG Form Line').length===linesBefore,'one Ctrl+Z takes the whole insert back');
 
+  // ---- a block added in place: Insert > Block..., the words typed in the guide itself, one step of Undo, and the Review finds one left empty
+  const cueTexts=()=>onDisk().filter(p=>/OSG Cue/.test(p.style||'')).map(p=>p.text);
+  await row(/What makes it hard\?/).first().focus();
+  const cuesBefore=cueTexts().length,parasBefore=onDisk().length;
+  await insertMenu(/^Block\.\.\./);
+  ok(await page.locator('dialog[open] #dlg-f-kind option').count()>=60,'the block chooser lists every kind of block the guide has (and the activity with its parts)');
+  ok(/Something learners do|Words to say/.test(await page.locator('dialog[open] #dlg-f-kind-hint').innerText()),'and says what the chosen kind is for');
+  await page.locator('dialog[open] #dlg-f-kind').selectOption({label:'Teaching: Say'});
+  ok(/Words to say/.test(await page.locator('dialog[open] #dlg-f-kind-hint').innerText()),'changing the choice changes what it says');
+  await page.locator('dialog[open] #dlg-f-minutes').fill('abc');
+  await page.getByRole('button',{name:'Add block'}).click();
+  ok(/whole number/.test(await page.locator('dialog[open] .problem').innerText()),'minutes that are not a number are explained in the dialog, which stays open');
+  await page.locator('dialog[open] #dlg-f-minutes').fill('3');
+  await page.getByRole('button',{name:'Add block'}).click();
+  await saved();
+  ok(cueTexts().length===cuesBefore+1&&onDisk().length===parasBefore+1,'one block is in the guide, on disk');
+  const sayAt=onDisk().findIndex(p=>/^\s*Say\s+\(3 min\)$/.test(p.text||''));
+  const askAt=onDisk().findIndex(p=>/What makes it hard\?/.test(p.text||''));
+  ok(sayAt>askAt&&sayAt<=askAt+3,'after the Ask block the author was on, with its notes before it');
+  const typing=await active();
+  ok(typing.words===true,'the new block is ready to type in, in the guide itself');
+  await page.keyboard.type('Welcome everyone.');
+  await page.keyboard.press('Escape');
+  await saved();
+  ok(onDisk().some(p=>/^\s*Say\s+Welcome everyone\. \(3 min\)$/.test(p.text||'')),'the words typed are in the block, before its minutes');
+  await page.keyboard.press('Control+z');
+  await saved();
+  await page.keyboard.press('Control+z');
+  await saved();
+  ok(cueTexts().length===cuesBefore,'Ctrl+Z takes the block back (the words, then the block)');
+  // the same from the keys, and an activity with its parts
+  await row(/What makes it hard\?/).first().focus();
+  await page.keyboard.press('Control+Shift+Enter');
+  await page.locator('dialog[open] #dlg-f-kind').waitFor({timeout:5000});
+  await page.locator('dialog[open] #dlg-f-kind').selectOption({label:'Activities and practice: Activity with its parts'});
+  await page.getByRole('button',{name:'Add block'}).click();
+  await saved();
+  const partLabels=onDisk().map(p=>p.text||'').filter(t=>/^(Objective|Materials|Preparation|Instructions|Case study):/.test(t.trim())).map(t=>t.trim().replace(/:.*$/,''));
+  ok(partLabels.join('|')==='Objective|Materials|Preparation|Instructions|Case study','Ctrl+Shift+Enter opens the chooser, and an activity with its parts has its five labels in place');
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('Control+z');
+  await saved();
+  ok(cueTexts().length===cuesBefore&&onDisk().length===parasBefore,'one Ctrl+Z takes the whole activity back');
+
   await row(/^Say where this program fits/).focus();
   await insertMenu(/Table to fill in/);
   await page.locator('dialog[open] #dlg-f-columns').fill('Topic, Notes, Action');

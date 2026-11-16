@@ -13,7 +13,7 @@ import { KINDS, canBullet, isBulleted, isHeading, joinWords, kindChange, nextPar
 import { applyChange, cleanChange, rprAt, slice, summarize } from "../../src/guide-runs.mjs";
 import { canFormat, readParagraphFormat, withParagraphFormat } from "../../src/guide-format.mjs";
 import { idForName } from "../../src/guide-styles-edit.mjs";
-import { lessonSpan, topSpan, tidyMove, tidyTarget, updatePlan, headerEndAt } from "../../src/guide-model.mjs";
+import { lessonSpan, topSpan, tidyMove, tidyTarget, updatePlan, headerEndAt, blockAnchor } from "../../src/guide-model.mjs";
 import { readSettings } from "../../src/guide-forms.mjs";
 import { addCellPicture, addColumn, addRow, cellPictureInfo, changeCellPicture, deleteColumn, deleteRow, mergeCell, readTable, removeCellPicture, setCellWords, setTableAlt, splitCell, ALT_LIMITS } from "../../src/guide-table.mjs";
 import { readPicture, setPicture, DESCRIPTION_LIMIT } from "../../src/guide-picture.mjs";
@@ -43,7 +43,7 @@ const SELECTION_DELAY = 250;
  * @param {Document} doc
  * @param {HTMLElement} host where the guide is drawn
  * @param {any} guide the guide's document, with its saving
- * @param {{ zoom?: { more: () => unknown, less: () => unknown, actual: () => unknown, level: () => number }, say: (message: string, bad?: boolean) => void, askText: (current: any, validate: (change: any) => void) => Promise<any>, openStyles: (startId?: string) => Promise<void>, askName: (options: any) => Promise<string | null>, ask?: (options: any) => Promise<any>, askFormat: (current: any, validate: (fmt: any) => void) => Promise<any>, choose: (options: { title: string, intro?: string, confirm: string, options: { id: string, label: string, note?: string }[], current?: string }) => Promise<string | null> }} ui
+ * @param {{ zoom?: { more: () => unknown, less: () => unknown, actual: () => unknown, level: () => number }, say: (message: string, bad?: boolean) => void, askText: (current: any, validate: (change: any) => void) => Promise<any>, openStyles: (startId?: string) => Promise<void>, addBlock?: () => unknown, askName: (options: any) => Promise<string | null>, ask?: (options: any) => Promise<any>, askFormat: (current: any, validate: (fmt: any) => void) => Promise<any>, choose: (options: { title: string, intro?: string, confirm: string, options: { id: string, label: string, note?: string }[], current?: string }) => Promise<string | null> }} ui
  */
 /**
  * What was last cut or copied: whole paragraphs, to be pasted back as they were, with the pictures they name (so they can be pasted into another guide, which
@@ -1276,15 +1276,17 @@ export function mountEditor(doc, host, guide, ui) {
 
   /**
    * Put a block (a form, a table, lines to write on) after the row the author is on, choose what was put in, and say how to take it back.
-   * @param {(ctx: any) => string} build @param {string} what
+   * With `edit`, the new block's first line is put into editing, so its words can be typed where it is (Insert > Block...).
+   * @param {(ctx: any) => string} build @param {string} what @param {boolean} [edit]
    */
-  async function insertBlock(build, what) {
+  async function insertBlock(build, what, edit = false) {
     const rows = targetRows();
     const last = rows[rows.length - 1] ?? shown[shown.length - 1] ?? null;
     await settle();
     stopEdit();
     // On a lesson's Time line or one of its facts it goes after the last fact, not between them and the time line (they would be hidden from Lesson details)
-    const after = last ? Math.max(idx(last) + spanOf(last) - 1, headerEndAt(entries, idx(last))) : -1;
+    // A block added in place goes after the whole block the author is on (its lines and notes too), never between the lines of one; a Transition stays last in its module.
+    const after = last ? (edit ? Math.max(idx(last) + spanOf(last) - 1, blockAnchor(entries, idx(last))) : Math.max(idx(last) + spanOf(last) - 1, headerEndAt(entries, idx(last)))) : -1;
     const before = entries.length;
     await guide.insert(build, last ? { where: "after", after, spare: false, select: "last" } : { where: "start", spare: false, select: "last" });
     selection = null;
@@ -1293,8 +1295,10 @@ export function mountEditor(doc, host, guide, ui) {
     if (added > 0) {
       select(after + 1, after + added);
       focusRow(rowNear(after + 1));
+      const first = edit ? rowNear(after + 1) : null;
+      if (first) startEdit(first, 0);
     }
-    ui.say(`${what} inserted. Ctrl+Z takes it back.`);
+    ui.say(edit ? `${what} added. Type its words. Ctrl+Z takes it back.` : `${what} inserted. Ctrl+Z takes it back.`);
   }
 
   // ---- the cells of a table: the arrow keys move between cells, Enter changes a cell's words, Tab goes on to the next cell
@@ -1789,6 +1793,8 @@ export function mountEditor(doc, host, guide, ui) {
     else if (action === "selectAll") {
       if (shown.length) select(idx(shown[0]), idx(shown[shown.length - 1]));
     } else if (action === "undo" || action === "redo") run(() => history(action === "redo", false));
+    // The block chooser is a dialog that then asks the editor to insert: it must not wait inside the editor's own queue for itself.
+    else if (action === "block") void ui.addBlock?.();
     else run(() => command(action));
   });
   page.addEventListener("click", (ev) => {
@@ -1978,9 +1984,9 @@ export function mountEditor(doc, host, guide, ui) {
     command(name) {
       return run(() => (name === "undo" || name === "redo" ? history(name === "redo", false) : command(name)));
     },
-    /** Put a block after the row the author is on. @param {(ctx: any) => string} build @param {string} what */
-    insert(build, what) {
-      return run(() => insertBlock(build, what));
+    /** Put a block after the row the author is on; with `edit`, ready to type its words. @param {(ctx: any) => string} build @param {string} what @param {boolean} [edit] */
+    insert(build, what, edit = false) {
+      return run(() => insertBlock(build, what, edit));
     },
     /** What the Edit menu needs to know to dim what cannot be done now. */
     state() {

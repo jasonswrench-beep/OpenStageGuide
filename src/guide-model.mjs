@@ -271,6 +271,32 @@ function readActivityParts(paras,span){
   return {parts:Object.fromEntries(Object.entries(parts).map(([k,v])=>[k,v.join('\n')])),notes:notes.join('\n')};
 }
 
+// ---- a block with an icon and a label and nothing else: added in place (Insert > Block...) and not yet written, or written and then emptied.
+const PART_LABEL=/^(Objective|Materials|Preparation|Instructions|Case study|Facilitator notes|Slide text):\s*/i;
+const hasWords=text=>/[\p{L}\p{N}]/u.test(String(text??''));
+/**
+ * Every block with no words in it: nothing after its label (the minutes it was given do not count as words, but a block that is only its
+ * minutes, a Break of 15 minutes, says something and is left alone), no lines under it, no picture, and no words in any labelled part.
+ * Each is `{index, cue, label}`, the paragraph of its first line.
+ */
+export function emptyBlocks(paras){
+  const out=[];
+  for(let i=0;i<paras.length;i++){
+    if(kindOf(paras[i])!=='cue')continue;
+    const cue=cueFromText(paras[i].text);
+    if(!cue)continue;
+    const span=blockSpan(paras,i);
+    if(!span||span.start!==i)continue;
+    const line=clean(paras[i].text),first=line.replace(/^[^A-Za-z]+/,'').slice(cue.label.length);
+    const minutes=BLOCK_MINUTES.test(first);
+    if(hasWords(first.replace(BLOCK_MINUTES,'')))continue;
+    let anything=minutes;
+    for(let j=span.start+1;j<=span.end&&!anything;j++)if(isPictureParagraph(paras[j])||hasWords(clean(paras[j].text).replace(PART_LABEL,'')))anything=true;
+    if(!anything)out.push({index:i,cue:cue.id,label:cue.label});
+  }
+  return out;
+}
+
 // What the cursor is in, for the "selected" line on the Build screen.
 export function describeAt(paras,at){
   const block=readBlock(paras,at);
@@ -338,7 +364,10 @@ export function updatePlan(paras,options={}){
       if(c.id!=='expected-answer')before=c.id;
     }
   }
-  const facts={issues:[...factIssues(paras,guide,lessonMinutes),...dayIssues(paras,guide,lessonMinutes,cueIdsOf),...(length?[length]:[]),...expectedIssues]};
+  // A block that was added (Insert > Block...) and never written: its icon and label, and nothing else.
+  const lessonAt=i=>guide.modules.flatMap(m=>m.lessons).find(l=>i>l.index&&i<=l.end);
+  const emptyIssues=emptyBlocks(paras).map(b=>({level:'warn',rule:'BLOCK-EMPTY',message:`A ${b.label} block${lessonAt(b.index)?` in ${lessonAt(b.index).text||'a lesson'}`:''} has no words yet. Type its words in the guide, or delete the block.`,paragraph:b.index}));
+  const facts={issues:[...factIssues(paras,guide,lessonMinutes),...dayIssues(paras,guide,lessonMinutes,cueIdsOf),...(length?[length]:[]),...expectedIssues,...emptyIssues]};
   return {guide,assess,forms,facts,edits,totalMinutes:cumulative};
 }
 

@@ -11,9 +11,13 @@ import { STYLE_IDS } from "../../src/guide-styles.mjs";
 import { writingLines, writingBox, fieldRow, checkList, formTable, ratingGrid, cardSet, sourceLine } from "../../src/guide-forms-ooxml.mjs";
 import { FORM_TEMPLATES, buildForm } from "../../src/guide-forms-templates.mjs";
 import { LABELS, newFormId } from "../../src/guide-forms.mjs";
+import { blockChoices, buildChoice, choiceById } from "../../src/guide-block-choice.mjs";
 import { askFields } from "./dialogs.js";
 
-/** @typedef {{ build: (ctx: any) => string, what: string }} Made */
+/** @typedef {{ build: (ctx: any) => string, what: string, edit?: boolean }} Made */
+
+/** The kind of block chosen last, so adding several of the same kind in a row is one Enter each. */
+let lastBlockKind = "say";
 
 /** @param {string} text */
 const lines = (text) =>
@@ -41,6 +45,39 @@ function checked(build, what) {
 
 /** @type {Record<string, (doc: Document) => Promise<Made | null>>} */
 export const INSERTS = {
+  block: (doc) =>
+    askFields(doc, {
+      title: "Add a block here",
+      intro: "The block goes in after the block you are on, with its icon and its label. Its words are typed in the guide itself.",
+      confirm: "Add block",
+      fields: [
+        {
+          id: "kind",
+          label: "Kind of block",
+          type: "select",
+          value: choiceById(lastBlockKind) ? lastBlockKind : "say",
+          options: blockChoices().map((c) => ({ value: c.id, label: `${c.groupLabel}: ${c.label}` })),
+          hint: choiceById(lastBlockKind)?.help ?? "",
+        },
+        { id: "minutes", label: "Minutes (optional)", type: "number", hint: "Written after the words as (N min); a lesson's time line adds them up." },
+      ],
+      // The hint under the choice says what the chosen kind is for.
+      wire: (inputs) => {
+        const kind = /** @type {HTMLSelectElement} */ (inputs.get("kind"));
+        const say = () => {
+          const hint = kind.parentElement?.querySelector(".hint");
+          if (hint) hint.textContent = choiceById(kind.value)?.help ?? "";
+        };
+        kind.addEventListener("change", say);
+      },
+      finish: (v) => {
+        const id = String(v.kind);
+        const build = buildChoice(id, { minutes: String(v.minutes).trim() });
+        build(makeContext());
+        lastBlockKind = id;
+        return { build, what: `${choiceById(id)?.label ?? "Block"} block`, edit: true };
+      },
+    }),
   lines: (doc) =>
     askFields(doc, {
       title: "Lines to write on",

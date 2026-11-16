@@ -90,6 +90,9 @@ test('keys on a row: arrows, Home and End, Enter and F2 to change the words, Und
   assert.equal(rowKey({key:'x',ctrl:true}),'cut');
   assert.equal(rowKey({key:'a',ctrl:true}),'selectAll');
   assert.equal(rowKey({key:'Enter',ctrl:true}),'add');
+  assert.equal(rowKey({key:'Enter',ctrl:true,shift:true}),'block','Ctrl+Shift+Enter adds a block');
+  assert.equal(rowKey({key:'Enter',meta:true,shift:true}),'block');
+  assert.equal(rowKey({key:'Enter',shift:true}),null,'Shift+Enter alone does nothing on a row');
   assert.equal(rowKey({key:'Delete',shift:true}),null);
   assert.equal(rowKey({key:'c',ctrl:true,shift:true}),null,'Ctrl+Shift+C is not Copy');
   assert.equal(rowKey({key:'a'}),null);
