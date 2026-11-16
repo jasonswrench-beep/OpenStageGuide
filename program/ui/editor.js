@@ -13,7 +13,7 @@ import { KINDS, canBullet, isBulleted, isHeading, joinWords, kindChange, nextPar
 import { applyChange, cleanChange, rprAt, slice, summarize } from "../../src/guide-runs.mjs";
 import { canFormat, readParagraphFormat, withParagraphFormat } from "../../src/guide-format.mjs";
 import { idForName } from "../../src/guide-styles-edit.mjs";
-import { lessonSpan, topSpan, tidyMove, tidyTarget, updatePlan } from "../../src/guide-model.mjs";
+import { lessonSpan, topSpan, tidyMove, tidyTarget, updatePlan, headerEndAt } from "../../src/guide-model.mjs";
 import { readSettings } from "../../src/guide-forms.mjs";
 import { addCellPicture, addColumn, addRow, cellPictureInfo, changeCellPicture, deleteColumn, deleteRow, mergeCell, readTable, removeCellPicture, setCellWords, setTableAlt, splitCell, ALT_LIMITS } from "../../src/guide-table.mjs";
 import { readPicture, setPicture, DESCRIPTION_LIMIT } from "../../src/guide-picture.mjs";
@@ -1283,7 +1283,8 @@ export function mountEditor(doc, host, guide, ui) {
     const last = rows[rows.length - 1] ?? shown[shown.length - 1] ?? null;
     await settle();
     stopEdit();
-    const after = last ? idx(last) + spanOf(last) - 1 : -1;
+    // On a lesson's Time line or one of its facts it goes after the last fact, not between them and the time line (they would be hidden from Lesson details)
+    const after = last ? Math.max(idx(last) + spanOf(last) - 1, headerEndAt(entries, idx(last))) : -1;
     const before = entries.length;
     await guide.insert(build, last ? { where: "after", after, spare: false, select: "last" } : { where: "start", spare: false, select: "last" });
     selection = null;

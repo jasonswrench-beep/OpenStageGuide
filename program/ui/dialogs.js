@@ -154,9 +154,10 @@ export function chooseOne(doc, opts) {
  * A dialog of fields to fill in. Each field has an id and a label, and a type: "text", "number", "lines" (a box for several lines), "select"
  * (with options), "check" or "file" (a file to choose; its value is the File, or null). `finish` gets the values by id and returns the result
  * (it may be a promise), or throws a message to show in the dialog and keep it open. Resolves to the result, or null when the dialog was closed.
+ * `wire`, when given, is called once with the fields' inputs by id, for a field that follows another.
  * @template T
  * @param {Document} doc
- * @param {{ title: string, intro?: string, confirm: string, fields: { id: string, label: string, type: "text" | "number" | "lines" | "select" | "check" | "file", value?: string | boolean, hint?: string, rows?: number, accept?: string, options?: { value: string, label: string }[], list?: { value: string, label: string }[] }[], finish: (values: Record<string, string | boolean | File | null>) => T | Promise<T> }} opts
+ * @param {{ title: string, intro?: string, confirm: string, wire?: (inputs: Map<string, HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void, fields: { id: string, label: string, type: "text" | "number" | "lines" | "select" | "check" | "file", value?: string | boolean, hint?: string, rows?: number, accept?: string, options?: { value: string, label: string }[], list?: { value: string, label: string }[] }[], finish: (values: Record<string, string | boolean | File | null>) => T | Promise<T> }} opts
  */
 export function askFields(doc, opts) {
   /** @type {Map<string, HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>} */
@@ -192,6 +193,7 @@ export function askFields(doc, opts) {
         : el(doc, "div", { class: "field" }, el(doc, "label", { class: "field-label", for: id, text: f.label }), input, ...hint),
     );
   }
+  opts.wire?.(inputs);
   return openDialog(doc, {
     title: opts.title,
     intro: opts.intro,

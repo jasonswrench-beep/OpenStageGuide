@@ -6,7 +6,7 @@ import path from 'node:path';
 import {spawnSync} from 'node:child_process';
 import JSZip from 'jszip';
 import {screensOf} from '../src/guide-elearning.mjs';
-import {authorProject,slideFor,handoffNotes,authorZipName,AUTHOR_SCHEMA_VERSION} from '../src/guide-author.mjs';
+import {authorProject,slideFor,handoffNotes,authorZipName,metaWords,AUTHOR_SCHEMA_VERSION} from '../src/guide-author.mjs';
 import {zipWorkbook} from '../src/guide-workbook.mjs';
 import {started,click,addModule,addLesson} from './helpers/guide-harness.mjs';
 
@@ -36,6 +36,23 @@ test('the project has a folder, its manifest and theme, a slide for each screen 
   assert.deepEqual(project.scenes,[{id:'scene-1',name:'Lesson 1.1: Welcome',slides:['slide-001','slide-002']},{id:'scene-2',name:'Lesson 1.2: Practice',slides:['slide-003']}]);
   assert.deepEqual(project.theme,{ref:'theme.json'});
   assert.equal(authorZipName('Safety: the basics'),'Safety - the basics - OpenStage Author project.zip');
+});
+
+test('the project is written in the current format of OpenStage Author, 0.49.0', () => {
+  assert.equal(AUTHOR_SCHEMA_VERSION, '0.49.0');
+  const project = JSON.parse(text(authorProject(screens, { title: 'Safety basics', today: '2026-11-16' }), 'Safety basics.osproj/project.json'));
+  assert.equal(project.schemaVersion, '0.49.0');
+});
+
+test('the version and the course code are written only when they hold something, trimmed, and refused when too long', () => {
+  const meta = (extra) => JSON.parse(text(authorProject(screens, { title: 'Safety basics', today: '2026-11-16', ...extra }), 'Safety basics.osproj/project.json')).meta;
+  assert.deepEqual(Object.keys(meta({})), ['title', 'author', 'language', 'created', 'modified']);
+  assert.deepEqual(Object.keys(meta({ version: '   ', courseCode: '' })), ['title', 'author', 'language', 'created', 'modified']);
+  assert.equal(meta({ version: ' 1.0 ', courseCode: 'CMM  360' }).version, '1.0');
+  assert.equal(meta({ version: '1.0', courseCode: 'CMM  360' }).courseCode, 'CMM 360');
+  assert.throws(() => meta({ version: 'x'.repeat(21) }), /version can be 20 characters at most/);
+  assert.throws(() => meta({ courseCode: 'x'.repeat(41) }), /course code can be 40 characters at most/);
+  assert.deepEqual(metaWords({ version: 'x'.repeat(20), courseCode: 'y'.repeat(40) }), { version: 'x'.repeat(20), courseCode: 'y'.repeat(40) });
 });
 
 test('a screen becomes a slide: a heading, the on-screen text, and the narration as the voice-over script',()=>{
@@ -87,8 +104,8 @@ test('the pane sends the storyboard as a zip that opens as an OpenStage Author p
 });
 
 // The author's own validator is the real test of the format. It lives in another project (OpenStage Author, tools/validate.py), so this runs
-// only when OPENSTAGE_AUTHOR_VALIDATOR names that file.
-const VALIDATOR=process.env.OPENSTAGE_AUTHOR_VALIDATOR||'';
+// only when OPENSTAGE_AUTHOR_VALIDATOR names that file, or when Author is in its usual place on the author's PC (C:\Dev\openstage-author).
+const VALIDATOR=process.env.OPENSTAGE_AUTHOR_VALIDATOR||['C:/Dev/openstage-author/tools/validate.py'].find(f=>fs.existsSync(f))||'';
 test('the project passes OpenStage Author\'s own validator with no errors',{skip:!(VALIDATOR&&fs.existsSync(VALIDATOR))&&'set OPENSTAGE_AUTHOR_VALIDATOR to the OpenStage Author validate.py to run this'},async()=>{
   const dir=fs.mkdtempSync(path.join(os.tmpdir(),'osg-author-'));
   try{

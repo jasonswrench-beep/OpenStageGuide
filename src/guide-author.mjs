@@ -6,7 +6,10 @@
 // animation, media, accessibility and developer notes) goes into a plain "hand-off notes" file beside the project.
 import {esc} from './guide-ooxml.mjs';
 
-export const AUTHOR_SCHEMA_VERSION='0.48.0';
+// 0.49.0 is Author's current format (its tools/validate.py refuses 0.48.0 and asks for the project to be updated). 0.49 added two optional
+// words to a project's `meta`, `version` and `courseCode`; they are written only when they hold something (an empty one is an error).
+export const AUTHOR_SCHEMA_VERSION='0.49.0';
+export const META_LIMITS=Object.freeze({version:20,courseCode:40});
 // The theme Author's own sample projects start from (its "Classic" theme).
 const THEME=Object.freeze({
   schemaVersion:'0.2.0',id:'classic',name:'Classic',
@@ -29,6 +32,18 @@ function textObject({slide,n,name,html,altText,role,tabOrder,geometry,style,narr
 }
 const narrationOf=(script,lang)=>plain(script)?{script:String(script).replace(/\s*\n\s*/g,' ').trim(),voice:VOICE,speed:1,lang,pronunciations:[],audioCache:null}:null;
 
+// The optional words of `meta`: the version of the course ("1.0") and its course code ("CMM 360"). Left out when blank; refused when too long.
+export function metaWords({version='',courseCode=''}={}){
+  const out={};
+  for(const [key,value] of [['version',version],['courseCode',courseCode]]){
+    const text=plain(value);
+    if(!text)continue;
+    if(text.length>META_LIMITS[key])throw new Error(`The ${key==='version'?'version':'course code'} can be ${META_LIMITS[key]} characters at most.`);
+    out[key]=text;
+  }
+  return out;
+}
+
 // One slide for one screen. The narration is attached to the on-screen text, or to the heading when the screen has no on-screen text.
 export function slideFor(screen,index,lang){
   const title=plain(screen.title)||`Screen ${screen.number}`,id=`slide-${pad(index)}`;
@@ -43,7 +58,7 @@ export function slideFor(screen,index,lang){
 }
 
 // The files of the project, with paths inside the folder `${name}.osproj`, plus the hand-off notes beside it.
-export function authorProject(screens,{title,language='en-US',author='',today=new Date().toISOString().slice(0,10)}){
+export function authorProject(screens,{title,language='en-US',author='',version='',courseCode='',today=new Date().toISOString().slice(0,10)}){
   if(!screens.length)throw new Error('There are no screens to send yet. Add a screen first.');
   const name=slug(title),root=`${name}.osproj`,slides=screens.map((s,i)=>slideFor(s,i+1,language));
   // One scene for each lesson, in order; screens before any lesson are one scene called "Course".
@@ -56,7 +71,7 @@ export function authorProject(screens,{title,language='en-US',author='',today=ne
   });
   const project={
     schemaVersion:AUTHOR_SCHEMA_VERSION,
-    meta:{title:plain(title)||'Course',author:plain(author),language,created:today,modified:today},
+    meta:{title:plain(title)||'Course',author:plain(author),language,created:today,modified:today,...metaWords({version,courseCode})},
     stage:{width:1280,height:720},variables:[],theme:{ref:'theme.json'},credits:true,completion:{slides:'all'},scenes
   };
   return [
