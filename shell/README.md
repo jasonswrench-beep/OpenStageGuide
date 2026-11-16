@@ -52,7 +52,7 @@ The icons in `src-tauri/icons` are made from the product icon (`public/assets/ri
 
 ## State (2026-11-15)
 
-**Built and signed, not pushed or published: v0.1.0-alpha.10** (2026-11-16, release label on `ee57aa8`, built from `ab7fd6b` on the branch `release-alpha10`, a clean checkout in `C:\Dev\OpenStageGuide-rel`
+**Published: v0.1.0-alpha.10** (2026-11-16, a plain release, the latest; pushed to `main` as 684f99a and tagged at the built commit `ab7fd6b`; downloaded again without signing in, same SHA-256 and a valid, timestamped signature, and the update check, run on the real list of releases, tells alpha 8 and alpha 9 that alpha 10 is out and alpha 10 that it is the newest) (2026-11-16, release label on `ee57aa8`, built from `ab7fd6b` on the branch `release-alpha10`, a clean checkout in `C:\Dev\OpenStageGuide-rel`
 made from `main` with the alpha 9 fixes merged in (`3102bda`); `OpenStage Guide_0.1.0_x64-setup.exe`, 29,210,984 bytes, SHA-256 `6c1b60853199fc9ab8aafe7f194847b24904622705442deb350cadd5f408d86f`, About reads
 build `4c380b62`), built with `python -I tools/build_installer.py --sign`. It is alpha 9 (below, never published) and what was built on `main` after it: the **design desk** (the Design menu: needs and objectives with Bloom's
 verbs, models and activities with their citations and an optional connection to Prism Reference Manager, the course map, the storyboard that makes a new guide or a skeleton for Author or Scroll or item slots for
@@ -61,8 +61,7 @@ OpenAssess, and the evaluation plan by Kirkpatrick level as a PrismStatistics fi
 browser checks on the clean checkout (192, 29, 289, 7, 6 and the design desk's 42). Signed and timestamped (8 of our files by Jason Wrench; Node keeps its makers' signature), unpacked: 293 files of the program
 identical to the commit, `release.txt` says `v0.1.0-alpha.10`, the six browser checks pass on the unpacked files with the setup's own Node (192, 29, 289, 7, 6, 42), and its signed window, started from the unpacked
 folder and driven through its debug port, answered with version 0.1.0 and build `4c380b62`, had fifteen menus and opened the design desk, made a tagged PDF with bookmarks with the setup's own Node and Edge, and closed in
-2.0 seconds with a change not yet saved, saving it first. Not opened in a real Word, not run against the real Prism Reference Manager, PrismStatistics, OpenAssess, Author or Scroll. Not pushed, not published, not
-installed by the author. The release notes are in `D:\Claude Audio Test\installers-signed-2026-11-16-alpha10`.
+2.0 seconds with a change not yet saved, saving it first. Not opened in a real Word, not run against the real Prism Reference Manager, PrismStatistics, OpenAssess, Author or Scroll. Not installed by the author. The release notes are in `D:\Claude Audio Test\installers-signed-2026-11-16-alpha10`.
 
 **Alpha 9 (built and signed, never published; superseded by alpha 10, which holds everything in it):** (2026-11-16, release label on 7b08e59, built from 0a98a77 on the branch `alpha9-fixes`, a clean checkout in `C:\Dev\OpenStageGuide-a9` so that no other session's
 uncommitted work got in; `OpenStage Guide_0.1.0_x64-setup.exe`, 29,172,336 bytes, SHA-256
