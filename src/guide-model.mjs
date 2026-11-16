@@ -150,7 +150,15 @@ export function blockAnchor(paras,at){
     const lesson=readGuide(paras).modules.flatMap(m=>m.lessons).find(l=>l.index===at);
     if(lesson&&lesson.timeIndex===at+1)return lesson.headerEnd;
   }
+  const header=headerEndAt(paras,at);
+  if(header>=0)return header;
   return Math.max(at,0);
+}
+// On a lesson's Time line, or on one of the facts under it: the last fact (or the Time line itself when there are no facts), where whatever is added to the lesson goes.
+// Between the time line and the facts it would hide the facts from Lesson details and from the lists made from them (found in the alpha 7 manual, 2026-11-15). -1 elsewhere.
+export function headerEndAt(paras,at){
+  const lesson=readGuide(paras).modules.flatMap(m=>m.lessons).find(l=>l.timeIndex>=0&&at>=l.timeIndex&&at<=l.headerEnd);
+  return lesson?lesson.headerEnd:-1;
 }
 export function transitionAnchor(paras,at){
   const modules=readGuide(paras).modules.filter(m=>m.index>=0),inside=modules.filter(m=>m.index<=at);
@@ -317,7 +325,20 @@ export function updatePlan(paras,options={}){
   // The ids of the cues of a lesson's blocks, so a day with no break in it can be found.
   const cueIdsOf=l=>{const ids=[];for(let i=l.index+1;i<=l.end;i++)if(kindOf(paras[i])==='cue'){const c=cueFromText(paras[i].text);if(c)ids.push(c.id);}return ids;};
   const length=lengthIssue(cumulative,options.forms?.time?.minutes);
-  const facts={issues:[...factIssues(paras,guide,lessonMinutes),...dayIssues(paras,guide,lessonMinutes,cueIdsOf),...(length?[length]:[])]};
+  // An Expected answer is what to listen for in the answers to an Ask: with no Ask before it in its lesson (the nearest block before it that is not another Expected answer),
+  // it listens for nothing (the spec's note of kit slice K3).
+  const expectedIssues=[];
+  for(const mod of guide.modules)for(const l of mod.lessons){
+    let before=null;
+    for(let i=l.index+1;i<=l.end;i++){
+      if(kindOf(paras[i])!=='cue')continue;
+      const c=cueFromText(paras[i].text);
+      if(!c)continue;
+      if(c.id==='expected-answer'&&before!=='ask')expectedIssues.push({level:'warn',rule:'CUE-EXPECTED',message:`An Expected answer in ${l.text||'a lesson'} has no Ask before it, so it has no question to listen for answers to. Put it right after the Ask it belongs to.`,paragraph:i});
+      if(c.id!=='expected-answer')before=c.id;
+    }
+  }
+  const facts={issues:[...factIssues(paras,guide,lessonMinutes),...dayIssues(paras,guide,lessonMinutes,cueIdsOf),...(length?[length]:[]),...expectedIssues]};
   return {guide,assess,forms,facts,edits,totalMinutes:cumulative};
 }
 
