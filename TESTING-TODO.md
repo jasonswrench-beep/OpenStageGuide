@@ -20,7 +20,6 @@ in the commit notes; what is below needs a person, a screen reader, another prog
 - [ ] **Publish.** Nothing from this round is pushed or published. The commits are on `main` here, and alpha 9 (built and signed before this round) is not published either; its fixes are being made in another
   working folder (`C:\Dev\OpenStageGuide-a9`, branch `alpha9-fixes`) by another session, and will need merging with this branch. Tell me when, and in what order: push, then a build of the next alpha with
   everything, then the release as in section 9 of `docs/BUILD-STATUS-CHECKLIST-2026-11-15.md`.
-- [ ] **The line "Co-Authored-By: Claude" at the end of my commits.** Your older commits have none. If you want none, say so and I will rewrite the messages of this round's local commits before anything is pushed.
 
 ## Item 2: alpha 8 and the Forms
 
