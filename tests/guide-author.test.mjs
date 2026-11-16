@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import {spawnSync} from 'node:child_process';
+import {SKIP_WITHOUT,validateProject} from './helpers/author-validator.mjs';
 import JSZip from 'jszip';
 import {screensOf} from '../src/guide-elearning.mjs';
 import {authorProject,slideFor,handoffNotes,authorZipName,metaWords,AUTHOR_SCHEMA_VERSION} from '../src/guide-author.mjs';
@@ -105,15 +105,16 @@ test('the pane sends the storyboard as a zip that opens as an OpenStage Author p
 
 // The author's own validator is the real test of the format. It lives in another project (OpenStage Author, tools/validate.py), so this runs
 // only when OPENSTAGE_AUTHOR_VALIDATOR names that file, or when Author is in its usual place on the author's PC (C:\Dev\openstage-author).
-const VALIDATOR=process.env.OPENSTAGE_AUTHOR_VALIDATOR||['C:/Dev/openstage-author/tools/validate.py'].find(f=>fs.existsSync(f))||'';
-test('the project passes OpenStage Author\'s own validator with no errors',{skip:!(VALIDATOR&&fs.existsSync(VALIDATOR))&&'set OPENSTAGE_AUTHOR_VALIDATOR to the OpenStage Author validate.py to run this'},async()=>{
+// (tests/helpers/author-validator.mjs: when Author's working copy has moved ahead of the version it published, it says so and this test is skipped; any other finding fails it.)
+test('the project passes OpenStage Author\'s own validator with no errors',{skip:SKIP_WITHOUT},async t=>{
   const dir=fs.mkdtempSync(path.join(os.tmpdir(),'osg-author-'));
   try{
     const bytes=await zipWorkbook(authorProject(screens,{title:'Safety basics'}),JSZip,'uint8array');
     const zip=await JSZip.loadAsync(bytes);
     for(const [name,entry] of Object.entries(zip.files))if(!entry.dir){fs.mkdirSync(path.dirname(path.join(dir,name)),{recursive:true});fs.writeFileSync(path.join(dir,name),await entry.async('nodebuffer'));}
-    const run=spawnSync('python',['-B',VALIDATOR,path.join(dir,'Safety basics.osproj')],{encoding:'utf8',cwd:path.dirname(path.dirname(VALIDATOR))});
+    const run=validateProject(path.join(dir,'Safety basics.osproj'));
+    if(run.staleOnly)return t.skip(`Author's working copy is at ${run.newerVersion}, ahead of the 0.49.0 it published: it asks for the project to be updated, which its editor offers. Nothing else was found.`);
     assert.equal(run.status,0,`${run.stdout}\n${run.stderr}`);
-    assert.match(run.stdout,/0 errors/);
+    assert.deepEqual(JSON.parse(run.stdout),[]);
   }finally{fs.rmSync(dir,{recursive:true,force:true});}
 });

@@ -57,6 +57,11 @@ in the commit notes; what is below needs a person, a screen reader, another prog
 
 ## Things I noticed and did not fix
 
+- **OpenStage Author is moving ahead of the format its list named.** The list said Author's validator expects schema 0.49; that is what Author has published (its `main` and the branch it is on, checked
+  in its committed `tools/validate.py`), and Guide writes 0.49.0, which that validator passes with 0 errors. Author's working copy, being worked on by its own session, is now at 0.50 (it adds the
+  optional `accessibilityBlockers`, the opt-in publish blockers) and then 0.51, unpublished, and its validator says a 0.49 project "needs updating" (its editor offers to). So the two tests that run
+  Author's validator **skip, with that reason printed, while Author's working copy is ahead**, and fail for any other finding. When Author publishes its new version, Guide should write it: it is one
+  constant (`AUTHOR_SCHEMA_VERSION` in `src/guide-author.mjs`) and a look at what the new version asks.
 - Running the whole automatic suite at once, one test of `guide-lesson-details` failed once while another session was changing the same working folder, and passes by itself (17 of 17). I think it was that.
 - Rows added to the guide with Insert > Block come with no words. The Review warns of a block with no words (BLOCK-EMPTY); it does not stop anything.
 - The Reference Manager port has to be told (23119 unless changed): it has no way to be found. The token is kept in `OpenStage Guide Reference Manager.json` beside your guides, and is not shown to the page.

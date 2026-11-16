@@ -182,22 +182,24 @@ async function newGuideFromPlan() {
   await designDesk?.flush();
   if (!(await settle())) return;
   const design = readDesign(await guideDoc.design());
-  const title = String(guideDoc.exportState().title ?? "").trim() || (state.current ?? "Course").replace(/\.guide-project\.json$/i, "");
-  // The plan is written into a stand-in document, which gives the paragraphs the project file holds.
-  const scratch = createDemoAdapter({ icons: (names) => loadIcons(names) });
-  await scratch.insert((ctx) => planBody(design, { title }, ctx), { where: "start", spare: false });
-  await scratch.setTitle(title);
-  await scratch.setDesign(designText(design));
-  const plan = scratch.exportState();
+  const was = String(guideDoc.exportState().title ?? "").trim() || (state.current ?? "Course").replace(/\.guide-project\.json$/i, "");
+  // Tried first, so that a storyboard that cannot be written says so before a new guide is made for it.
+  planBody(design, { title: was }, makeContext());
   const name = await askName(doc, {
     title: "Name of the new guide",
     label: "Name of the guide",
     confirm: "Make the guide",
-    value: `${title} plan`.slice(0, 80),
-    hint: "It opens as a new guide with this name. The guide you have open does not change.",
+    value: `${was} plan`.slice(0, 80),
+    hint: "It opens as a new guide with this name, which is also its title. The guide you have open does not change.",
     accept: (typed) => post("new", { name: typed }),
   });
   if (!name) return;
+  // The plan is written into a stand-in document, which gives the paragraphs the project file holds; the guide's title is the name just chosen.
+  const scratch = createDemoAdapter({ icons: (names) => loadIcons(names) });
+  await scratch.insert((ctx) => planBody(design, { title: name }, ctx), { where: "start", spare: false });
+  await scratch.setTitle(name);
+  await scratch.setDesign(designText(design));
+  const plan = scratch.exportState();
   await show();
   await guideDoc.ready;
   guideDoc.importState(plan);

@@ -178,6 +178,7 @@ try{
   await page.locator('dialog[open]').getByRole('button',{name:'Make the guide'}).click();
   await page.waitForFunction(()=>/Module 1: Talk first/.test(document.querySelector('#work-guide')?.innerText||''),null,{timeout:20000});
   const text=await page.locator('#work-guide').innerText();
+  ok(await page.locator('#work-guide h1, #work-guide [data-index]').filter({hasText:/^Coaching plan$/}).count()>=1,'the name chosen is the title of the new guide');
   ok(/Lesson 1\.1: The coaching conversation/.test(text)&&/Learners will be able to explain the three steps/.test(text)&&/A real problem or a short story/.test(text)&&/Short quiz/.test(text),'the new guide has the lesson, its objective, its activity and its assessment');
   ok(fs.readdirSync(GUIDES).includes('Design check.guide-project.json')&&fs.readdirSync(GUIDES).includes('Coaching plan.guide-project.json'),'it is a guide beside the first, which is still there');
   await saved();

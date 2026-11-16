@@ -59,7 +59,7 @@ test('the View menu has Zoom in, Zoom out and Actual size, with their keys, and 
   const ctx={hasGuide:()=>false,openTool:()=>{},updateGuide:()=>{},newGuide:()=>{},openGuide:()=>{},closeGuide:()=>{},search:()=>{},keys:()=>{},about:()=>{},
     zoom:{more:()=>calls.push('more'),less:()=>calls.push('less'),actual:()=>calls.push('actual'),can:()=>can}};
   const {menus}=buildMenus(ctx);
-  assert.deepEqual(menus.map(m=>m.label),['File','Edit','Insert','Format','View','Start','Sections','Activities','Slides','Assessment','eLearning','Check & Plan','Make','Help']);
+  assert.deepEqual(menus.map(m=>m.label),['File','Edit','Insert','Format','View','Design','Start','Sections','Activities','Slides','Assessment','eLearning','Check & Plan','Make','Help']);
   const view=menus.find(m=>m.id==='view');
   assert.deepEqual(view.items.map(i=>[i.label,i.keys]),[['Zoom in','Ctrl+Alt+='],['Zoom out','Ctrl+Alt+-'],['Actual size','Ctrl+Alt+0']]);
   assert.ok(view.items.every(i=>i.enabled()===false),'dimmed with no guide open');

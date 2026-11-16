@@ -43,11 +43,16 @@ export function planBody(design,{title},ctx){
       out+=timeBlock({minutes:l.minutes||0,cumulative},ctx);
       cumulative+=l.minutes||0;
       for(const id of l.objectives){const o=objectives.get(id);if(o&&plain(o.text))out+=cueBlock({cue:'objective',text:plain(o.text)},ctx);}
+      // A lesson's time is the sum of the minutes of its blocks when they have any (Update guide works it out so), so the blocks say their minutes only when they add up to the
+      // minutes the author planned for the lesson; otherwise the lesson keeps its planned time, and each activity's minutes are in its notes.
+      const sum=l.activities.map(id=>acts.get(id)).filter(Boolean).reduce((n,x)=>n+(x.minutes||0),0);
+      const inBlocks=sum>0&&sum===(l.minutes||0);
       for(const id of l.activities){
         const a=acts.get(id);
         if(!a)continue;
         const goals=a.objectives.map(x=>objectives.get(x)).filter(Boolean).map(o=>plain(o.text)).filter(Boolean);
-        out+=cueBlock({cue:'activity',text:plain(a.title)||'Activity',minutes:a.minutes||undefined,notes:[modelNote(a),goals.length?`For: ${goals.join(' / ')}`:''].filter(Boolean).join('\n')},ctx);
+        out+=cueBlock({cue:'activity',text:plain(a.title)||'Activity',minutes:inBlocks?(a.minutes||undefined):undefined,
+          notes:[modelNote(a),a.minutes&&!inBlocks?`Planned time: ${a.minutes} minutes.`:'',goals.length?`For: ${goals.join(' / ')}`:''].filter(Boolean).join('\n')},ctx);
       }
       for(const id of l.assessments){
         const a=asm.get(id);

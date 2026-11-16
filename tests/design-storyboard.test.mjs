@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import {spawnSync} from 'node:child_process';
+import {SKIP_WITHOUT,validateProject} from './helpers/author-validator.mjs';
 import {createRequire} from 'node:module';
 import JSZip from 'jszip';
 import {DOMParser,XMLSerializer} from '@xmldom/xmldom';
@@ -30,12 +30,29 @@ test('the guide\'s course plan has each module and lesson in order, with times, 
   assert.ok(g.modules.every(m=>m.hasTransition),'every module ends with its Transition block');
   const cues=paras.filter(p=>/^OSG Cue/.test(p.style)).map(p=>p.text.replace(/^\W+/,'').replace(/\s+/g,' '));
   assert.ok(cues.some(t=>/^Objective Learners will be able to explain the three steps/.test(t)));
-  assert.ok(cues.some(t=>/^Activity Story of a hard conversation \(10 min\)/.test(t)));
+  assert.ok(cues.some(t=>/^Activity Story of a hard conversation$/.test(t)),'the activity says no minutes: they do not add up to the lesson\'s 30');
   assert.ok(cues.some(t=>/^Assessment Short quiz/.test(t)));
   const noted=paras.filter(p=>/Facilitator notes: Planned with Nine events of instruction, event: Gain attention\. Use a real case\./.test(p.text));
   assert.equal(noted.length,1,'the model and its event are in the facilitator\'s notes');
   const blockAt=paras.findIndex(p=>/Activity\s+Story of a hard/.test(p.text));
   assert.match(readBlock(paras,blockAt).notes,/For: Learners will be able to explain/);
+});
+
+test('a lesson\'s time stays what was planned: the activities say their minutes only when they add up to it, and always have them in their notes', async () => {
+  const a=demo();
+  await a.insert(ctx=>planBody(design(),{title:'Coaching first'},ctx),{where:'start',spare:false});
+  const text=(await a.paragraphs()).map(p=>p.text).join('\n');
+  assert.match(text,/Planned time: 10 minutes\./,'the activity of 10 minutes in a lesson of 30');
+  assert.match(text,/Time: 30 minutes\. Cumulative time: 0 minutes\./);
+  const d=design();
+  d.storyboard[0].lessons[0].minutes=10;
+  const b=demo();
+  await b.insert(ctx=>planBody(d,{title:'Coaching first'},ctx),{where:'start',spare:false});
+  const paras=await b.paragraphs();
+  assert.ok(paras.some(p=>/Activity\s+Story of a hard conversation \(10 min\)/.test(p.text)),'when they add up to the lesson, the block carries them');
+  assert.ok(!paras.some(p=>/Planned time: 10 minutes/.test(p.text)));
+  const timeAt=paras.findIndex(p=>/Time: 10 minutes/.test(p.text));
+  assert.ok(timeAt>=0&&!updatePlan(paras).edits.some(e=>e.kind==='time'&&e.index===timeAt),'Update guide leaves that lesson\'s time as it is');
 });
 
 test('the course plan is a guide the Review has no failure for', async () => {
@@ -73,16 +90,16 @@ test('Author gets a screen for each lesson, activity and assessment, with the le
   assert.match(notes,/Objective \(Apply\): Learners will be able to demonstrate a calm opening/);
 });
 
-const VALIDATOR=process.env.OPENSTAGE_AUTHOR_VALIDATOR||['C:/Dev/openstage-author/tools/validate.py'].find(f=>fs.existsSync(f))||'';
-test('the Author skeleton passes OpenStage Author\'s own validator with no errors',{skip:!VALIDATOR&&'set OPENSTAGE_AUTHOR_VALIDATOR to the OpenStage Author validate.py to run this'},async () => {
+test('the Author skeleton passes OpenStage Author\'s own validator with no errors',{skip:SKIP_WITHOUT},async t => {
   const dir=fs.mkdtempSync(path.join(os.tmpdir(),'osg-skeleton-'));
   try{
     const bytes=await zipWorkbook(authorProject(authorScreens(design()),{title:'Coaching first'}),JSZip,'uint8array');
     const zip=await JSZip.loadAsync(bytes);
     for(const [name,entry] of Object.entries(zip.files))if(!entry.dir){fs.mkdirSync(path.dirname(path.join(dir,name)),{recursive:true});fs.writeFileSync(path.join(dir,name),await entry.async('nodebuffer'));}
-    const run=spawnSync('python',['-B',VALIDATOR,path.join(dir,'Coaching first.osproj')],{encoding:'utf8',cwd:path.dirname(path.dirname(VALIDATOR))});
+    const run=validateProject(path.join(dir,'Coaching first.osproj'));
+    if(run.staleOnly)return t.skip(`Author's working copy is at ${run.newerVersion}, ahead of the 0.49.0 it published: it asks for the project to be updated. Nothing else was found.`);
     assert.equal(run.status,0,`${run.stdout}\n${run.stderr}`);
-    assert.match(run.stdout,/0 errors/);
+    assert.deepEqual(JSON.parse(run.stdout),[]);
   }finally{fs.rmSync(dir,{recursive:true,force:true});}
 });
 
