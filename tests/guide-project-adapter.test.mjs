@@ -42,6 +42,7 @@ test('a guide written in the pane is saved to its file and comes back whole in a
   await r1.document.setLook('{"name":"calm"}');
   await r1.document.setSlideMemory('{"slides":3}');
   await r1.document.setVersionMemory('{"plans":1}');
+  await r1.document.setDesign('{"version":1,"objectives":[]}');
   await r1.tick();
   assert.equal(r1.document.status().state,'saved');
   assert.ok(r1.file(),'a file was written');
@@ -54,6 +55,7 @@ test('a guide written in the pane is saved to its file and comes back whole in a
   assert.equal(await r2.document.getLook(),'{"name":"calm"}');
   assert.equal(await r2.document.slideMemory(),'{"slides":3}');
   assert.equal(await r2.document.versionMemory(),'{"plans":1}');
+  assert.equal(await r2.document.design(),'{"version":1,"objectives":[]}','the notes of the design desk come back with the guide');
   assert.equal(r2.raw.cursor(),r1.raw.cursor());
   // The package the document would give to a Word export or a backup is the same, byte for byte.
   assert.equal(await r2.document.sourcePackage(),await r1.document.sourcePackage());

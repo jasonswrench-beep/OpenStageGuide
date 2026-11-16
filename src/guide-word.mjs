@@ -584,7 +584,7 @@ export function createDemoAdapter({DOMParserClass=globalThis.DOMParser,Serialize
   const currentStyles=()=>applyStyleEdits(stylesPart(),styleEdits,styleIo);
   let styles=readStyles(parseXml(stylesPart()));
   const refreshStyles=()=>{styles=readStyles(parseXml(currentStyles()));};
-  let media=Object.create(null),paras=[],cursor=-1,docTitle='',autoShow=false,selectionHandler=null,ownCues=[],activeTheme,lookText=null,slideMemory=null,versionMemory=null,formsText=null,demoRefusals=null,picker=null;
+  let media=Object.create(null),paras=[],cursor=-1,docTitle='',autoShow=false,selectionHandler=null,ownCues=[],activeTheme,lookText=null,slideMemory=null,versionMemory=null,formsText=null,designText=null,demoRefusals=null,picker=null;
   const applied=[],headerFooter=[];
   const history=[],future=[],opened=[],downloaded=[];
   let capturedFile=null;
@@ -690,6 +690,9 @@ export function createDemoAdapter({DOMParserClass=globalThis.DOMParser,Serialize
     async slideMemory(){return slideMemory;},
     async formSettings(){return formsText;},
     async setFormSettings(text){formsText=text;return true;},
+    // The design desk's notes (src/design-model.mjs): the needs analysis, the objectives, the storyboard and the evaluation plan, as the text the project file keeps.
+    async design(){return designText;},
+    async setDesign(text){designText=text===undefined?null:text;return true;},
     async setSlideMemory(text){slideMemory=text;return true;},
     async versionMemory(){return versionMemory;},
     async setVersionMemory(text){versionMemory=text;return true;},
@@ -911,7 +914,7 @@ export function createDemoAdapter({DOMParserClass=globalThis.DOMParser,Serialize
     mediaOf(id){return media[id]||null;},
     exportState(){
       const copy=v=>JSON.parse(JSON.stringify(v));
-      return {title:docTitle,paragraphs:paras.map(({xml,text,style,builtIn})=>({xml,text,style,...(builtIn?{builtIn}:{})})),cursor,ownCues:[...ownCues],look:lookText,slideMemory,versionMemory,forms:formsText,applied:copy(applied),headerFooter:copy(headerFooter),media:usedMedia(),styles:copy(styleEdits)};
+      return {title:docTitle,paragraphs:paras.map(({xml,text,style,builtIn})=>({xml,text,style,...(builtIn?{builtIn}:{})})),cursor,ownCues:[...ownCues],look:lookText,slideMemory,versionMemory,forms:formsText,design:designText,applied:copy(applied),headerFooter:copy(headerFooter),media:usedMedia(),styles:copy(styleEdits)};
     },
     importState(guide){
       // A guide file is data a person may be sent: what could make Word reach outside the file (fields other than the program's own, links,
@@ -926,7 +929,7 @@ export function createDemoAdapter({DOMParserClass=globalThis.DOMParser,Serialize
         return d.documentElement.localName==='p'?marksOf(d.documentElement):undefined;
       });
       paras=guide.paragraphs.map((p,i)=>({...p,xml:cleaned[i],...(marksList[i]?{marks:marksList[i]}:{})}));cursor=guide.cursor;docTitle=guide.title;ownCues=[...guide.ownCues];
-      lookText=guide.look;slideMemory=guide.slideMemory;versionMemory=guide.versionMemory;formsText=guide.forms??null;media=Object.create(null);Object.assign(media,guide.media||{});styleEdits=cleanStyleEdits(guide.styles);refreshStyles();
+      lookText=guide.look;slideMemory=guide.slideMemory;versionMemory=guide.versionMemory;formsText=guide.forms??null;designText=guide.design??null;media=Object.create(null);Object.assign(media,guide.media||{});styleEdits=cleanStyleEdits(guide.styles);refreshStyles();
       applied.length=0;applied.push(...guide.applied);headerFooter.length=0;headerFooter.push(...guide.headerFooter);history.length=0;future.length=0;lastGroup=null;
     },
     autoShow(){return autoShow;},

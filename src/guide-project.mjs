@@ -105,6 +105,7 @@ export function cleanGuide(g){
     slideMemory:orNull(g.slideMemory,LIMITS.words,'slide memory'),
     versionMemory:orNull(g.versionMemory,LIMITS.words,'delivery versions'),
     forms:orNull(g.forms,LIMITS.words,'form settings'),
+    design:orNull(g.design,LIMITS.words,'design notes'),
     applied:list(g.applied,'look settings'),
     headerFooter:list(g.headerFooter,'header and footer settings'),
     media:cleanMedia(g.media),

@@ -16,6 +16,7 @@ import {createHandler} from './http-handler.mjs';
 import {PROGRAM_CSP,PANE_CSP,pageHeaders,stripOfficeScript} from './security-headers.mjs';
 import {checkForUpdates,fetchReleases,versionKey} from './updates.mjs';
 import {makePdf,PdfError,PDF_MAX_HTML} from './pdf-maker.mjs';
+import {createPrmLink,PRM_FILE} from './prm-link.mjs';
 import {parseProject,serializeProject,cleanGuide,LIMITS} from '../src/guide-project.mjs';
 import {parseSettings,serializeSettings,SETTINGS_FILE,SETTING_KEYS,SETTING_MAX_CHARS,SETTINGS_MAX_CHARS} from '../src/program-settings.mjs';
 import http from 'node:http';
@@ -75,9 +76,11 @@ export function fileNameFor(raw){
 
 // `release` is the release this copy is (a tag such as v0.1.0-alpha.1; the window gives it from the installer's build), `updateCheck` false turns
 // Check for updates off, and `releases` is how GitHub's list is fetched (replaced in tests, which never reach the network). See scripts/updates.mjs.
-export async function startProjectServer({file,folder,port=3850,snapshot,maxBytes=LIMITS.fileCharacters*4,release,updateCheck=true,releases=fetchReleases,onClosing,pdfMaker=makePdf}={}){
+export async function startProjectServer({file,folder,port=3850,snapshot,maxBytes=LIMITS.fileCharacters*4,release,updateCheck=true,releases=fetchReleases,onClosing,pdfMaker=makePdf,prmFetch=globalThis.fetch}={}){
   if(!file&&!folder)throw new Error('Name the guides folder with --folder, or one project file with --file.');
   const dir=path.resolve(folder||path.dirname(file));
+  // The connection to Prism Reference Manager, for the design desk's citations: made here, because a web page cannot call it (scripts/prm-link.mjs).
+  const prm=createPrmLink({file:path.join(dir,PRM_FILE),fetch:prmFetch});
   let current=file?path.basename(file):null,backedUp=false,token=null,pdfBusy=false;
   const snap=snapshot||await createBuildSnapshot(root);
   const handler=createHandler(snap);
@@ -273,6 +276,8 @@ export async function startProjectServer({file,folder,port=3850,snapshot,maxByte
       json(res,200,{ok:true});return;
     }
     // Check for updates: only when the page asks (a POST, in the form the program sends, like every action), and it asks GitHub for nothing about the person.
+    // Prism Reference Manager (the design desk's Models screen): status, connect, cite, forget. The answer says plainly when it could not be done.
+    if(name==='prm'){json(res,200,await prm.handle(body));return;}
     if(name==='updates'){json(res,200,await checkForUpdates({current:versionKey(release||'')?release:undefined,enabled:updateCheck!==false,fetchReleases:releases}));return;}
     json(res,404,{error:'Not found.'});
   }
