@@ -23,13 +23,14 @@ On Windows, double-clicking `Start OpenStage Guide.cmd` does both steps (it inst
 npm test
 ```
 
-Four checks drive a real browser and need [Playwright](https://playwright.dev/) installed somewhere (this repository does not depend on it). Set `PLAYWRIGHT_DIR` to the `playwright` package folder, then:
+Five checks drive a real browser and need [Playwright](https://playwright.dev/) installed somewhere (this repository does not depend on it). Set `PLAYWRIGHT_DIR` to the `playwright` package folder, then:
 
 ```
 npm run check:program
 npm run check:project
 npm run check:settings
 npm run check:closing
+npm run check:design
 ```
 
 After changing the list of icons in `program/icons.json`, rebuild `program/ui/ui-icons.js` with `npm run icons -- --lucide <path to OpenStage Author's editor/web/icons/lucide.json>`.

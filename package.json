@@ -14,7 +14,8 @@
     "check:editor": "node scripts/check-editor-browser.mjs",
     "check:project": "node scripts/check-project-browser.mjs",
     "check:settings": "node scripts/check-settings-browser.mjs",
-    "check:closing": "node scripts/check-closing-browser.mjs"
+    "check:closing": "node scripts/check-closing-browser.mjs",
+    "check:design": "node scripts/check-design-browser.mjs"
   },
   "dependencies": {
     "acorn": "8.19.0",

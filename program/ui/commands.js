@@ -77,6 +77,15 @@ const INSERT_ITEMS = /** @type {{ name: string, label: string, icon: UiIconName,
   { name: "source", label: "Source line...", icon: "quote", title: "A short credit or permission line under a form" },
 ]);
 
+/** The Design menu's items: each opens the design desk (program/ui/design-desk.js) at one screen. */
+const DESIGN_ITEMS = /** @type {{ tab: string, label: string, icon: UiIconName, title: string }[]} */ ([
+  { tab: "needs", label: "Needs and objectives...", icon: "goal", title: "The needs analysis, and the objectives written with the verbs of Bloom's levels" },
+  { tab: "models", label: "Models and activities...", icon: "library", title: "Learning design models with activities that fit each, and the work each model comes from, cited" },
+  { tab: "map", label: "Course map...", icon: "target", title: "Each objective with the activities that practice it and the assessments that check it, as a table for a syllabus or an accreditation report" },
+  { tab: "board", label: "Storyboard...", icon: "layout-dashboard", title: "The course as modules and lessons; make a new guide from it, a skeleton for Author or Scroll, or item slots for OpenAssess" },
+  { tab: "eval", label: "Evaluation plan...", icon: "clipboard-list", title: "What will show the course worked, by Kirkpatrick's four levels, as a file PrismStatistics opens" },
+]);
+
 /** The Format menu's items, each a command of the editor (see editor.js). */
 const FORMAT_ITEMS = /** @type {({ name: string, label: string, icon: UiIconName, keys?: string, title: string, own?: boolean } | "-")[]} */ ([
   { name: "bold", label: "Bold", icon: "bold", keys: "Ctrl+B", title: "Make the chosen words bold, or take it off" },
@@ -109,7 +118,7 @@ const FORMAT_ITEMS = /** @type {({ name: string, label: string, icon: UiIconName
  * (undo, redo, cut, copy, paste, add, kind, moveUp, moveDown, delete) and state() says what can be done now.
  * `ctx.insert(name)` makes one of the INSERT_ITEMS (a form, lines, a table...) after the row the author is on.
  * @typedef {{ command: (name: string) => unknown, state: () => { canUndo: boolean, canRedo: boolean, hasRows: boolean, inTable: boolean, onPicture?: boolean } }} EditApi
- * @param {{ edit?: EditApi, insert?: (name: string) => unknown, saveWord?: () => unknown, saveTemplate?: () => unknown, saveBackup?: () => unknown, restoreBackup?: () => unknown, importWord?: () => unknown, pasteText?: () => unknown, saveWeb?: () => unknown, savePdf?: () => unknown, saveStats?: () => unknown, print?: () => unknown, importStyles?: () => unknown, zoom?: { more: () => unknown, less: () => unknown, actual: () => unknown, can: () => boolean }, hasGuide: () => boolean, openTool: (id: string) => void, updateGuide: () => void, newGuide: () => void, openGuide: () => void, closeGuide: () => void, search: () => void, keys: () => void, about: () => void, updates?: () => void }} ctx
+ * @param {{ edit?: EditApi, insert?: (name: string) => unknown, saveWord?: () => unknown, saveTemplate?: () => unknown, saveBackup?: () => unknown, restoreBackup?: () => unknown, importWord?: () => unknown, pasteText?: () => unknown, saveWeb?: () => unknown, savePdf?: () => unknown, saveStats?: () => unknown, openDesign?: (tab: string) => unknown, print?: () => unknown, importStyles?: () => unknown, zoom?: { more: () => unknown, less: () => unknown, actual: () => unknown, can: () => boolean }, hasGuide: () => boolean, openTool: (id: string) => void, updateGuide: () => void, newGuide: () => void, openGuide: () => void, closeGuide: () => void, search: () => void, keys: () => void, about: () => void, updates?: () => void }} ctx
  * @returns {{ menus: MenuDef[], quick: MenuCommand[] }}  the menus, and the commands of the navy bar while a guide is open
  */
 export function buildMenus(ctx) {
@@ -221,6 +230,13 @@ export function buildMenus(ctx) {
       { label: "About OpenStage Guide", icon: "info", title: "What this program is, its version, its license and what it is made with", run: ctx.about },
     ],
   };
+  // The Design menu: learning design lives in the guide, in front of its alignment, agenda and timing. Each command opens the design desk at one of its screens.
+  /** @type {MenuDef} */
+  const design = {
+    id: "design",
+    label: "Design",
+    items: DESIGN_ITEMS.map((i) => /** @type {MenuCommand} */ ({ label: i.label, icon: i.icon, title: i.title, run: () => void ctx.openDesign?.(i.tab), enabled: ctx.hasGuide })),
+  };
   const middle = PROGRAM_MENUS.map((m) => /** @type {MenuDef} */ ({ id: m.id, label: m.label, items: m.tools.map(tool) }));
   /** @type {MenuCommand[]} */
   const quick = [
@@ -228,7 +244,7 @@ export function buildMenus(ctx) {
     { label: "Update guide", icon: "refresh-cw", title: "Renumber the headings and forms, and correct the times", run: ctx.updateGuide },
     { label: "Make workbook", icon: "book-open", title: "Make the participant workbook", run: () => ctx.openTool("participantWorkbook") },
   ];
-  return { menus: [file, edit, insert, format, view, ...middle, help], quick };
+  return { menus: [file, edit, insert, format, view, design, ...middle, help], quick };
 }
 
 export function menuEntries(/** @type {MenuDef[]} */ menus, /** @type {string} */ id) {

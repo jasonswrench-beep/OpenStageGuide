@@ -1,0 +1,62 @@
+/* The design desk (program/ui/design-desk.js): it takes the place of the guide and its tools while it is open. It uses the program's own colors and sizes (style.css), and
+   states are always said in words: a warning is a line of text first and a color second. */
+.work > .design-desk { grid-column: 1 / -1; min-width: 0; overflow: auto; background: var(--bg); padding: 16px 24px 60px; }
+.design-desk h2 { margin: 0; font-size: 1.3rem; }
+.design-desk h3 { font-size: 1.15rem; margin: 20px 0 6px; }
+.design-desk h4 { font-size: 1rem; margin: 16px 0 6px; }
+.dd-head { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 10px; }
+.dd-head h2 { flex: 1 1 auto; }
+.dd-save { margin: 0; color: var(--muted); font-size: 0.9rem; }
+
+.dd-tabs { display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 1px solid var(--line); margin-bottom: 8px; }
+.dd-tabs button[role="tab"] { border-radius: 8px 8px 0 0; border-bottom: none; background: var(--card); }
+.dd-tabs button[role="tab"][aria-selected="true"] { background: var(--tint); border-color: var(--accent); color: var(--accent); font-weight: 600; box-shadow: inset 0 -3px 0 var(--accent); }
+.dd-panelhost { outline: none; max-width: 1100px; }
+.dd-panel { display: block; }
+
+.dd-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; margin: 6px 0 10px; }
+.dd-row > .field { flex: 1 1 220px; margin: 0; }
+.dd-row > .field.small { flex: 0 1 180px; }
+.dd-item { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; margin: 0 0 12px; }
+.dd-lesson { margin-left: 18px; background: var(--subtle); }
+.dd-module { border-left: 4px solid var(--accent); padding-left: 12px; margin: 16px 0; }
+.dd-levelbox { border-top: 1px solid var(--line); margin-top: 14px; padding-top: 4px; }
+.dd-group { border: 1px solid var(--line); border-radius: 6px; margin: 8px 0; padding: 6px 12px 8px; min-width: 0; }
+.dd-group legend { font-weight: 600; font-size: 0.92rem; padding: 0 6px; }
+.dd-verdict, .dd-summary { font-weight: 600; margin: 8px 0; }
+p.dd-level { color: var(--muted); font-size: 0.92rem; margin: 6px 0 2px; }
+.dd-issues { margin: 6px 0 0; padding: 8px 10px 8px 28px; background: var(--warn-bg); color: var(--text); border-left: 4px solid var(--warn); border-radius: 4px; }
+.dd-issues:empty { display: none; }
+.dd-issues li { margin: 2px 0; }
+.dd-helper { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 8px 14px; margin: 12px 0; }
+.dd-helper summary { cursor: pointer; font-weight: 600; min-height: 24px; }
+.dd-preview { font-weight: 600; background: var(--tint); padding: 8px 10px; border-radius: 6px; min-height: 2.2em; }
+
+.dd-split { display: grid; grid-template-columns: minmax(200px, 280px) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 800px) { .dd-split { grid-template-columns: minmax(0, 1fr); } }
+.dd-nav { display: flex; flex-direction: column; gap: 6px; }
+.dd-nav button { width: 100%; text-align: left; }
+.dd-nav button[aria-pressed="true"] { background: var(--tint); border-color: var(--accent); font-weight: 600; box-shadow: inset 4px 0 0 var(--accent); }
+.dd-detail { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 6px 16px 14px; min-width: 0; }
+.dd-events { padding-left: 1.3rem; }
+.dd-events > li { margin: 10px 0; }
+.dd-ideas { list-style: none; padding: 0; margin: 4px 0 0; }
+.dd-ideas li { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; padding: 3px 0; border-bottom: 1px dotted var(--line); }
+.dd-ref { background: var(--subtle); border-left: 4px solid var(--line); padding: 8px 12px; margin: 6px 0; overflow-wrap: anywhere; }
+.dd-prm { border-top: 1px solid var(--line); margin-top: 10px; padding-top: 4px; }
+.dd-prm-status { margin: 6px 0; font-weight: 600; }
+.dd-prm-result { margin-top: 8px; }
+
+.dd-table { width: 100%; border-collapse: collapse; margin: 8px 0; background: var(--card); font-size: 0.93rem; }
+.dd-table caption { text-align: left; font-weight: 600; padding: 4px 0; color: var(--muted); }
+.dd-table th, .dd-table td { border: 1px solid var(--line); padding: 6px 8px; text-align: left; vertical-align: top; overflow-wrap: anywhere; }
+.dd-table thead th { background: var(--subtle); }
+.dd-map { margin: 16px 0; }
+.dd-outputs .dd-output { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 8px 14px; margin: 0 0 10px; }
+.dd-outputs .dd-output p { margin: 4px 0; }
+
+@media (forced-colors: active) {
+  .dd-tabs button[role="tab"][aria-selected="true"], .dd-nav button[aria-pressed="true"] { outline: 2px solid Highlight; }
+  .dd-issues { border: 2px solid CanvasText; }
+}
+@media print { .design-desk { display: none !important; } }

@@ -21,7 +21,7 @@ const items=menus=>menus.flatMap(m=>m.items.filter(i=>i!=='-'));
 
 test('the menus are File, Edit, Insert, Format, View, the program\'s own eight, and Help, in that order',()=>{
   const {menus}=make();
-  assert.deepEqual(menus.map(m=>[m.id,m.label]),[['file','File'],['edit','Edit'],['insert','Insert'],['format','Format'],['view','View'],['start','Start'],['sections','Sections'],['activities','Activities'],['slides','Slides'],['assessment','Assessment'],['elearning','eLearning'],['check','Check & Plan'],['make','Make'],['help','Help']]);
+  assert.deepEqual(menus.map(m=>[m.id,m.label]),[['file','File'],['edit','Edit'],['insert','Insert'],['format','Format'],['view','View'],['design','Design'],['start','Start'],['sections','Sections'],['activities','Activities'],['slides','Slides'],['assessment','Assessment'],['elearning','eLearning'],['check','Check & Plan'],['make','Make'],['help','Help']]);
   assert.deepEqual(PROGRAM_MENUS.map(m=>m.label),['Start','Sections','Activities','Slides','Assessment','eLearning','Check & Plan','Make']);
   assert.equal(GROUPS.length,7,'the ribbon of the add-in is still seven groups of three; the program\'s menus are not bound by it');
 });
@@ -201,4 +201,16 @@ test('the File menu makes the guide a Word file, or its styles a Word template, 
   guide=false;
   assert.equal(word.enabled(),false);assert.equal(template.enabled(),false);
   assert.ok(items.indexOf(word)<items.findIndex(i=>/backup/i.test(i.label)),'before the backups');
+});
+
+test('the Design menu opens the design desk at each of its five screens, and waits for a guide',()=>{
+  const opened=[];
+  let guide=true;
+  const {menus}=buildMenus({hasGuide:()=>guide,openTool(){},updateGuide(){},newGuide(){},openGuide(){},closeGuide(){},search(){},keys(){},about(){},openDesign:tab=>opened.push(tab)});
+  const design=menus.find(m=>m.id==='design');
+  assert.deepEqual(design.items.map(i=>i.label),['Needs and objectives...','Models and activities...','Course map...','Storyboard...','Evaluation plan...']);
+  for(const i of design.items){assert.ok(UI_ICONS[i.icon],`${i.label} has an icon the program has`);assert.ok(i.title.length>30,`${i.label} says what it opens`);assert.equal(i.enabled(),true);i.run();}
+  assert.deepEqual(opened,['needs','models','map','board','eval']);
+  guide=false;
+  assert.ok(design.items.every(i=>i.enabled()===false),'no guide, no desk');
 });

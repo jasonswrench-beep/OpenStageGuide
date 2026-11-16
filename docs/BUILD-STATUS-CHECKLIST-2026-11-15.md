@@ -110,3 +110,16 @@ Built 2026-11-15; what each slice does is in `docs/KIT-SPEC-2026-11-15.md` ("As 
 6. The signed window is started from the unpacked setup and looked at (menus, About build number).
 7. Only on the author's yes: push, publish the release (a plain release, not marked pre-release) with the setup and its checksum, download it again without signing in (hash and signature), and ask for updates from a copy of the previous release.
 8. The record is added to `shell/README.md` and this list is updated; the manual session is told what changed.
+
+## 10. The round of 2026-11-16 (the development list of 2026-11-15, items 1 to 11)
+
+Built on `main` after alpha 9; **not built into a setup, not pushed, not published**. What only a person can check is in `TESTING-TODO.md`; what the core is asked for is in `CORE-REQUESTS.md`.
+
+- [x] **1. Author export in Author's current format, schema 0.49.0** (with the optional version and course code, left out when blank). Author's own validator passes it with 0 errors.
+- [x] **2. Alpha 8 is published** (a plain release) **and the Forms tool is in its setup** (and alpha 7's): checked on GitHub and in each tag's source.
+- [x] **3. The editing surface is finished: blocks in place.** **Insert > Block...** (Ctrl+Shift+Enter) adds a block of any kind after the one the cursor is in, ready to type its words in the guide; an activity with its parts; the Review warns of a block with no words (BLOCK-EMPTY). The bullet toggle, dragging modules and lessons, and the slide picture beside the script were done in alpha 9. Editor browser check: 289 of 289.
+- [x] **4. Save as PDF has bookmarks** that follow the headings, as well as its tags, language and title (checked in the file that comes back, with the real Edge). Running the core's accessibility rules (C2) on the web export waits for the core to publish them (`CORE-REQUESTS.md` G2).
+- [ ] **5. Your checks** (screen reader, real word processor, a second PC): yours; in `TESTING-TODO.md`.
+- [x] **6. File > Save for PrismStatistics...**: the rating grids and self-scored instruments as a `.pstat` (a variable for each statement, empty rows, the scoring guide in the file's notes). Passes the core's `checkPstat`; not opened in PrismStatistics here. A profile that carries the scoring guide as data is asked for (G1).
+- [x] **7 to 11. The design desk** (the **Design** menu): needs and objectives with Bloom's verbs, models and activities with their citations (and Prism Reference Manager's local API), the course map, the storyboard (a new guide, an Author skeleton, a Scroll skeleton, item slots for OpenAssess) and the evaluation plan by Kirkpatrick level. Spec and what it was checked against: `docs/DESIGN-DESK-2026-11-16.md`. `npm run check:design` is its browser check.
+- [ ] The real Prism Reference Manager, PrismStatistics, OpenAssess, Author and Scroll have not been run on what the desk makes (the files pass the other tools' own validators or schemas where those exist).

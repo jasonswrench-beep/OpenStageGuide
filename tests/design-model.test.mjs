@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {emptyDesign,cleanDesign,designText,readDesign,nextId,removeObjective,removeActivity,removeAssessment,storyboardMinutes,LIMITS,KIRKPATRICK} from '../src/design-model.mjs';
+import {emptyDesign,cleanDesign,designText,readDesign,nextId,removeObjective,removeActivity,removeAssessment,storyboardMinutes,LIMITS,KIRKPATRICK,NEED_CAUSES} from '../src/design-model.mjs';
 import {raw,design} from './helpers/design-fixture.mjs';
 
 test('empty notes are what an unwritten guide has, and read back the same', () => {
@@ -103,4 +103,9 @@ test('the storyboard adds up its minutes, by module', () => {
 test('Kirkpatrick has four levels in order', () => {
   assert.deepEqual(KIRKPATRICK.map(k=>k.id),[1,2,3,4]);
   assert.ok(KIRKPATRICK.every(k=>k.label.startsWith(`Level ${k.id}: `)&&k.asks.endsWith('?')&&k.kinds.length));
+});
+
+test('each cause says whether training can help with it, and only knowledge and practice do', () => {
+  assert.deepEqual(NEED_CAUSES.filter(c=>c.training).map(c=>c.id),['knowledge','practice']);
+  assert.ok(NEED_CAUSES.every(c=>typeof c.training==='boolean'&&c.note.length>10));
 });

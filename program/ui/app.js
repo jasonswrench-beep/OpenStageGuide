@@ -23,6 +23,10 @@ import { INSERTS, newForm } from "./forms.js";
 import { drawWelcome } from "./welcome.js";
 import { pdfBase64, savePdfFile, saveWebPage } from "./web-page.js";
 import { saveForStatistics } from "./stats-file.js";
+import { mountDesk } from "./design-desk.js";
+import { readDesign, designText } from "../../src/design-model.mjs";
+import { planBody } from "../../src/design-storyboard.mjs";
+import { makeContext } from "../../src/guide-ooxml.mjs";
 import { downloadFile, importStylesFromWord, readGuideFromText, readGuideFromWord, safeFileName, saveHandoutPack, saveWordFile } from "./word-files.js";
 
 const doc = document;
@@ -44,6 +48,8 @@ let link = null;
 let drawTimer = null;
 /** The guide as the author writes it, drawn in the page. @type {{ render: () => void, destroy: () => void, focusCursor: () => void, insert: (build: (ctx: any) => string, what: string) => unknown, command: (name: string) => unknown, state: () => { canUndo: boolean, canRedo: boolean, hasRows: boolean, inTable: boolean } } | null} */
 let editor = null;
+/** The design desk, once it has been opened over the open guide (null before, and after another guide is shown). */
+let designDesk = null;
 
 /** @param {string} message @param {boolean} [bad] */
 function say(message, bad = false) {
@@ -148,6 +154,56 @@ async function saveWeb() {
 async function saveStats() {
   if (!(await guideReady())) return;
   await saveForStatistics(doc, guideDoc, { name: (state.current ?? "guide").replace(/\.guide-project\.json$/i, ""), version: state.version, say });
+}
+
+/** The design desk, at one of its screens (the Design menu). @param {string} tab */
+async function openDesign(tab) {
+  if (!(await guideReady())) return;
+  if (!designDesk?.isOpen()) {
+    designDesk = await mountDesk(doc, {
+      main,
+      guide: guideDoc,
+      say,
+      fileName: () => (state.current ?? "guide").replace(/\.guide-project\.json$/i, ""),
+      title: () => String(guideDoc.exportState().title ?? ""),
+      appVersion: () => state.version,
+      newGuideFromPlan: () => newGuideFromPlan(),
+      onBack: () => editor?.focusCursor(),
+    });
+  }
+  designDesk?.show(tab);
+}
+
+/**
+ * A new guide with the storyboard written in it (src/design-storyboard.mjs, planBody): the guide the desk was opened over does not change. The notes of the desk go
+ * into the new guide too, so the design can go on there.
+ */
+async function newGuideFromPlan() {
+  await designDesk?.flush();
+  if (!(await settle())) return;
+  const design = readDesign(await guideDoc.design());
+  const title = String(guideDoc.exportState().title ?? "").trim() || (state.current ?? "Course").replace(/\.guide-project\.json$/i, "");
+  // The plan is written into a stand-in document, which gives the paragraphs the project file holds.
+  const scratch = createDemoAdapter({ icons: (names) => loadIcons(names) });
+  await scratch.insert((ctx) => planBody(design, { title }, ctx), { where: "start", spare: false });
+  await scratch.setTitle(title);
+  await scratch.setDesign(designText(design));
+  const plan = scratch.exportState();
+  const name = await askName(doc, {
+    title: "Name of the new guide",
+    label: "Name of the guide",
+    confirm: "Make the guide",
+    value: `${title} plan`.slice(0, 80),
+    hint: "It opens as a new guide with this name. The guide you have open does not change.",
+    accept: (typed) => post("new", { name: typed }),
+  });
+  if (!name) return;
+  await show();
+  await guideDoc.ready;
+  guideDoc.importState(plan);
+  await guideDoc.flush();
+  await show();
+  say(`The new guide "${name}" is open, with the storyboard written in it. Choose Update guide to bring its numbers and times up to date.`);
 }
 
 /** The guide as a PDF, made on this computer. */
@@ -267,6 +323,7 @@ const frame = startFrame(doc, {
   saveWeb: () => saveWeb(),
   savePdf: () => savePdf(),
   saveStats: () => saveStats(),
+  openDesign: (tab) => openDesign(tab),
   print: () => printGuide(),
   pasteText: () => importGuide("text"),
   saveTemplate: () => saveWord(true),
@@ -400,6 +457,7 @@ function closeDocument() {
  */
 async function settle() {
   if (!guideDoc) return true;
+  await designDesk?.flush();
   await guideDoc.flush();
   if (!guideDoc.blocked() && guideDoc.status().state === "error") {
     say("The open guide could not be saved just now, so it was left open with your changes. Try again in a moment.", true);
@@ -409,6 +467,7 @@ async function settle() {
 }
 
 function showGuide() {
+  designDesk = null;
   const name = (state.current ?? "").replace(/\.guide-project\.json$/i, "");
   doc.title = `${name} - OpenStage Guide`;
   toolsReady = false;

@@ -7,11 +7,11 @@ import {BLOOM_LEVELS} from './design-bloom.mjs';
 export const DESIGN_VERSION=1;
 export const LIMITS=Object.freeze({objectives:80,activities:300,assessments:150,modules:30,lessons:200,measures:80,statements:200,models:40,text:4000,title:200,short:80,chars:400000});
 export const NEED_CAUSES=Object.freeze([
-  {id:'knowledge',label:'They do not know how, or what',note:'Training can help.'},
-  {id:'practice',label:'They know, and have had too little practice',note:'Training with practice can help.'},
-  {id:'tools',label:'The tools, process or information are in the way',note:'Training will not fix this by itself.'},
-  {id:'motivation',label:'There is little reason to do it, or it is not rewarded',note:'Training will not fix this by itself.'},
-  {id:'clarity',label:'They are not sure what is expected',note:'Say it first; training may not be needed.'},
+  {id:'knowledge',label:'They do not know how, or what',note:'Training can help.',training:true},
+  {id:'practice',label:'They know, and have had too little practice',note:'Training with practice can help.',training:true},
+  {id:'tools',label:'The tools, process or information are in the way',note:'Training will not fix this by itself.',training:false},
+  {id:'motivation',label:'There is little reason to do it, or it is not rewarded',note:'Training will not fix this by itself.',training:false},
+  {id:'clarity',label:'They are not sure what is expected',note:'Say it first; training may not be needed.',training:false},
 ]);
 export const ASSESSMENT_KINDS=Object.freeze([
   {id:'quiz',label:'Quiz or test'},{id:'demo',label:'Demonstration or skills check'},{id:'project',label:'Project or work product'},
