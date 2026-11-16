@@ -176,10 +176,11 @@ try{
   await page.locator('dialog[open] #dlg-name').waitFor({timeout:10000});
   await page.locator('dialog[open] #dlg-name').fill('Coaching plan');
   await page.locator('dialog[open]').getByRole('button',{name:'Make the guide'}).click();
-  // (the guide is drawn row by row, so the check waits for all of what it looks for, not only the first heading)
-  await page.waitForFunction(()=>{const t=document.querySelector('#work-guide')?.innerText||'';return /Module 1: Talk first/.test(t)&&/Lesson 1\.1: The coaching conversation/.test(t)&&/A real problem or a short story/.test(t)&&/Short quiz/.test(t);},null,{timeout:20000}).catch(()=>{});
-  // (the guide shows as a read-only drawing for a moment before the editor puts its rows in: wait for the rows)
-  await page.locator('#work-guide [data-index]').first().waitFor({timeout:20000}).catch(()=>{});
+  // The program opens the new guide twice (once with the plan put in, then again from the file it saved) and says so when the second is open: the check waits for that
+  // message, then for the rows of the editor and for what it looks for, so it never reads the page in the moment between the two.
+  await page.waitForFunction(()=>/with the storyboard written in it/.test(document.querySelector('#status')?.textContent||''),null,{timeout:30000});
+  await page.locator('#work-guide [data-index]').first().waitFor({timeout:20000});
+  await page.waitForFunction(()=>{const t=document.querySelector('#work-guide')?.innerText||'';return /Module 1: Talk first/.test(t)&&/Lesson 1\.1: The coaching conversation/.test(t)&&/A real problem or a short story/.test(t)&&/Short quiz/.test(t);},null,{timeout:20000});
   const text=await page.locator('#work-guide').innerText();
   ok(await page.locator('#work-guide h1, #work-guide [data-index]').filter({hasText:/^Coaching plan$/}).count()>=1,'the name chosen is the title of the new guide');
   ok(/Lesson 1\.1: The coaching conversation/.test(text)&&/Learners will be able to explain the three steps/.test(text)&&/A real problem or a short story/.test(text)&&/Short quiz/.test(text),'the new guide has the lesson, its objective, its activity and its assessment');
