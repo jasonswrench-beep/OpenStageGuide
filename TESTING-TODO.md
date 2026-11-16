@@ -12,14 +12,15 @@ in the commit notes; what is below needs a person, a screen reader, another prog
 - [ ] **The Word files in a real word processor.** Open in Word (and, if you have it, LibreOffice) a guide, a workbook, a handout pack, a guide with **each block's icon in a column** and **a slide's picture
   beside its script**, a **bulleted list**, a **picture in a table cell**, and the **course map** and **evaluation plan** tables put in a guide from the design desk (landscape form). They pass the Word schema
   validator and were never opened in a real Word. Look for: icons beside their words, pictures where they were put, bullets, the landscape pages.
-- [ ] **A second computer.** Install the setup (see below for the one to use), start it, make a guide, save it as Word, web page and PDF, and uninstall. Needs Edge for the PDF (Windows 11 has it). Does
+- [ ] **A second computer.** Install the alpha 10 setup from its page on GitHub (its checksum is on the page), start it, make a guide, save it as Word, web page and PDF, and uninstall. Needs Edge for the PDF (Windows 11 has it). Does
   Check for updates say what it should?
 
-## What is waiting for your yes
+## Publishing
 
-- [ ] **Publish.** Nothing from this round is pushed or published. The commits are on `main` here, and alpha 9 (built and signed before this round) is not published either; its fixes are being made in another
-  working folder (`C:\Dev\OpenStageGuide-a9`, branch `alpha9-fixes`) by another session, and will need merging with this branch. Tell me when, and in what order: push, then a build of the next alpha with
-  everything, then the release as in section 9 of `docs/BUILD-STATUS-CHECKLIST-2026-11-15.md`.
+- [x] **Alpha 10 is pushed and published** (2026-11-16): `main` is on GitHub, the tag is `v0.1.0-alpha.10`, and the release is a plain release (not marked pre-release) with the signed setup and its checksum.
+  Alpha 9 was built but never published; its fixes are in alpha 10 (`C:\Dev\OpenStageGuide-a9` and its branch `alpha9-fixes` are the other session's and were left alone). How it was built and checked is
+  in section 10 of `docs/BUILD-STATUS-CHECKLIST-2026-11-15.md` and in `shell/README.md`.
+- Nothing is waiting to be pushed or released. The checks below are held for later (2026-11-16): none of them blocks this stage, and each one found wrong is a fix for the next alpha.
 
 ## Item 2: alpha 8 and the Forms
 
