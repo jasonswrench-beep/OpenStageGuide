@@ -63,7 +63,8 @@ export const TOOL_ICONS = {
 const NO_EDIT = { command: () => {}, state: () => ({ canUndo: false, canRedo: false, hasRows: false, inTable: false }) };
 
 /** The Insert menu: each item is a command of `ctx.insert` (see forms.js), after its name. */
-const INSERT_ITEMS = /** @type {{ name: string, label: string, icon: UiIconName, title: string }[]} */ ([
+const INSERT_ITEMS = /** @type {{ name: string, label: string, icon: UiIconName, title: string, keys?: string }[]} */ ([
+  { name: "block", label: "Block...", icon: "message-square", keys: "Ctrl+Shift+Enter", title: "A block with its icon and label (Say, Ask, Activity, Debrief and the rest) after the one you are on, ready to type its words in the guide itself" },
   { name: "picture", label: "Picture...", icon: "image", title: "A picture from a file, with a description for people who cannot see it" },
   { name: "form", label: "Form...", icon: "file-text", title: "Start a handout, worksheet, checklist or other form from a template" },
   { name: "lines", label: "Lines to write on...", icon: "pencil-line", title: "Ruled lines for a written answer" },
@@ -108,7 +109,7 @@ const FORMAT_ITEMS = /** @type {({ name: string, label: string, icon: UiIconName
  * (undo, redo, cut, copy, paste, add, kind, moveUp, moveDown, delete) and state() says what can be done now.
  * `ctx.insert(name)` makes one of the INSERT_ITEMS (a form, lines, a table...) after the row the author is on.
  * @typedef {{ command: (name: string) => unknown, state: () => { canUndo: boolean, canRedo: boolean, hasRows: boolean, inTable: boolean, onPicture?: boolean } }} EditApi
- * @param {{ edit?: EditApi, insert?: (name: string) => unknown, saveWord?: () => unknown, saveTemplate?: () => unknown, saveBackup?: () => unknown, restoreBackup?: () => unknown, importWord?: () => unknown, pasteText?: () => unknown, saveWeb?: () => unknown, savePdf?: () => unknown, print?: () => unknown, importStyles?: () => unknown, zoom?: { more: () => unknown, less: () => unknown, actual: () => unknown, can: () => boolean }, hasGuide: () => boolean, openTool: (id: string) => void, updateGuide: () => void, newGuide: () => void, openGuide: () => void, closeGuide: () => void, search: () => void, keys: () => void, about: () => void, updates?: () => void }} ctx
+ * @param {{ edit?: EditApi, insert?: (name: string) => unknown, saveWord?: () => unknown, saveTemplate?: () => unknown, saveBackup?: () => unknown, restoreBackup?: () => unknown, importWord?: () => unknown, pasteText?: () => unknown, saveWeb?: () => unknown, savePdf?: () => unknown, saveStats?: () => unknown, print?: () => unknown, importStyles?: () => unknown, zoom?: { more: () => unknown, less: () => unknown, actual: () => unknown, can: () => boolean }, hasGuide: () => boolean, openTool: (id: string) => void, updateGuide: () => void, newGuide: () => void, openGuide: () => void, closeGuide: () => void, search: () => void, keys: () => void, about: () => void, updates?: () => void }} ctx
  * @returns {{ menus: MenuDef[], quick: MenuCommand[] }}  the menus, and the commands of the navy bar while a guide is open
  */
 export function buildMenus(ctx) {
@@ -135,6 +136,7 @@ export function buildMenus(ctx) {
       { label: "Save as Word file...", icon: "file-down", title: "Make a Word document from the guide, with its styles, pictures and a contents table. Word can save it as a PDF", run: () => void ctx.saveWord?.(), enabled: ctx.hasGuide },
       { label: "Save as web page...", icon: "file-down", title: "Make one web page of the guide, with its pictures inside it, that opens in any browser", run: () => void ctx.saveWeb?.(), enabled: ctx.hasGuide },
       { label: "Save as PDF...", icon: "file-down", title: "Make a PDF of the guide on this computer, with its headings, paragraphs and tables marked for screen readers", run: () => void ctx.savePdf?.(), enabled: ctx.hasGuide },
+      { label: "Save for PrismStatistics...", icon: "file-down", title: "Make a PrismStatistics file of the guide's rating grids and self-scored instruments: each statement a variable, the answers empty, ready to type or paste in and analyse. How each scale is added up is in the file's notes", run: () => void ctx.saveStats?.(), enabled: ctx.hasGuide },
       { label: "Print...", icon: "printer", keys: "Ctrl+P", title: "Print the guide, or save it as a PDF if your printer list offers that. For a PDF with its structure tagged for screen readers, save the Word file and make the PDF in Word", run: () => void ctx.print?.(), enabled: ctx.hasGuide },
       { label: "Save styles as a Word template...", icon: "swatch-book", title: "Make a Word template that has the guide's styles, so other documents can look like the guide", run: () => void ctx.saveTemplate?.(), enabled: ctx.hasGuide },
       "-",
@@ -201,8 +203,8 @@ export function buildMenus(ctx) {
     id: "insert",
     label: "Insert",
     items: INSERT_ITEMS.flatMap((i, n) => [
-      ...(n === 2 ? /** @type {MenuEntry[]} */ (["-"]) : []),
-      /** @type {MenuCommand} */ ({ label: i.label, icon: i.icon, title: i.title, run: () => void ctx.insert?.(i.name), enabled: ctx.hasGuide }),
+      ...(n === 1 || n === 3 ? /** @type {MenuEntry[]} */ (["-"]) : []),
+      /** @type {MenuCommand} */ ({ label: i.label, icon: i.icon, ...(i.keys ? { keys: i.keys } : {}), title: i.title, run: () => void ctx.insert?.(i.name), enabled: ctx.hasGuide }),
     ]),
   };
   /** @type {MenuDef} */

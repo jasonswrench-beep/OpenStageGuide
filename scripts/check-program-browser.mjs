@@ -13,6 +13,7 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {serializeProject} from '../src/guide-project.mjs';
 import {findEdge} from './pdf-maker.mjs';
+import {checkPstat,readPstat} from '@openstage/pstat';
 const require=createRequire(import.meta.url);
 if(!process.env.PLAYWRIGHT_DIR){console.error('Set PLAYWRIGHT_DIR to the playwright package folder.');process.exit(2);}
 const {chromium}=require(process.env.PLAYWRIGHT_DIR);
@@ -511,6 +512,28 @@ try{
   ok(files(GUIDES).some(f=>/\(restored\)\.guide-project\.json$/.test(f))&&files(GUIDES).some(f=>f==='Forms check.guide-project.json'),'the backup is a new guide beside the first, which is not changed');
   const nowOpen=await fpage.evaluate(()=>fetch('/api/state').then(r=>r.json()));
   ok(/\(restored\)\.guide-project\.json$/.test(String(nowOpen.current)),'and it is the one that is open: '+nowOpen.current);
+  // File > Save for PrismStatistics: a rating grid becomes variables in a .pstat file, with its scale's points as value labels and empty rows to enter answers in
+  await fpage.getByRole('menuitem',{name:/^Insert/}).click();
+  await fpage.getByRole('menuitem',{name:/Rating grid/}).click();
+  await fpage.locator('dialog[open] #dlg-f-statements').fill('The session met its goals.\nI can use what I learned.');
+  await fpage.locator('dialog[open] #dlg-f-scale').fill('Disagree, Neutral, Agree');
+  await fpage.getByRole('button',{name:'Insert'}).click();
+  await fpage.waitForFunction(()=>/I can use what I learned\./.test(document.querySelector('#work-guide')?.innerText||''),null,{timeout:15000});
+  await fpage.getByRole('menuitem',{name:/^File/}).click();
+  await fpage.getByRole('menuitem',{name:/Save for PrismStatistics/}).click();
+  await fpage.locator('dialog[open] #dlg-f-rows').waitFor({timeout:10000});
+  ok(/Each statement becomes a variable/.test(await fpage.locator('dialog[open]').innerText()),'File > Save for PrismStatistics says what the file will hold');
+  await fpage.locator('dialog[open] #dlg-f-rows').fill('4');
+  const [statsDownload]=await Promise.all([fpage.waitForEvent('download',{timeout:20000}),fpage.getByRole('button',{name:'Save file'}).click()]);
+  const statsPath=path.join(RUN,'made.pstat');
+  await statsDownload.saveAs(statsPath);
+  ok(/ - instruments\.pstat$/.test(statsDownload.suggestedFilename()),'it gives a .pstat file named for the guide: '+statsDownload.suggestedFilename());
+  const statsBytes=new Uint8Array(fs.readFileSync(statsPath));
+  ok(checkPstat(statsBytes).length===0,'the shared core checker finds nothing wrong with it: '+JSON.stringify(checkPstat(statsBytes).slice(0,2)));
+  const statsProject=readPstat(statsBytes);
+  ok(statsProject.dataset.variables.map(v=>v.name).join(',')==='respondent,q01,q02','a variable for each statement, after the respondent');
+  ok(statsProject.dataset.variables[1].value_labels.map(l=>l.label).join('|')==='Disagree|Neutral|Agree'&&statsProject.dataset.columns[0].values.length===4,'the points of the scale are its value labels, and there are four empty rows');
+  ok(/saved/.test(await fpage.locator('#status').innerText()),'and the program says it was saved');
   // File > Save as web page is one page with its pictures inside it: it opens on its own, reaches nowhere, and has the structure a screen reader needs
   await fpage.getByRole('menuitem',{name:/^File/}).click();
   const [webDownload]=await Promise.all([fpage.waitForEvent('download',{timeout:30000}),fpage.getByRole('menuitem',{name:/Save as web page/}).click()]);

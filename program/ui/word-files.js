@@ -19,7 +19,7 @@ import { drawCss } from "./preview.js";
 
 const parseXml = (/** @type {string} */ xml) => new DOMParser().parseFromString(xml, "application/xml");
 const io = { parse: parseXml, serialize: (/** @type {Element} */ node) => new XMLSerializer().serializeToString(node) };
-const zipLibrary = () => {
+export const zipLibrary = () => {
   const lib = /** @type {any} */ (window).JSZip;
   if (!lib) throw new Error("The part of the program that makes Word files did not load. Close the program and open it again.");
   return lib;

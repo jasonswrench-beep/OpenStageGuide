@@ -22,6 +22,7 @@ import { openStylesPanel } from "./styles-panel.js";
 import { INSERTS, newForm } from "./forms.js";
 import { drawWelcome } from "./welcome.js";
 import { pdfBase64, savePdfFile, saveWebPage } from "./web-page.js";
+import { saveForStatistics } from "./stats-file.js";
 import { downloadFile, importStylesFromWord, readGuideFromText, readGuideFromWord, safeFileName, saveHandoutPack, saveWordFile } from "./word-files.js";
 
 const doc = document;
@@ -110,7 +111,7 @@ async function insertCommand(name) {
   if (!editor || !guideDoc) return;
   try {
     const made = name === "form" ? await newForm(doc, guideDoc) : await INSERTS[name]?.(doc);
-    if (made) await editor.insert(made.build, made.what);
+    if (made) await editor.insert(made.build, made.what, made.edit === true);
   } catch (e) {
     say(/** @type {Error} */ (e).message, true);
   }
@@ -141,6 +142,12 @@ async function saveWord(template) {
 async function saveWeb() {
   if (!(await guideReady())) return;
   await saveWebPage(doc, guideDoc, { name: (state.current ?? "guide").replace(/\.guide-project\.json$/i, ""), say });
+}
+
+/** The guide's rating grids and self-scored instruments as a PrismStatistics file. */
+async function saveStats() {
+  if (!(await guideReady())) return;
+  await saveForStatistics(doc, guideDoc, { name: (state.current ?? "guide").replace(/\.guide-project\.json$/i, ""), version: state.version, say });
 }
 
 /** The guide as a PDF, made on this computer. */
@@ -259,6 +266,7 @@ const frame = startFrame(doc, {
   importWord: () => importGuide("word"),
   saveWeb: () => saveWeb(),
   savePdf: () => savePdf(),
+  saveStats: () => saveStats(),
   print: () => printGuide(),
   pasteText: () => importGuide("text"),
   saveTemplate: () => saveWord(true),
@@ -370,7 +378,7 @@ function openDocument() {
     () => {
       const host = doc.getElementById("work-guide");
       if (guideDoc !== made || !host) return;
-      editor = mountEditor(doc, host, made, { zoom: { more: zoom.more, less: zoom.less, actual: zoom.actual, level: () => zoomNow }, say, choose: (options) => chooseOne(doc, options), askFormat: (current, validate) => askParagraphFormat(doc, current, validate), askText: (current, validate) => askTextFormat(doc, current, validate), askName: (options) => askName(doc, options), ask: (options) => askFields(doc, options), openStyles: async (startId) => { if (guideDoc) await openStylesPanel(doc, guideDoc, say, startId); } });
+      editor = mountEditor(doc, host, made, { zoom: { more: zoom.more, less: zoom.less, actual: zoom.actual, level: () => zoomNow }, say, choose: (options) => chooseOne(doc, options), askFormat: (current, validate) => askParagraphFormat(doc, current, validate), askText: (current, validate) => askTextFormat(doc, current, validate), askName: (options) => askName(doc, options), addBlock: () => insertCommand("block"), ask: (options) => askFields(doc, options), openStyles: async (startId) => { if (guideDoc) await openStylesPanel(doc, guideDoc, say, startId); } });
     },
     () => {},
   );

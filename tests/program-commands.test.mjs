@@ -147,22 +147,23 @@ test('with no editor the Edit menu is there, dimmed, and does nothing',()=>{
   for(const i of edit.items.filter(i=>i!=='-')){assert.equal(i.enabled(),false,i.label);i.run();}
 });
 
-test('the Insert menu: a form from a template, then the elements a form is made of; dimmed with no guide; each does its own command',()=>{
+test('the Insert menu: a block, then a picture and a form from a template, then the elements a form is made of; dimmed with no guide; each does its own command',()=>{
   const made=[];
   let guide=true;
   const ctx={hasGuide:()=>guide,openTool(){},updateGuide(){},newGuide(){},openGuide(){},closeGuide(){},search(){},keys(){},about(){},insert:name=>made.push(name)};
   const {menus}=buildMenus(ctx);
   const insert=menus.find(m=>m.id==='insert');
   const labels=insert.items.filter(i=>i!=='-').map(i=>i.label);
-  assert.deepEqual(labels,['Picture...','Form...','Lines to write on...','Writing box...','Row of fields...','Check list...','Table to fill in...','Rating grid...','Cards to cut apart...','Source line...']);
-  assert.equal(insert.items.filter(i=>i==='-').length,1,'the picture and the form are set apart from the elements of a form');
+  assert.deepEqual(labels,['Block...','Picture...','Form...','Lines to write on...','Writing box...','Row of fields...','Check list...','Table to fill in...','Rating grid...','Cards to cut apart...','Source line...']);
+  assert.equal(insert.items.filter(i=>i==='-').length,2,'the block, the picture and the form, and the elements of a form are three groups');
+  assert.equal(insert.items[0].keys,'Ctrl+Shift+Enter','the first item is the block, with its key');
   for(const i of insert.items.filter(i=>i!=='-')){
     assert.ok(i.icon&&UI_ICONS[i.icon],`${i.label} has an icon the program has`);
     assert.ok(i.title&&i.title.length>10,`${i.label} says what it makes`);
     assert.equal(i.enabled(),true);
   }
   for(const i of insert.items.filter(i=>i!=='-'))i.run();
-  assert.deepEqual(made,['picture','form','lines','box','fields','checklist','table','rating','cards','source']);
+  assert.deepEqual(made,['block','picture','form','lines','box','fields','checklist','table','rating','cards','source']);
   guide=false;
   assert.ok(insert.items.filter(i=>i!=='-').every(i=>i.enabled()===false),'no guide, nothing to insert into');
   const bare=buildMenus({hasGuide:()=>true,openTool(){},updateGuide(){},newGuide(){},openGuide(){},closeGuide(){},search(){},keys(){},about(){}}).menus.find(m=>m.id==='insert');

@@ -16,9 +16,15 @@
     "check:settings": "node scripts/check-settings-browser.mjs",
     "check:closing": "node scripts/check-closing-browser.mjs"
   },
-  "dependencies": { "acorn": "8.19.0", "jszip": "3.10.1" },
+  "dependencies": {
+    "acorn": "8.19.0",
+    "jszip": "3.10.1"
+  },
   "devDependencies": {
+    "@openstage/pstat": "https://github.com/jasonswrench-beep/openstage-core/releases/download/pstat-v1.2.0/openstage-pstat-1.2.0.tgz",
     "@xmldom/xmldom": "0.8.15"
   },
-  "engines": { "node": ">=20" }
+  "engines": {
+    "node": ">=20"
+  }
 }
