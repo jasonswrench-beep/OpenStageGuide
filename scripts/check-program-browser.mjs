@@ -563,6 +563,15 @@ try{
   const pdfPath=path.join(RUN,'printed.pdf');
   fs.writeFileSync(pdfPath,await fpage.pdf({format:'Letter'}));
   await fpage.emulateMedia({media:null});
+  // Ctrl+P is File > Print, from the page and from the tools beside the guide (the window's print is stood in for here, so no dialog opens)
+  await fpage.evaluate(()=>{window.__printAsked=0;window.print=()=>{window.__printAsked++;};});
+  await fpage.keyboard.press('Control+p');
+  await fpage.waitForFunction(()=>window.__printAsked>=1,null,{timeout:10000}).catch(()=>{});
+  ok(await fpage.evaluate(()=>window.__printAsked)===1,'Ctrl+P on the page asks the window to print the guide, once');
+  await ff.locator('#guide-title,#guide-build,body').first().focus().catch(()=>{});
+  await ff.locator('body').press('Control+p').catch(()=>{});
+  await fpage.waitForFunction(()=>window.__printAsked>=2,null,{timeout:10000}).catch(()=>{});
+  ok(await fpage.evaluate(()=>window.__printAsked)===2,'and so does Ctrl+P pressed in the tools beside the guide');
   const info=readPdf(pdfPath);
   if(info.unread)console.log('INFO the printed PDF was not read: '+info.unread);
   else{

@@ -547,8 +547,8 @@ window.addEventListener("message", (e) => {
     void editor?.command(data.action);
   } else if (data.type === "osg-zoom" && ["more", "less", "actual"].includes(data.action)) {
     if (zoom.can()) void zoom[/** @type {"more" | "less" | "actual"} */ (data.action)]();
-  } else if (data.type === "osg-key" && typeof data.key === "string" && ["k", "K", "/", "F10"].includes(data.key)) {
-    // A key the author pressed in the tools that belongs to the program (Ctrl+K, Ctrl+/, F10): the program's keys are heard here.
+  } else if (data.type === "osg-key" && typeof data.key === "string" && ["k", "K", "/", "p", "P", "F10"].includes(data.key)) {
+    // A key the author pressed in the tools that belongs to the program (Ctrl+K, Ctrl+/, Ctrl+P, F10): the program's keys are heard here.
     doc.dispatchEvent(new KeyboardEvent("keydown", { key: data.key, ctrlKey: data.ctrlKey === true, metaKey: data.metaKey === true, bubbles: true, cancelable: true }));
   }
 });

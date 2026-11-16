@@ -68,9 +68,9 @@ if(programMode){
 }
 const toProgram=message=>{if(programMode&&globalThis.parent&&globalThis.parent!==globalThis)globalThis.parent.postMessage(message,location.origin);};
 if(programMode){
-  // The suite's keys (Ctrl+K search, Ctrl+/ key list, F10 menus) belong to the program's page. While the author is in the tools they are passed on to it.
+  // The suite's keys (Ctrl+K search, Ctrl+/ key list, Ctrl+P print, F10 menus) belong to the program's page. While the author is in the tools they are passed on to it.
   document.addEventListener('keydown',e=>{
-    const suite=(e.ctrlKey||e.metaKey)&&!e.altKey&&!e.shiftKey&&(e.key.toLowerCase()==='k'||e.key==='/');
+    const suite=(e.ctrlKey||e.metaKey)&&!e.altKey&&!e.shiftKey&&(e.key.toLowerCase()==='k'||e.key==='/'||e.key.toLowerCase()==='p');
     const menus=e.key==='F10'&&!e.ctrlKey&&!e.metaKey&&!e.altKey;
     if(!suite&&!menus)return;
     e.preventDefault();

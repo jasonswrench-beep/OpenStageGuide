@@ -43,7 +43,8 @@ export function startFrame(doc, shell) {
   searchButton.addEventListener("click", search);
   searchHost.append(searchButton);
 
-  // Ctrl+K and Ctrl+/ work anywhere, except over a dialog that is asking something (the search itself takes Ctrl+K back to its box).
+  // Ctrl+K, Ctrl+/ and Ctrl+P work anywhere, except over a dialog that is asking something (the search itself takes Ctrl+K back to its box).
+  // Ctrl+P is File > Print: the page asks for it itself (the key is shown beside the command, and the window's own print would print the whole program).
   doc.addEventListener("keydown", (e) => {
     if (!(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey) return;
     const asking = [...doc.querySelectorAll("dialog[open]")].some((d) => !d.classList.contains("command-search"));
@@ -53,6 +54,9 @@ export function startFrame(doc, shell) {
     } else if (e.key === "/" && !asking) {
       e.preventDefault();
       keys();
+    } else if (e.key.toLowerCase() === "p" && !asking && shell.guide() !== null) {
+      e.preventDefault();
+      void shell.print?.();
     }
   });
 
