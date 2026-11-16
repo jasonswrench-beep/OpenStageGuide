@@ -158,10 +158,18 @@ export function pstatProject(instruments,{guideTitle='',rows=0,appVersion='OpenS
     for(const b of ins.bands.filter(b=>b.group&&!ins.scales.some(s=>s.name.toLowerCase()===b.group.toLowerCase())))
       notes.push(`${b.group}, a total of ${b.from===b.to?numberText(b.from):`${numberText(b.from)} to ${numberText(b.to)}`}: ${b.meaning}`);
   });
+  return datasetProject({datasetName:clean(guideTitle)||'Instruments',fileName:`${clean(guideTitle)||'Guide'} (OpenStage Guide)`,appVersion,rows:n,variables,columns,notes});
+}
+
+/**
+ * The project.json of a file that holds a dataset and nothing of PrismStatistics's own: `variables` and `columns` as the format has them (ids from 1), the notes the
+ * file carries for the person who opens it, and no profile. Used by every file this program writes for PrismStatistics.
+ */
+export function datasetProject({datasetName,fileName,appVersion='OpenStage Guide',rows,variables,columns,notes}){
   return {
     format:PSTAT_FORMAT,version:PSTAT_VERSION,app_version:appVersion,
-    dataset:{name:clean(guideTitle)||'Instruments',variables,columns,next_id:nextId},
-    source:{file_name:`${clean(guideTitle)||'Guide'} (OpenStage Guide)`,report:{rows:n,variables:variables.length,renamed:[],short_rows:0,notes}},
+    dataset:{name:datasetName,variables,columns,next_id:variables.reduce((a,v)=>Math.max(a,v.id),0)+1},
+    source:{file_name:fileName,report:{rows,variables:variables.length,renamed:[],short_rows:0,notes}},
     operations:[],results:[]
   };
 }
