@@ -4,6 +4,7 @@
 // Pure functions: the XML parser and serializer are passed in, so this runs in the pane, in tests and on the command line.
 import {STYLE_NAMES,STYLE_IDS,NS,stylesPart} from './guide-styles.mjs';
 import {kindOf} from './guide-model.mjs';
+import {referencePageParts} from './guide-reference.mjs';
 import {readStyles,textOf} from './guide-check.mjs';
 import {resolveWorkbookBrand,textContrast,WORKBOOK_FAMILIES} from './workbook-presentation.mjs';
 import {allCues,cueById} from './guide-cues.mjs';
@@ -43,6 +44,8 @@ export function classify(paras){
   // A form (guide-forms.mjs) is a span: its title paragraph says who it is for, and the paragraphs of its elements take that from it.
   let cueAudience=null,formAudience=null,section=null,leadLines=0,lesson='',title='',overviewTable=false;
   const objectives=[];
+  // The headings of the Glossary and the References and the whole licence page are for learners with the entries of the reference pages.
+  const referenceParts=referencePageParts(paras);
   for(let i=0;i<n;i++){
     const k=kinds[i],text=clean(paras[i].text),d=decisions[i];
     const keep=reason=>{d.keep=true;d.reason=reason;};
@@ -55,6 +58,7 @@ export function classify(paras){
     if(k==='module'){keep('heading');cueAudience=null;formAudience=null;section=null;continue;}
     if(k==='lesson'){keep('heading');cueAudience=null;formAudience=null;section=null;lesson=text;continue;}
     if(k==='assessment'){keep('heading');cueAudience=null;formAudience=null;section='lead';leadLines=0;continue;}
+    if(referenceParts.has(i)){section=null;cueAudience=null;formAudience=null;keep('reference');continue;}
     if(sectionEnds(paras[i],k)){section=null;cueAudience=null;formAudience=null;drop(text?'own':'blank');continue;}
     if(section==='lead'&&k!=='other')section='items';
     switch(k){

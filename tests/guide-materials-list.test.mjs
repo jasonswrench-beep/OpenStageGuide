@@ -68,6 +68,22 @@ test('the Materials list gathers each lesson\'s materials and the copies to make
   assert.equal(a.adapter.snapshot().filter(p=>p.text.trim()===MATERIALS_HEADING).length,1,'one heading');
 });
 
+test('a form for the facilitator only is listed under The facilitator, whoever it is printed for',async()=>{
+  const a=await guide();
+  await a.adapter.insert(()=>
+    formTitleBlock({id:'f1',label:'Handout',number:'1.1',title:'Goals'})+printLine({copies:{n:1,per:'person'},orientation:'portrait'})+formText('Read this first.')
+    +formTitleBlock({id:'f2',label:'Form',number:'1.2',title:'Observer notes',facilitator:true})+printLine({copies:{n:1,per:'person'},orientation:'portrait'})+formText('Write what you saw.')
+    +formTitleBlock({id:'f3',label:'Checklist',number:'1.3',title:'Planning timeline',facilitator:true})+printLine({copies:{n:1,per:'room'}})+formText('Tick them.'),{where:'after',after:index(a,'Lesson 1.1'),spare:false});
+  a.p.useTool('forms');await a.p.refresh();
+  a.type('guide-forms-people','10');await a.n('guide-forms-people').onchange();
+  const paras=await a.adapter.paragraphs(),rows=materialsRows(paras,readGuide(paras),readSettings(await a.adapter.formSettings()));
+  const groupOf=title=>rows.find(r=>r.item.includes(title))?.group;
+  assert.equal(groupOf('Goals'),'Each person','a form for everyone, printed for each person');
+  assert.equal(groupOf('Observer notes'),'The facilitator','a form for the facilitator only, even printed for each person');
+  assert.equal(groupOf('Planning timeline'),'The facilitator','and one printed once for the facilitator');
+  assert.deepEqual(rows.map(r=>r.group),['The facilitator','The facilitator','Each person'],'the facilitator\'s come first');
+});
+
 test('the page falls out of date when a number changes, and building it again replaces it rather than adding another',async()=>{
   const a=await guide();
   await addForms(a);

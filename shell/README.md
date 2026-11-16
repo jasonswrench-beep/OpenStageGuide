@@ -52,17 +52,21 @@ The icons in `src-tauri/icons` are made from the product icon (`public/assets/ri
 
 ## State (2026-11-15)
 
-**Built and signed, not pushed or published: v0.1.0-alpha.9** (2026-11-15, release label on 7b08e59, built from bf7ad88; `OpenStage Guide_0.1.0_x64-setup.exe`, 29,190,216 bytes, SHA-256
-`7ce745cd97401d5db24e0eae0c0dea20d84949e0d3caae2bb2179c416a1c4199`, About reads build `df04cfed`), built with `python -I tools/build_installer.py --sign`. It is alpha 8 and the seven pieces built after it:
+**Built and signed, not pushed or published: v0.1.0-alpha.9** (2026-11-16, release label on 7b08e59, built from 0a98a77 on the branch `alpha9-fixes`, a clean checkout in `C:\Dev\OpenStageGuide-a9` so that no other session's
+uncommitted work got in; `OpenStage Guide_0.1.0_x64-setup.exe`, 29,172,336 bytes, SHA-256
+`d3f4f6e99668cb5abe212b634873346984d524bf5b301ef6b2f67825e9ccba03`, About reads build `e8023e92`), built with `python -I tools/build_installer.py --sign`. It is alpha 8 and the seven pieces built after it:
 **File > Save as PDF...** (a tagged PDF made by Edge on this computer), **Bullets**, **moving a whole module or lesson** (drag, Alt+Shift+Up or Down, Edit menu), **pictures inside table cells**,
-**copying a picture between guides**, and the Layout tool's **icon column** and **slide picture beside the script** (tables in the Word file only). Before building, the browser checks found a lost
-update in the Layout tool (a second choice made while the first was being kept was drawn back to what it was; the running header was lost) and two timing races in the checks themselves; the Layout tool is fixed
-(0750e48, with a test that fails without the fix) and the checks wait where they must. Checked: 1,966 automatic tests (one opt-in skipped), 5 window tests, the five browser checks on the source (184, 29, 274, 7, 6).
-Signed and timestamped (8 of our files by Jason Wrench; Node keeps its makers' signature), unpacked: 274 files of the program identical to the commit, `release.txt` says `v0.1.0-alpha.9`, the five browser
-checks pass on the unpacked files with the setup's own Node (184, 29, 274, 7, 6; the program check had one read race in a check on its first run on the unpacked files, and passed 184/0 after the check was fixed),
-and the Word files the program makes pass the Word schema validator (icon column included). Its signed window, started from the unpacked folder and driven through its debug port, answered with version 0.1.0 and
-build `df04cfed`, had the new menu items, made a tagged PDF with the setup's own Node and Edge, moved a module with Edit > Move module or lesson down and took it back with one Ctrl+Z, and moved one by dragging
-its heading (the mouse movement was sent by a test program, not a hand). Not opened in a real Word: the layout, bullet and cell-picture files. Not pushed, not published, not installed by the author.
+**copying a picture between guides**, and the Layout tool's **icon column** and **slide picture beside the script** (tables in the Word file only); and the fixes for what the Guide book found in alpha 7:
+a block, form or table added from a lesson's Time line or a fact goes after the last fact; the Review notes an Expected answer with no Ask; a planning form ticks and dims the facilitator-only box;
+the Glossary and References headings and the licence page reach the participant workbook; the Materials list files a facilitator-only form under The facilitator; Ctrl+P prints; the tools and About speak
+of the guide, not of a document or the Word add-in. Before the first build the browser checks found a lost update in the Layout tool (fixed in 0750e48, with a test that fails without the fix) and two timing
+races in the checks themselves. The first build of this alpha (sha `7ce745cd`, build `df04cfed`) was set aside and rebuilt after the Guide book fixes. Checked: 1,969 automatic tests (one opt-in skipped) and
+the five browser checks on the clean checkout (186, 29, 278, 7, 6). Signed and timestamped (8 of our files by Jason Wrench; Node keeps its makers' signature), unpacked: 274 files of the program identical to
+the commit, `release.txt` says `v0.1.0-alpha.9`, the five browser checks pass on the unpacked files with the setup's own Node (186, 29, 278, 7, 6), and the Word files the program makes pass the Word schema
+validator (icon column included). Its signed window, started from the unpacked folder and driven through its debug port, answered with version 0.1.0 and build `e8023e92`, had the new menu items, made a tagged
+PDF with the setup's own Node and Edge, moved a module with Edit > Move module or lesson down and took it back with one Ctrl+Z, moved one by dragging its heading (the mouse movement was sent by a test
+program, not a hand), put a form in from a lesson's Time line after the lesson's fact, and closed in 1.3 seconds with a change not yet saved, saving it first. Not opened in a real Word: the layout, bullet and
+cell-picture files. Not pushed, not published, not installed by the author.
 
 **Latest published: v0.1.0-alpha.8**, published as a release (not marked pre-release; tag on b89c28f; on GitHub `OpenStage-Guide-0.1.0-alpha.8-Setup.exe`, the same bytes) (2026-11-15, release label on b89c28f; `OpenStage Guide_0.1.0_x64-setup.exe`, 29,170,672 bytes, SHA-256
 `189f62accb4e9ba8a831fd1eb6b33a2daf7732931d072eefb2bf5be26431c71f`, About reads build `5105a1e7`), built with `python -I tools/build_installer.py --sign`. It is alpha 7

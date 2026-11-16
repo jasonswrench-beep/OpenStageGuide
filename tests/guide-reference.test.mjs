@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import {DOMParser,XMLSerializer} from '@xmldom/xmldom';
 import {started,submit,addModule,addLesson,addBlock,moveTo,startsWith,click} from './helpers/guide-harness.mjs';
 import {planTerm,planReference,captionLine,quoteBlock,licenceBody,findLicence,captionEdits,readGlossary,LICENCES,GLOSSARY_HEADING} from '../src/guide-reference.mjs';
-import {readSource,buildWorkbook} from '../src/guide-workbook.mjs';
+import {readSource,buildWorkbook,summarize} from '../src/guide-workbook.mjs';
 import {leakCheck} from '../src/workbook-leak.mjs';
 import {STYLE_NAMES} from '../src/guide-styles.mjs';
 
@@ -121,6 +121,12 @@ test('the reference pages reach the participant workbook, in styles the workbook
   const doc=built.files.find(f=>f.name==='word/document.xml').text,styles=built.files.find(f=>f.name==='word/styles.xml').text;
   assert.ok(doc.includes('The plan for the time.')&&doc.includes('Adams, B. (2019). Listening. House.'),'glossary and references are in');
   assert.ok(styles.includes('OSGTerm')&&styles.includes('OSGReference'),'and their styles are defined in the workbook');
+  // their headings and the licence page are there too, and none of them is listed as the author's own text that was left out
+  const inDoc=t=>new RegExp(`<w:t[^>]*>${t}</w:t>`).test(doc);
+  assert.ok(inDoc('Glossary')&&inDoc('References')&&inDoc('Licence and permissions'),'the Glossary and References headings and the licence page heading are in');
+  assert.ok(doc.includes('licensed under CC BY 4.0'),'with the licence the author chose');
+  const left=summarize(await a.adapter.paragraphs()).leftOut.map(x=>x.text);
+  assert.ok(!left.some(t=>/^(Glossary|References|Licence and permissions)$/.test(t)||/licensed under CC BY 4\.0/.test(t)),'none of them is counted as the author\'s own text: '+JSON.stringify(left));
   const leak=leakCheck({files:built.files,facilitatorTexts:built.facilitatorTexts,allowedTexts:built.allowedTexts,expectedTitle:built.workbookTitle},{DOMParserClass:DOMParser});
   assert.equal(leak.passed,true,JSON.stringify(leak.findings.filter(f=>f.level!=='pass')));
 });

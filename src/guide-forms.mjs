@@ -249,7 +249,7 @@ export function copiesToMake(paras,settings={}){
     else if(c.per==='table'){units=g.tables??null;why='how many tables';}
     else if(c.per==='team'){units=g.teams??(c.size&&g.people?Math.ceil(g.people/c.size):null);why='how many teams';}
     const total=units===null?null:c.n*units;
-    rows.push({index:f.index,id:f.id,text:f.text,module:f.module,per:c.per,n:c.n,units,total});
+    rows.push({index:f.index,id:f.id,text:f.text,module:f.module,per:c.per,n:c.n,units,total,audience:f.audience});
     if(units===null)missing.push({index:f.index,text:f.text,reason:`The guide does not say ${why}.`});
   }
   return {rows,total:rows.reduce((a,r)=>a+(r.total||0),0),missing};

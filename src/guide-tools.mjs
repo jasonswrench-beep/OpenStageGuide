@@ -70,7 +70,7 @@ export const TOOLS=Object.freeze(Object.fromEntries([
     tip:'Put a ready-made activity into your guide, or save your own to use again.',related:['addActivity','instructionalCues','importSlides','forms']}),
   tool('courseOutline',{label:'Course Outline',icon:'CourseOutline',group:'start',kind:'guide',part:'organize',sections:['guide-sec-move','guide-sec-contents'],
     title:'Course outline',note:'Choose a line to go there. Move or delete the lesson or module your cursor is in.',
-    tip:'See modules, activities and timing; jump to their text in Word.',related:['addModule','openDesigner']}),
+    tip:'See modules, activities and timing; jump to their text in the guide.',related:['addModule','openDesigner']}),
   tool('importSlides',{label:'Import Slides',icon:'ImportSlides',group:'bring',kind:'guide',part:'slides',sections:['guide-sec-import'],
     title:'Import slides',note:'Choose the presentation. For pictures, also choose a PDF of it.',
     tip:'Put a presentation\'s slides into a lesson, each with its title, notes and picture.',related:['updateFromSlides','eLearningScreens']}),

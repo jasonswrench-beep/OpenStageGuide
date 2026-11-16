@@ -224,7 +224,7 @@ export function aboutDialog(doc, info) {
     body: () => [
       ...(version ? [el(doc, "p", { class: "about-version", text: version })] : []),
       el(doc, "p", { text: "OpenStage Guide makes facilitator guides and participant workbooks: the script, the forms and handouts around it, the timing and the checks." }),
-      el(doc, "p", { class: "hint", text: "This is the first form of the program: the guide is kept in a file on this computer, and the tools beside it are the ones the Word add-in has. Nothing leaves this computer." }),
+      el(doc, "p", { class: "hint", text: "This is an early form of the program. Each guide is kept in a file on this computer, and nothing leaves this computer unless you choose Help > Check for updates, which asks GitHub whether a newer version is published and sends nothing about you or your guides." }),
       el(doc, "h3", { class: "about-head", text: "License" }),
       el(doc, "p", { text: LICENSE_LINE }),
       el(doc, "p", { text: ICONS_LINE }),

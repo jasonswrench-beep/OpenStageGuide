@@ -139,7 +139,7 @@ export function buildMenus(ctx) {
       { label: "Open guide...", icon: "folder-open", title: "Open a guide you made before", run: ctx.openGuide },
       { label: "Close guide", icon: "x", title: "Close this guide and go back to the welcome page", run: ctx.closeGuide, enabled: ctx.hasGuide },
       "-",
-      { label: "Import a Word file...", icon: "file-input", title: "Make a new guide from a Word document that this program or the Word add-in made; no guide you have is changed", run: () => void ctx.importWord?.() },
+      { label: "Import a Word file...", icon: "file-input", title: "Make a new guide from a Word document that was made from a guide; no guide you have is changed", run: () => void ctx.importWord?.() },
       { label: "Paste text...", icon: "clipboard-paste", title: "Make a new guide from pasted lines: Module and Lesson lines become modules and lessons", run: () => void ctx.pasteText?.() },
       "-",
       { label: "Save as Word file...", icon: "file-down", title: "Make a Word document from the guide, with its styles, pictures and a contents table. Word can save it as a PDF", run: () => void ctx.saveWord?.(), enabled: ctx.hasGuide },
