@@ -209,3 +209,15 @@ test('a block that cites a form in the middle of its words is not rewritten by t
   assert.notEqual(a.n('guide-block-go').textContent,'Update block','the form was not put into edit mode');
   assert.equal((await citationsIn(a)).length,1,'and the citation is still there');
 });
+
+test('Update guide numbers a form put in on the page a moment before, without waiting for the tools to read the guide again',async()=>{
+  const a=await guideWithForms();
+  await click(a,'guide-update');
+  // Insert > Form on the page: the pane has not read the guide since.
+  // After the lesson's time line (the last paragraph that names the lesson; the first is its line in the contents table).
+  const lesson=a.adapter.snapshot().findLastIndex(p=>p.text.startsWith('Lesson 2.1'));
+  await insertAfter(a,lesson+1,()=>formTitleBlock({id:'f9',label:'Template',number:'',title:'Next steps'})+formText('Plan it.'));
+  await click(a,'guide-update');
+  assert.ok(a.adapter.snapshot().some(p=>p.text.trim()==='Template 2.1: Next steps'),'the new form is numbered at once');
+  assert.match(a.n('guide-status').textContent,/^Updated /);
+});

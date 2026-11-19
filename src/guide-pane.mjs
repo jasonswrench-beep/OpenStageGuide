@@ -1647,6 +1647,9 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
   }
   // Brings the heading numbers, the lesson times and the contents table up to date, in that order.
   async function updateGuide(){
+    // From the guide as it is now: the pane reads the guide again a moment after each change, and a form or block put in on the page
+    // just before (Insert > Form) must not be missed because that moment has not come yet.
+    await load();
     const count=plan.edits.length;
     if(count)await adapter.applyEdits(plan.edits);
     const refreshed=await adapter.refreshFields();
