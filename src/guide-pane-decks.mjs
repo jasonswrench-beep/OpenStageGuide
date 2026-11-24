@@ -6,6 +6,7 @@ import {DECK_TYPES,deckFromGuide,printModel,deckLine,slidesModel,deckTypeLabel} 
 import {activityBlocks,readSessions,sessionsText,emptySessions,saveDeck,removeDeck} from './session-record.mjs';
 import {cardFit,cardSheetFiles,deckText,deckFileName,PAPERS,PER_PAGE} from './card-print.mjs';
 import {slideFit,pptxBytes,pptxName} from './pptx-export.mjs';
+import {planSlideImport,planSummary,activityRewrite} from './session-slide-import.mjs';
 import {zipWorkbook} from './guide-workbook.mjs';
 import {toBase64} from './image-prepare.mjs';
 
@@ -196,6 +197,69 @@ export function mountDecksTool({doc,$,adapter,act,status,state,Zip,record,keepOp
     status(`The slides were downloaded as "${name}": ${model.slides.length} slides with speaker notes.${over.length?` ${over.length===1?'One slide is':`${over.length} slides are`} crowded: see the list.`:''} Open it from your Downloads folder.`);
   }
 
+  // ---- bringing changes back from a presentation (session-slide-import.mjs): the author ticks what to take, and only then is anything written
+  let plan=null,ticked=new Set(),importName='';
+  const shorten=t=>{const s=oneLine(t);return s.length>70?`${s.slice(0,69).trimEnd()}…`:s;};
+  function drawImport(){
+    const box=$('guide-slide-changes'),li=t=>{const x=doc.createElement('li');x.textContent=t;return x;};
+    if(!plan){
+      box.replaceChildren();$('guide-slide-unmatched').replaceChildren();
+      $('guide-slide-apply').disabled=true;$('guide-slide-all').disabled=true;$('guide-slide-none').disabled=true;
+      return;
+    }
+    $('guide-slide-import-note').textContent=`${importName}: ${planSummary(plan)}`;
+    let n=0;
+    box.replaceChildren(...plan.matched.map(m=>{
+      const group=doc.createElement('div'),head=doc.createElement('h4'),list=doc.createElement('ul');
+      group.className='guide-upd-item';head.textContent=`${m.activity.title} (${m.activity.lesson})`;list.className='guide-issues';
+      list.replaceChildren(...m.changes.map(c=>{
+        const item=doc.createElement('li'),label=doc.createElement('label'),input=doc.createElement('input'),text=doc.createElement('span');
+        label.className='guide-check';input.type='checkbox';input.id=`guide-slide-change-${++n}`;input.checked=ticked.has(c.id);
+        input.onchange=()=>{if(input.checked)ticked.add(c.id);else ticked.delete(c.id);syncApply();};
+        text.textContent=`${c.label}: "${shorten(c.from)||'empty'}" becomes "${shorten(c.to)}"${c.conflict?'. The guide has also changed this since the slides were made.':''}`;
+        label.append(input,text);item.append(label);return item;
+      }));
+      group.append(head,list);return group;
+    }));
+    $('guide-slide-unmatched').replaceChildren(...plan.unmatched.map(u=>li(`Slide ${u.order}, "${shorten(u.title)}", is not an activity's slide that this program can match, so nothing is taken from it.`)));
+    $('guide-slide-all').disabled=!plan.changes.length;$('guide-slide-none').disabled=!plan.changes.length;
+    syncApply();
+  }
+  function syncApply(){
+    const n=ticked.size;
+    $('guide-slide-apply').disabled=!n;
+    $('guide-slide-apply').textContent=n?`Apply the ticked changes (${n})`:'Apply the ticked changes';
+  }
+  async function chooseImport(){
+    const res=await adapter.pickFiles({kind:'slides'});
+    if(!res||res.cancelled||!res.deck){status('No presentation was chosen. The guide is as it was.');return;}
+    await readRecord();
+    const made=sessions.outputs.find(o=>o.kind==='slides'&&!o.excluded);
+    plan=planSlideImport(await adapter.paragraphs(),res.deck.slides,{previous:made?made.sources:null});
+    importName=res.deck.name||'The presentation';
+    ticked=new Set(plan.changes.filter(c=>!c.conflict).map(c=>c.id));
+    drawImport();
+    status(`${importName}: ${planSummary(plan)} Nothing in the guide has changed yet.`);
+  }
+  const tickAll=on=>{if(!plan)return Promise.resolve();ticked=new Set(on?plan.changes.map(c=>c.id):[]);drawImport();return Promise.resolve();};
+  async function applyImport(){
+    if(!plan||!ticked.size)throw new Error('Tick at least one change first.');
+    const groups=new Map();
+    for(const c of plan.changes)if(ticked.has(c.id)){const key=c.id.slice(0,c.id.lastIndexOf(':'));groups.set(key,{...(groups.get(key)||{}),[c.part]:c.to});}
+    let done=0;const failed=[];
+    for(const [key,over] of groups){
+      try{
+        const list=await adapter.paragraphs(),rw=activityRewrite(list,key,over);
+        await adapter.insert(ctx=>cueBlock(rw.args,ctx),{where:'after',after:rw.span.end,select:'last',remove:{start:rw.span.start,end:rw.span.end,guard:rw.guard}});
+        done++;
+      }catch(e){failed.push(e.message);}
+    }
+    await keepOpen();await load();
+    if(!done)throw new Error(failed[0]||'Nothing was changed.');
+    plan=null;ticked=new Set();drawImport();
+    status(`${done===1?'One activity was':`${done} activities were`} updated from ${importName}.${failed.length?` ${failed.length} could not be: ${failed.join(' ')}`:''} To take it back, choose Edit, then Undo, once for each activity.`);
+  }
+
   async function draw(){
     await readRecord();
     drawActivities();
@@ -204,6 +268,7 @@ export function mountDecksTool({doc,$,adapter,act,status,state,Zip,record,keepOp
     if(current&&!deckById(current))current=null;
     drawEditor();
     drawSlides();
+    drawImport();
   }
 
   fillSelects();
@@ -223,5 +288,10 @@ export function mountDecksTool({doc,$,adapter,act,status,state,Zip,record,keepOp
   $('guide-deck-back').oninput=()=>{$('guide-deck-front').dirty=true;};
   $('guide-slide-start').onchange=()=>drawSlides();
   $('guide-slide-make').onclick=()=>act(makeSlides);
+  $('guide-slide-import').onclick=()=>act(chooseImport,{slow:true});
+  $('guide-slide-all').onclick=()=>tickAll(true);
+  $('guide-slide-none').onclick=()=>tickAll(false);
+  $('guide-slide-apply').onclick=()=>act(applyImport);
+  drawImport();
   return {draw,open:openDeck};
 }

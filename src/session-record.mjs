@@ -30,7 +30,7 @@ const PART_SETS=Object.freeze({
   runsheet:'all',
   workbook:['title','objective','output','grouping','needs','instructions','caseStudy'],
   checklist:['title','materials','grouping'],
-  slides:['title','minutes','output','grouping','instructions','steps','debrief','materials'],
+  slides:['title','minutes','output','grouping','instructions','steps','debrief','materials','preparation','challenges','access'],
   cards:['title','output','instructions','caseStudy']
 });
 const LABELS={title:'Title',minutes:'Minutes',notes:'Facilitator notes',...Object.fromEntries(ACTIVITY_PARTS.map(p=>[p.id,p.label]))};

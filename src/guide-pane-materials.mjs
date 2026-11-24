@@ -25,7 +25,8 @@ export function mountMaterialsTool({doc,$,adapter,act,status,state,Zip,group,ope
   /** Remembers that an output was made now from the guide as it is. The workbook and deck tools call this too. */
   async function record({kind,name,scope='The whole guide',lessonTitle=null}){
     await readRecord();
-    await keep(recordOutput(sessions,{kind,name,scope,lessonTitle,paras:state().paras}));
+    // What it was made from is the guide as it is now, read again, not as the pane last drew it.
+    await keep(recordOutput(sessions,{kind,name,scope,lessonTitle,paras:await adapter.paragraphs()}));
   }
   // The file is opened in a new Word window, or offered as a download when Word cannot be asked.
   async function deliver(files,name){

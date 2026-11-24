@@ -177,3 +177,103 @@ test('with no activities there are no slides to make, and the page says so',asyn
   assert.match(a.n('guide-slide-note').textContent,/no activities to make slides from yet/);
   assert.equal(a.n('guide-slide-make').disabled,true);
 });
+
+// ---- bringing changes back from a presentation
+import {DOMParser} from '@xmldom/xmldom';
+import {slidesModel} from '../src/session-decks.mjs';
+import {pptxBytes} from '../src/pptx-export.mjs';
+import {readPptx} from '../src/pptx.mjs';
+globalThis.DOMParser=DOMParser;
+const editedDeck=async(a,edit)=>{
+  const model=slidesModel(await a.adapter.paragraphs(),{start:'09:00'});
+  edit(model);
+  const read=await readPptx(await pptxBytes(model,JSZip),'Edited.pptx',JSZip);
+  return {name:'Edited.pptx',slides:read.slides};
+};
+const chooseDeck=(a,deck)=>a.adapter.setPicker(async opts=>{assert.equal(opts.kind,'slides');return {deck,files:[]};});
+const changeBoxes=a=>a.n('guide-slide-changes').children.flatMap(g=>g.children[1].children).map(li=>li.children[0].children[0]);
+const changeTexts=a=>a.n('guide-slide-changes').children.flatMap(g=>g.children[1].children).map(li=>li.children[0].children[1].textContent);
+const rehearsal=async a=>{const paras=await a.adapter.paragraphs();return readBlock(paras,paras.findIndex(p=>/Scenario rehearsal \(18 min\)/.test(p.text)));};
+
+test('a presentation edited outside is read back: its changes are listed against the activities, nothing is written until some are ticked, and only those are',async()=>{
+  const a=await withTool();
+  const deck=await editedDeck(a,m=>{const s=m.slides.find(x=>/^Scenario rehearsal/.test(x.title));s.lines[0]='Take your roles: performer, counterpart and observer.';s.lines=s.lines.map(l=>l==='Grouping: Triads'?'Grouping: Groups of three':l);});
+  chooseDeck(a,deck);
+  const before=a.rows();
+  await click(a,'guide-slide-import');
+  assert.equal(a.err(),'');
+  assert.match(a.n('guide-slide-import-note').textContent,/^Edited\.pptx: 2 changes in 1 activity\./);
+  assert.deepEqual(changeTexts(a).map(t=>t.replace(/".*$/,'').trim()),['Instructions:','Grouping:']);
+  assert.match(changeTexts(a)[1],/Grouping: "Triads" becomes "Groups of three"/);
+  assert.deepEqual(a.rows(),before,'listing the changes writes nothing');
+  assert.deepEqual(changeBoxes(a).map(b=>b.checked),[true,true]);
+  assert.match(a.n('guide-slide-apply').textContent,/Apply the ticked changes \(2\)/);
+  assert.equal(a.n('guide-slide-unmatched').children.length,2,'the opening and the close are not an activity\'s');
+  // untick the first, apply: only the grouping changes
+  changeBoxes(a)[0].checked=false;changeBoxes(a)[0].onchange();
+  assert.match(a.n('guide-slide-apply').textContent,/Apply the ticked changes \(1\)/);
+  await click(a,'guide-slide-apply');
+  assert.equal(a.err(),'');
+  const b=await rehearsal(a);
+  assert.equal(b.parts.grouping,'Groups of three');
+  assert.match(b.parts.instructions,/^Take the roles of performer, counterpart and observer\./,'the unticked change was not made');
+  assert.equal(b.parts.phase,'Practice');
+  assert.match(a.n('guide-status').textContent,/One activity was updated from Edited\.pptx\./);
+  assert.equal(a.n('guide-slide-changes').children.length,0,'the list is cleared once applied');
+});
+
+test('a change to something the guide also changed since the slides were made is marked and not ticked; ticking it is the author\'s choice',async()=>{
+  const a=await withTool();
+  await click(a,'guide-slide-make');                         // the slides are made, and the guide's words are remembered
+  assert.equal(a.err(),'');
+  // the presentation is edited outside, from the slides as they were made: it says something else about the grouping and adds a debrief prompt
+  const deck=await editedDeck(a,m=>{const s=m.slides.find(x=>/^Scenario rehearsal/.test(x.title));s.lines=s.lines.map(l=>l==='Grouping: Triads'?'Grouping: Pairs':l);s.notes.push('Debrief: A new prompt from the slides.');});
+  // the guide changes the grouping afterward
+  const paras=await a.adapter.paragraphs();
+  a.adapter.place(paras.findIndex(p=>/Scenario rehearsal \(18 min\)/.test(p.text)));await a.p.quietRefresh();
+  const {activityRewrite}=await import('../src/session-slide-import.mjs');
+  const {cueBlock}=await import('../src/guide-ooxml.mjs');
+  const rw=activityRewrite(paras,'scenario rehearsal#1',{grouping:'Fours'});
+  await a.adapter.insert(ctx=>cueBlock(rw.args,ctx),{where:'after',after:rw.span.end,select:'last',remove:{start:rw.span.start,end:rw.span.end,guard:rw.guard}});
+  chooseDeck(a,deck);
+  await click(a,'guide-slide-import');
+  assert.match(a.n('guide-slide-import-note').textContent,/1 of them also changed in the guide since the slides were made/);
+  const texts=changeTexts(a),boxes=changeBoxes(a);
+  const g=texts.findIndex(t=>/^Grouping:/.test(t)),d=texts.findIndex(t=>/^Debrief prompts:/.test(t));
+  assert.match(texts[g],/The guide has also changed this since the slides were made\./);
+  assert.equal(boxes[g].checked,false);assert.equal(boxes[d].checked,true);
+});
+
+test('no presentation chosen, or a file that cannot be read, leaves the guide and the list as they were',async()=>{
+  const a=await withTool();
+  const before=a.rows();
+  a.adapter.setPicker(async()=>({cancelled:true}));
+  await click(a,'guide-slide-import');
+  assert.match(a.n('guide-status').textContent,/No presentation was chosen\. The guide is as it was\./);
+  a.adapter.setPicker(async()=>{throw new Error('That file is not a presentation this program can read.');});
+  await click(a,'guide-slide-import');
+  assert.match(a.err(),/not a presentation this program can read/);
+  assert.deepEqual(a.rows(),before);
+  assert.equal(a.n('guide-slide-apply').disabled,true);
+  assert.equal(a.n('guide-slide-changes').children.length,0);
+});
+
+test('an activity that is gone by the time the changes are applied is reported, and the others are still applied',async()=>{
+  const a=await withTool();
+  const deck=await editedDeck(a,m=>{
+    const s=m.slides.find(x=>/^Scenario rehearsal/.test(x.title));s.lines=s.lines.map(l=>l==='Grouping: Triads'?'Grouping: Pairs':l);
+    const t=m.slides.find(x=>/^Exit check/.test(x.title));t.lines=t.lines.map(l=>/^Make:/.test(l)?'Make: A short written exit response':l);
+  });
+  chooseDeck(a,deck);
+  await click(a,'guide-slide-import');
+  assert.equal(a.n('guide-slide-changes').children.length,2);
+  // the exit check is deleted from the guide before the author applies
+  const paras=await a.adapter.paragraphs();
+  const at=paras.findIndex(p=>/Exit check \(5 min\)/.test(p.text));
+  const b=readBlock(paras,at);
+  await a.adapter.deleteRange({start:b.span.start,end:b.span.end,guard:paras[b.span.start].text});
+  await click(a,'guide-slide-apply');
+  assert.equal(a.err(),'');
+  assert.match(a.n('guide-status').textContent,/One activity was updated from Edited\.pptx\. 1 could not be: That activity is not in the guide any more/);
+  assert.equal((await rehearsal(a)).parts.grouping,'Pairs');
+});
