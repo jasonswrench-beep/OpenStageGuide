@@ -52,6 +52,16 @@ The icons in `src-tauri/icons` are made from the product icon (`public/assets/ri
 
 ## State (2026-11-15)
 
+**Built and signed, not pushed or published: v0.1.0-alpha.11** (2026-11-23; release label on `eed6d87`, which the lightweight tag `v0.1.0-alpha.11` points at and which the build came from, on the branch `alpha-11`, a clean checkout of that tag in
+`C:\Dev\OpenStageGuide-rel11` (`git describe --tags --exact-match HEAD` printed the tag and `git status --porcelain` nothing before it was built); `OpenStage Guide_0.1.0_x64-setup.exe`, 29,277,224 bytes, SHA-256
+`2d3f062a317efc643aac829145c83949fc8d674197dcbc155111e509e3c4dfd3`, About reads build `c979a240`), built with `python -I tools/build_installer.py --sign`. It is alpha 10 and the session work of the product specification of
+2026-11-22, all four milestones (`docs/SESSION-MATERIALS-2026-11-23.md`): session templates, the 46 timed activities, phases, the run sheet and the preparation checklist, five layouts of the participant workbook, card decks
+and a PowerPoint file, outputs that say when the guide has changed since, bringing changes back from a presentation, and the seam for optional AI help (no model is built in). Checked: 2,226 automatic tests on the clean checkout
+(2,221 pass; five skipped, all opt-in validators) and the browser checks on the working tree of the same commit (192, 29, 289, 7, 6, 42 and the new sessions check's 30). Signed and timestamped (8 of our files by Jason Wrench; Node keeps
+its makers' signature), re-checked with `sign_windows.py --check`; unpacked with 7-Zip: the 296 program files of `src`, `program` and `public` are identical to the commit (the four the add-in alone uses, `picker.html` and the PDF
+library, are left out on purpose by `prepare.mjs`) and `release.txt` says `v0.1.0-alpha.11`. **Not done for this build:** the browser checks were not run again on the unpacked files with the setup's own Node, and the signed
+window was not started from the unpacked setup. Nothing was pushed and no release was published.
+
 **Published: v0.1.0-alpha.10** (2026-11-16, a plain release, the latest; pushed to `main` as 684f99a and tagged at the built commit `ab7fd6b`; downloaded again without signing in, same SHA-256 and a valid, timestamped signature, and the update check, run on the real list of releases, tells alpha 8 and alpha 9 that alpha 10 is out and alpha 10 that it is the newest) (2026-11-16, release label on `ee57aa8`, built from `ab7fd6b` on the branch `release-alpha10`, a clean checkout in `C:\Dev\OpenStageGuide-rel`
 made from `main` with the alpha 9 fixes merged in (`3102bda`); `OpenStage Guide_0.1.0_x64-setup.exe`, 29,210,984 bytes, SHA-256 `6c1b60853199fc9ab8aafe7f194847b24904622705442deb350cadd5f408d86f`, About reads
 build `4c380b62`), built with `python -I tools/build_installer.py --sign`. It is alpha 9 (below, never published) and what was built on `main` after it: the **design desk** (the Design menu: needs and objectives with Bloom's
