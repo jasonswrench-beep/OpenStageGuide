@@ -58,6 +58,29 @@ try{
   const addModule=page.getByRole('menuitem',{name:/Add module/});
   ok((await addModule.getAttribute('aria-disabled'))==='true','Add module is dimmed with no guide open');
   await page.keyboard.press('Escape');
+  // No menu lets a label run into its shortcut or out of its row. (The Edit menu's "Move module or lesson down" once did: the menu stayed at its
+  // minimum width, worked out from the slot it hangs from, which is as narrow as the word "Edit".)
+  {
+    const faults=[];
+    const slots=await page.locator('[role=menubar] > .menubar-slot').count();
+    for(let i=0;i<slots;i++){
+      const slot=page.locator('[role=menubar] > .menubar-slot').nth(i);
+      await slot.locator('button.menubar-item').click();
+      faults.push(...await slot.evaluate(s=>{
+        const out=[];
+        for(const item of s.querySelectorAll('.menu .menu-item')){
+          const label=item.querySelector('.menu-label'),keys=item.querySelector('.menu-keys');
+          if(!label||!keys)continue;
+          const range=document.createRange();range.selectNodeContents(label);
+          const t=range.getBoundingClientRect(),k=keys.getBoundingClientRect(),row=item.getBoundingClientRect();
+          if((keys.textContent.trim()&&t.right>k.left-4)||t.right>row.right-6)out.push(label.textContent);
+        }
+        return out;
+      }));
+      await page.keyboard.press('Escape');
+    }
+    ok(slots===15&&faults.length===0,'no menu has a label running into its shortcut or out of its row'+(faults.length?': '+faults.join(', '):''));
+  }
 
   // ---- a new guide
   await page.click('#welcome-new');
