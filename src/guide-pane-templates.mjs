@@ -5,7 +5,7 @@ import {FAMILIES} from './session-catalog.mjs';
 import {TEMPLATES_KEY} from './session-text.mjs';
 import {lessonPlacement,modulePlacement,readGuide,lessonMinutes} from './guide-model.mjs';
 import {makeContext} from './guide-ooxml.mjs';
-import {allTemplates,templateById,matchTemplates,templatePreview,sessionXml,moduleXml,templateFromLesson,cleanMine,addMine,removeMine,serializeMine,TIME_BANDS,PACK_LABELS} from './session-templates.mjs';
+import {allTemplates,templateById,matchTemplates,templatePreview,sessionXml,moduleXml,templateFromLesson,cleanMine,addMine,removeMine,serializeMine,groupText,TIME_BANDS,PACK_LABELS} from './session-templates.mjs';
 
 const MAX_SAVED_CHARS=900000;
 const plural=(n,word)=>`${n} ${word}${n===1?'':'s'}`;
@@ -43,7 +43,7 @@ export function mountTemplatesTool({doc,$,adapter,act,status,state,keepOpen,load
     title.textContent=`${t.title} (${t.minutes} min)`;
     kind.className='guide-lib-kind';kind.textContent=t.mine?'Yours':t.family;title.append(kind);
     summary.className='hint';
-    summary.textContent=[[t.audience,t.group?`${t.group}`:''].filter(Boolean).join(', '),t.purpose,t.output?`Makes: ${t.output}`:''].filter(Boolean).map(s=>s.replace(/\.$/,'')).join('. ')+'.';
+    summary.textContent=[[t.audience,groupText(t.group)].filter(Boolean).join(', '),t.purpose,t.output?`Makes: ${t.output}`:''].filter(Boolean).map(s=>s.replace(/\.$/,'')).join('. ')+'.';
     buttons.className='guide-actions';
     const look=doc.createElement('button');
     look.type='button';look.className='primary';look.textContent='Preview';look.setAttribute('aria-label',`Preview ${t.title}`);look.setAttribute('aria-describedby',title.id);
@@ -167,6 +167,7 @@ export function mountTemplatesTool({doc,$,adapter,act,status,state,keepOpen,load
 
   fillFilters();
   loadMine();
+  $('guide-tpl-preview').hidden=true;
   $('guide-tpl-find').oninput=draw;
   for(const id of ['guide-tpl-family','guide-tpl-band','guide-tpl-pack'])$(id).onchange=draw;
   for(const id of ['guide-tpl-where-here','guide-tpl-where-new'])$(id).onchange=()=>{$('guide-tpl-where-note').textContent=placementNote();};
