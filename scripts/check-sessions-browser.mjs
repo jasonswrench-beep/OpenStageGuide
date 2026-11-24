@@ -1,5 +1,5 @@
 // Real-browser check of the session templates, materials, decks and slides (the tools of milestones 1 to 4 of the product spec of 2026-11-22): the Start and Make menus, the panels in the
-// tools frame, what is written into the guide, what is kept in the guide's file, and the Word and PowerPoint files that are made. It needs Playwright, which this repository does not
+// tools frame, what is written into the guide, what is kept in the guide's file, and the Word and presentation files that are made. It needs Playwright, which this repository does not
 // depend on: set PLAYWRIGHT_DIR to the playwright package folder, then run  node scripts/check-sessions-browser.mjs  from the repository root. It starts its own server on port 3859
 // with a scratch guides folder, and stops it again. Screenshots go to a temporary folder named in the last line.
 import {createRequire} from 'node:module';
@@ -127,9 +127,9 @@ try{
   const sheet=await download(()=>fr.getByRole('button',{name:'Make the print sheet as a Word file'}).click());
   const sheetXml=await (await JSZip.loadAsync(fs.readFileSync(sheet.path))).file('word/document.xml').async('string');
   ok(/w:pgSz w:w="11906"/.test(sheetXml)&&/Extra card/.test(sheetXml)&&/Crop mark/.test(sheetXml),'the print sheet is on A4, with the card and the crop marks: '+sheet.name);
-  const slides=await download(()=>fr.getByRole('button',{name:'Make the slides as a PowerPoint file'}).click());
+  const slides=await download(()=>fr.getByRole('button',{name:'Make the slides as a presentation file'}).click());
   const deckZip=await JSZip.loadAsync(fs.readFileSync(slides.path));
-  ok(/\.pptx$/.test(slides.name)&&!!deckZip.file('ppt/slides/slide1.xml')&&!!deckZip.file('ppt/notesSlides/notesSlide1.xml'),'the slides are a PowerPoint file with notes: '+slides.name);
+  ok(/\.pptx$/.test(slides.name)&&!!deckZip.file('ppt/slides/slide1.xml')&&!!deckZip.file('ppt/notesSlides/notesSlide1.xml'),'the slides are a presentation file with notes: '+slides.name);
   await shot('4-decks.png');
 
   // ---- what is kept in the guide's file

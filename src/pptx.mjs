@@ -7,12 +7,12 @@ export const MAX_PPTX_BYTES=16*1024*1024;
 export const MAX_DECK_BYTES=250*1024*1024;
 const LIMIT=64*1024*1024,PART=2*1024*1024;
 const READ_PARTS=/^(\[Content_Types\]\.xml|_rels\/|ppt\/presentation\.xml|ppt\/_rels\/|ppt\/slides\/|ppt\/notesSlides\/)/;
-function reject(message){throw new Error('PowerPoint preview: '+message);}
+function reject(message){throw new Error('Presentation preview: '+message);}
 function safePath(s){if(!s||s.startsWith('/')||/[\\:%?#\x00-\x1f]/.test(s)||s.split('/').some(x=>x==='..'||x==='.'||x===''))reject('unsafe package path.');return s;}
 // lenient: a deck with charts, equations or embedded workbooks is still read (those parts are never opened or followed); macros and ActiveX still refuse.
 function envelope(data,lenient=false){
   const v=new DataView(data.buffer,data.byteOffset,data.byteLength),len=data.length;
-  if(lenient&&len>MAX_DECK_BYTES)reject(`that presentation is ${(len/1048576).toFixed(0)} MB and the slide chooser reads up to ${MAX_DECK_BYTES/1048576} MB. In PowerPoint, choose File > Info > Compress Media (or save a copy without the videos), then try again.`);
+  if(lenient&&len>MAX_DECK_BYTES)reject(`that presentation is ${(len/1048576).toFixed(0)} MB and the slide chooser reads up to ${MAX_DECK_BYTES/1048576} MB. In your presentation program, compress the media (or save a copy without the videos), then try again.`);
   if(len<22||(!lenient&&len>MAX_PPTX_BYTES))reject('choose a standard PPTX file up to 16 MB. Encrypted presentations are unsupported.');
   let end=-1;for(let i=len-22;i>=Math.max(0,len-65557);i--)if(v.getUint32(i,true)===0x06054b50&&i+22+v.getUint16(i+20,true)===len){end=i;break;}
   if(end<0)reject('not a supported ZIP presentation; encryption and legacy PPT are unsupported.');
@@ -44,13 +44,13 @@ function readXmlPart(file,expected){return new Promise((resolve,rejectPromise)=>
   const stream=file.internalStream('uint8array'),chunks=[];let length=0,crc=0xffffffff,stopped=false;
   stream.on('data',chunk=>{
     if(stopped)return;length+=chunk.length;
-    if(length>PART||length>expected.size){stopped=true;stream.pause();rejectPromise(new Error('PowerPoint preview: expanded XML exceeds its size limit.'));return;}
+    if(length>PART||length>expected.size){stopped=true;stream.pause();rejectPromise(new Error('Presentation preview: expanded XML exceeds its size limit.'));return;}
     for(const b of chunk)crc=crcTable[(crc^b)&255]^(crc>>>8);chunks.push(chunk);
   }).on('error',e=>{if(!stopped){stopped=true;rejectPromise(e);}}).on('end',()=>{
     if(stopped)return;
-    if(length!==expected.size||((crc^0xffffffff)>>>0)!==expected.crc){rejectPromise(new Error('PowerPoint preview: damaged XML part.'));return;}
+    if(length!==expected.size||((crc^0xffffffff)>>>0)!==expected.crc){rejectPromise(new Error('Presentation preview: damaged XML part.'));return;}
     const result=new Uint8Array(length);let offset=0;for(const c of chunks){result.set(c,offset);offset+=c.length;}
-    try{resolve(new TextDecoder('utf-8',{fatal:true}).decode(result));}catch{rejectPromise(new Error('PowerPoint preview: XML must use UTF-8 encoding.'));}
+    try{resolve(new TextDecoder('utf-8',{fatal:true}).decode(result));}catch{rejectPromise(new Error('Presentation preview: XML must use UTF-8 encoding.'));}
   }).resume();
 });}
 function parse(text,namespace,root){

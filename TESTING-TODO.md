@@ -6,8 +6,8 @@ in the commit notes; what is below needs a person, a screen reader, another prog
 
 ## Alpha 11: session templates, materials and decks (2026-11-23)
 
-What was built is in `docs/SESSION-MATERIALS-2026-11-23.md`. What was checked by the program itself (the automatic tests, the real-browser checks, the Word and PowerPoint schema validators, the PowerPoint file opened in this
-computer's PowerPoint) is there too; what is below needs a person.
+What was built is in `docs/SESSION-MATERIALS-2026-11-23.md`. What was checked by the program itself (the automatic tests, the real-browser checks, the Word and presentation schema validators, the presentation file opened in this
+computer's presentation program) is there too; what is below needs a person.
 
 - [ ] **A screen reader pass (NVDA) of the new tools.** Start > **Session templates** (the list, Preview, the preview's table, Apply), Activities > **Activity library** (the phase and way-of-working filters and the line that says
   where an activity will go), Make > **Session materials** (what was made, and its status in words) and Make > **Decks and slides** (the list of cards, the preview of both sides, the list of changes brought back from a
@@ -16,14 +16,14 @@ computer's PowerPoint) is there too; what is below needs a person.
   the crop marks in the margins (they are line shapes fixed to the page), cards of one size on every page.
 - [ ] **Print a card deck two-sided** on your printer and check the backs are behind the fronts, on the long edge and on the short edge. The page order for a printer that prints both sides is the default; "all the fronts, then
   all the backs" is for printing in two passes.
-- [ ] **Open the slides in PowerPoint** and look through them: the titles, the 16 by 9 shape, the speaker notes, that no text is cut off.
+- [ ] **Open the slides in a presentation program** and look through them: the titles, the 16 by 9 shape, the speaker notes, that no text is cut off.
 - [ ] **Read what was written for the catalog** (`src/session-catalog.mjs`): the 46 participant tasks, debrief prompts, likely challenges and access options. The spreadsheet only had facilitator steps, so these were written for
   this tool. Say what to change.
 - [ ] **Origins and licences.** The catalog carries method names only (Think-pair-share, 1-2-4-All, Gallery walk, Jigsaw, 5 Whys, Pre-mortem and the rest). Any credit to a source, and that source's licence, has to be checked
   against the primary source before the program names one; the spreadsheet's "origin" credits were left out because they came from another product's catalog. A32 carried the note "VERIFY 3, stakeholder mapping": it is a
   plain method name now (Stakeholder mapping), please look at it.
 - [ ] **Template lengths.** Case Discussion (58 minutes), Peer Feedback Lab (57), Difficult Conversation Rehearsal (77) and Cross Team Handoff (73) keep their totals. Add a buffer row if you advertise them as a round length.
-- [ ] **Bring changes back from a presentation.** Make the slides, change one in PowerPoint (a task line, the grouping, a step in the notes), then Decks and slides > Choose the presentation. The list should name only what you
+- [ ] **Bring changes back from a presentation.** Make the slides, change one in a presentation program (a task line, the grouping, a step in the notes), then Decks and slides > Choose the presentation. The list should name only what you
   changed, applying should change only the ticked activities, and Edit > Undo should take each back.
 - [ ] **The schema validators on this computer** need Python's `defusedxml`, which is not installed, so the tests that run them skip unless `OPENSTAGE_DOCX_VALIDATOR` or `OPENSTAGE_PPTX_VALIDATOR` (and
   `OPENSTAGE_DOCX_VALIDATOR_LIBS` / `OPENSTAGE_PPTX_VALIDATOR_LIBS`, a folder that holds a stand-in) are set. Run by hand with a stand-in they all passed.

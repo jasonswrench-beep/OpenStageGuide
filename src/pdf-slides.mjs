@@ -8,7 +8,7 @@ export const JPEG_QUALITY=0.88;
 
 export const isPdfFile=f=>/\.pdf$/i.test(String(f?.name||''))||String(f?.type||'')==='application/pdf';
 
-// Which slide each page of the PDF shows, by the slide's number in the presentation. PowerPoint leaves hidden slides out of a PDF unless
+// Which slide each page of the PDF shows, by the slide's number in the presentation. A presentation program leaves hidden slides out of a PDF unless
 // told not to, so a PDF with one page for each slide that is not hidden is as good as one with a page for every slide.
 export function pageSlideOrders(pageCount,slides){
   const all=slides.map(s=>s.order),shown=slides.filter(s=>!s.hidden).map(s=>s.order);

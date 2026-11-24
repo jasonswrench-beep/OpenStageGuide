@@ -1,13 +1,13 @@
-// The slide deck writer: one plain data model in, one editable 16:9 PowerPoint file out. Every slide holds real text in real
+// The slide deck writer: one plain data model in, one editable 16:9 presentation file out. Every slide holds real text in real
 // placeholders (a title, and a body or subtitle), and the speaker notes are real notes, so the file restyles, reads aloud and
-// reopens the way any PowerPoint file does. There are no pictures, so no text sits over a picture.
+// reopens the way any presentation file does. There are no pictures, so no text sits over a picture.
 //
 // The model is checked first (checkDeck) and a bad one is refused in plain words. slideFit says which slides hold more than a room can
 // read, by a rough rule (see SLIDE_LIMITS). The look is one master: navy titles on white, a thin teal bar across the top, Arial through
 // the theme, 36 pt titles (44 pt on the opening slide) and 24 pt bullets. Every colour passes WCAG AA against white.
 //
 // Layouts: 'Title Slide' for an 'opening' slide (title and subtitle placeholders, plain paragraphs), 'Title and Content' for the rest
-// (title and body placeholders, bulleted). A slide with no lines has no body shape, so PowerPoint never shows "Click to add text".
+// (title and body placeholders, bulleted). A slide with no lines has no body shape, so a presentation program never shows "Click to add text".
 // The deck subtitle is the document subject, and it fills the subtitle of an opening slide that has no lines of its own.
 //
 // Pure: no file or network access. The only clock read is the time stamp; pass { now } to fix it. JSZip is passed in, as the other

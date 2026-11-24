@@ -1,5 +1,5 @@
 // The Decks and slides tool on its own panel (src/guide-pane-decks.mjs): start a deck from an activity, edit and preview its cards, print it as a Word sheet, name it in the activity's
-// materials, and make the slides as a PowerPoint file. Drives the real pane module and the real taskpane.html ids in memory. It is not native Word.
+// materials, and make the slides as a presentation file. Drives the real pane module and the real taskpane.html ids in memory. It is not native Word.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import JSZip from 'jszip';
@@ -147,7 +147,7 @@ test('a deck can be deleted, and the sheet already made is left alone',async()=>
   assert.equal((await recorded(a)).outputs.length,1);
 });
 
-test('the slides: the order is listed, nothing is too crowded, and the PowerPoint file is offered with notes, and listed as an output',async()=>{
+test('the slides: the order is listed, nothing is too crowded, and the presentation file is offered with notes, and listed as an output',async()=>{
   const a=await withTool();
   assert.match(a.n('guide-slide-note').textContent,/^\d+ slides, in this order\./);
   const titles=a.n('guide-slide-list').children.map(li=>li.textContent);
@@ -158,7 +158,7 @@ test('the slides: the order is listed, nothing is too crowded, and the PowerPoin
   await click(a,'guide-slide-make');
   assert.equal(a.err(),'');
   const file=a.adapter.downloads?.()[0]||null;
-  assert.ok(file,'a PowerPoint file was offered');
+  assert.ok(file,'a presentation file was offered');
   assert.equal(file.fileName,'Skill day.pptx');
   assert.equal(file.type,'application/vnd.openxmlformats-officedocument.presentationml.presentation');
   const zip=await JSZip.loadAsync(Buffer.from(file.base64,'base64'));

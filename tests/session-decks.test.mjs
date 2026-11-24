@@ -1,4 +1,4 @@
-// Card decks and slides made from the guide's activities (src/session-decks.mjs), through the writers: the print sheet (src/card-print.mjs) and the PowerPoint file (src/pptx-export.mjs).
+// Card decks and slides made from the guide's activities (src/session-decks.mjs), through the writers: the print sheet (src/card-print.mjs) and the presentation file (src/pptx-export.mjs).
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import JSZip from 'jszip';
@@ -107,7 +107,7 @@ test('the slides: an opening, a slide for each activity with its task and time, 
   assert.doesNotThrow(()=>checkSlides(m));
 });
 
-test('a break slide says when to come back and what comes next; the slides are one deck that PowerPoint opens and the program reads back with the same names',async()=>{
+test('a break slide says when to come back and what comes next; the slides are one deck that a presentation program opens and the program reads back with the same names',async()=>{
   const a=await started('Long day');
   await addModule(a,'M');await addLesson(a,'L','5');
   a.p.useTool('sessionTemplates');await a.p.openTool('sessionTemplates');

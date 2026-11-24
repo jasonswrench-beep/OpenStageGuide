@@ -13,7 +13,7 @@ test('a PDF is known by its name or its type',()=>{
 
 test('each page is a slide: all of them, or all that are not hidden, and anything else is refused in plain words',()=>{
   assert.deepEqual(pageSlideOrders(3,slides(3)),[1,2,3]);
-  assert.deepEqual(pageSlideOrders(3,slides(4,[2])),[1,3,4],'PowerPoint leaves hidden slides out of a PDF');
+  assert.deepEqual(pageSlideOrders(3,slides(4,[2])),[1,3,4],'a presentation program leaves hidden slides out of a PDF');
   assert.deepEqual(pageSlideOrders(4,slides(4,[2])),[1,2,3,4],'or the author kept them in');
   assert.throws(()=>pageSlideOrders(5,slides(4,[2])),/The PDF has 5 pages, but the presentation has 4 slides \(3 not hidden\)\. Save the PDF from this same presentation/);
   assert.throws(()=>pageSlideOrders(1,slides(2)),/The PDF has 1 page, but the presentation has 2 slides\./);

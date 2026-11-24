@@ -1,5 +1,5 @@
 // The Decks and slides tool of the guide pane (milestone 3 of the product spec of 2026-11-22): card decks that are edited, previewed on both sides and printed as an editable Word sheet,
-// and the slides of the session as a PowerPoint file. The pure work is in session-decks.mjs, card-print.mjs and pptx-export.mjs; the pane's own helpers are handed in.
+// and the slides of the session as a presentation file. The pure work is in session-decks.mjs, card-print.mjs and pptx-export.mjs; the pane's own helpers are handed in.
 import {readBlock,blockSpan} from './guide-model.mjs';
 import {cueBlock} from './guide-ooxml.mjs';
 import {DECK_TYPES,deckFromGuide,printModel,deckLine,slidesModel,deckTypeLabel} from './session-decks.mjs';
@@ -189,7 +189,7 @@ export function mountDecksTool({doc,$,adapter,act,status,state,Zip,record,keepOp
   }
   async function makeSlides(){
     const model=slides(),Z=Zip||globalThis.JSZip;
-    if(!Z)throw new Error('The pane could not load what it needs to make a PowerPoint file. Close it, open it again, then try again.');
+    if(!Z)throw new Error('The pane could not load what it needs to make a presentation file. Close it, open it again, then try again.');
     const bytes=await pptxBytes(model,Z),name=pptxName(model.title);
     adapter.offerDownload(toBase64(bytes),name,PPTX_TYPE);
     await record({kind:'slides',name:`Slides: ${model.title}`});

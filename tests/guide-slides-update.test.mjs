@@ -1,4 +1,4 @@
-// Update from Slides, in the pane: a presentation imported, then changed in PowerPoint, then compared with the guide and brought in.
+// Update from Slides, in the pane: a presentation imported, then changed in a presentation program, then compared with the guide and brought in.
 // The real pane module and the real page ids, an in-memory document, and a stand-in for the file window. Not native Word.
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -55,7 +55,7 @@ test('an unchanged presentation lists nothing and changes nothing',async()=>{
 
 test('a renamed slide, a changed picture and a new slide: the list, then the update in place',async()=>{
   const a=await imported();
-  // in PowerPoint: slide 2 renamed and given a second click, a new slide put between 2 and 3, and the Wrap up slide's picture redrawn
+  // in a presentation program: slide 2 renamed and given a second click, a new slide put between 2 and 3, and the Wrap up slide's picture redrawn
   const v2={name:'AI deck.pptx',slides:[slide(1,256,'Intro',{notes:'Welcome.'}),slide(2,257,'Topic, revised',{notes:'Explain it.',clicks:2}),slide(3,300,'A new idea',{notes:'Brand new.'}),slide(4,258,'Wrap up',{notes:'Thank them.'})]};
   const files=[picture(1),picture(2),picture(3,33),picture(4,99)].map((p,i)=>({...p,name:`Slide${i+1}.PNG`}));
   await update(a,v2,files);

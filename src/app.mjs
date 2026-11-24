@@ -891,7 +891,7 @@ $('ppt-compare').onclick=()=>run(async()=>{
   if(!$('ppt-update-lineage').checked)throw new Error('Confirm that you intend to compare a revised version of this source. Numeric IDs alone cannot establish that relationship.');
   const file=$('ppt-update-file').files?.[0],selection=pptUpdateSelection,source=pptSource,review=pptReview,editor={id:pptCurrent,...pptFields()},editorText=JSON.stringify(editor);
   if(!file||file.size>MAX_PPTX_BYTES)throw new Error('Choose a revised standard PPTX up to 16 MB.');
-  if(!globalThis.JSZip)throw new Error('The PowerPoint preview reader has not loaded.');
+  if(!globalThis.JSZip)throw new Error('The presentation preview reader has not loaded.');
   const incoming=await readPptx(await file.arrayBuffer(),file.name,globalThis.JSZip),incomingDraft=pptxDraft(incoming);
   serializeReview(incoming,incomingDraft,incomingDraft.slides[0]);
   if(selection!==pptUpdateSelection||source!==pptSource||review!==pptReview||editorText!==JSON.stringify({id:pptCurrent,...pptFields()})||!$('ppt-update-lineage').checked)throw new Error('The revised file or author review changed. Compare again from the current review.');
@@ -902,7 +902,7 @@ $('ppt-restore').onclick=()=>run(async()=>{
   if(pptReview)throw new Error('Discard the current slide review before restoring another. Download its private review record first to keep your work.');
   const file=$('ppt-review-file').files?.[0],deck=$('ppt-file').files?.[0],selection=pptRestoreSelection,deckSelection=pptSelection;
   if(!file||file.size>MAX_REVIEW_BYTES||!deck||deck.size>MAX_PPTX_BYTES)throw new Error('Choose a private review record up to 32 MB and its matching original PPTX up to 16 MB.');
-  if(!globalThis.JSZip)throw new Error('The PowerPoint preview reader has not loaded.');
+  if(!globalThis.JSZip)throw new Error('The presentation preview reader has not loaded.');
   const text=await file.text(),data=await deck.arrayBuffer();
   const restored=await restoreReview(text,data,deck.name,globalThis.JSZip);
   if(selection!==pptRestoreSelection||deckSelection!==pptSelection)throw new Error('A selected restore file changed. Choose and check both files again.');
@@ -919,9 +919,9 @@ $('ppt-read').onclick=()=>run(async()=>{
   if(pptReview)throw new Error('Discard the current slide review before reading another deck. Download its private review record first to keep your work.');
   const file=$('ppt-file').files?.[0],selection=pptSelection;
   if(!file||file.size>MAX_PPTX_BYTES)throw new Error('Choose a standard PPTX file up to 16 MB.');
-  if(!globalThis.JSZip)throw new Error('The PowerPoint preview reader has not loaded.');
+  if(!globalThis.JSZip)throw new Error('The presentation preview reader has not loaded.');
   const source=await readPptx(await file.arrayBuffer(),file.name,globalThis.JSZip);
-  if(selection!==pptSelection)throw new Error('The selected PowerPoint file changed. Read the new file.');
+  if(selection!==pptSelection)throw new Error('The selected presentation file changed. Read the new file.');
   const draft=pptxDraft(source);serializeReview(source,draft,draft.slides[0]);
   pptSource=source;pptReview=draft;pptCurrent=source.slides[0].id;pptAlias='';loadSlideReview();
   clearComparison();

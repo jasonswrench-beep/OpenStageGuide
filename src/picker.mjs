@@ -63,7 +63,7 @@ async function go(){
       // (the author's Word, 2026-11-07: "we're still not seeing the slides"); pressing the button again goes on without them.
       if(!chosenPictures.length&&!warnedNoPictures){
         warnedNoPictures=true;
-        say('You have not chosen a PDF or slide pictures, so the slides will go in as text only, with no pictures. To see the slides, choose a PDF of the presentation above (in PowerPoint: File, Save a Copy, PDF). Or choose "Use without pictures" to go on as it is.');
+        say('You have not chosen a PDF or slide pictures, so the slides will go in as text only, with no pictures. To see the slides, choose a PDF of the presentation above (in your presentation program: save a copy as a PDF). Or choose "Use without pictures" to go on as it is.');
         $('pick-go').textContent='Use without pictures';
         $('pick-go').disabled=false;
         return;

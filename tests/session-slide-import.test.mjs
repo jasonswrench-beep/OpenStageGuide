@@ -25,7 +25,7 @@ async function guide(){
   assert.equal(a.err(),'');
   return a;
 }
-// The slides of the guide, written to a file, optionally edited on the way (as the author would edit them in PowerPoint), and read back as the program reads a deck.
+// The slides of the guide, written to a file, optionally edited on the way (as the author would edit them in a presentation program), and read back as the program reads a deck.
 async function deckOf(paras,edit=m=>m){
   const model=edit(structuredClone(slidesModel(paras,{start:'09:00'})));
   const read=await readPptx(await pptxBytes(model,JSZip),'Skill day.pptx',JSZip);

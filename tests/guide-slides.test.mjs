@@ -166,9 +166,9 @@ test('the pane refuses pictures it cannot match, a non-presentation, and too man
   await addModule(a,'Module one');await addLesson(a,'Lesson one');
   await click(a,'guide-slides-go');
   assert.match(a.err(),/Choose a presentation first/);
-  a.adapter.setPicker(async()=>{throw new Error('PowerPoint preview: choose a standard .pptx presentation.');});
+  a.adapter.setPicker(async()=>{throw new Error('Presentation preview: choose a standard .pptx presentation.');});
   await click(a,'guide-slides-choose');
-  assert.match(a.err(),/PowerPoint preview/);
+  assert.match(a.err(),/Presentation preview/);
   a.adapter.setPicker(async()=>({cancelled:true}));
   await click(a,'guide-slides-choose');
   assert.match(a.n('guide-status').textContent,/No presentation was chosen/);
@@ -222,7 +222,7 @@ test('the slide chooser reads a big presentation (the pictures and video are nev
   await assert.rejects(readPptx(fat,'fat.pptx',JSZip,{details:true}),/XML part exceeds 2 MB/);
   // Past the chooser's own limit the message says what to do, in megabytes.
   const huge=new Uint8Array(251*1024*1024);
-  await assert.rejects(readPptx(huge,'huge.pptx',JSZip,{details:true}),/251 MB and the slide chooser reads up to 250 MB.*Compress Media/);
+  await assert.rejects(readPptx(huge,'huge.pptx',JSZip,{details:true}),/251 MB and the slide chooser reads up to 250 MB.*compress the media/);
 });
 
 test('a deck with no title placeholders is titled by the largest, highest line of text, and the reader says it guessed',async()=>{

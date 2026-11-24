@@ -391,12 +391,12 @@ test('private review restores a matching new session without Word calls and reta
   assert.deepEqual({saves:h.saves,syncs:h.syncs,runs:h.runs,refreshes:h.refreshes},counts);assert.equal(h.paragraphs.length,0);assert.equal(h.cueWrites,0);
 });
 
-test('PowerPoint review keeps edits separate, retains drafts after failed reads and never calls Word',async()=>{
+test('Presentation review keeps edits separate, retains drafts after failed reads and never calls Word',async()=>{
   const p=fixture(),h=makeHost(p),ui=dom();globalThis.Office=h.Office;globalThis.Word=h.Word;globalThis.document=ui.document;globalThis.location={search:''};globalThis.JSZip=JSZip;installParser();
   const blobs=[],oldURL=URL.createObjectURL,oldTimer=setTimeout;URL.createObjectURL=b=>{blobs.push(b);return 'blob:ppt-review';};globalThis.setTimeout=()=>0;
   try{
     await import('../src/app.mjs?ppt-review-ui');await settle();const n=id=>ui.nodes.get(id),bytes=await pptxFixture(),before=bytes.slice(),counts={saves:h.saves,syncs:h.syncs,runs:h.runs,refreshes:h.refreshes};
-    let release;n('ppt-file').files=[{name:'Other.pptx',size:bytes.length,arrayBuffer:()=>new Promise(r=>{release=r;})}];n('ppt-file').onchange();const pending=n('ppt-read').onclick();await settle();n('ppt-file').onchange();release(bytes.buffer);await pending;assert.match(n('error').textContent,/selected PowerPoint file changed/);assert.equal(n('ppt-title').value,'');
+    let release;n('ppt-file').files=[{name:'Other.pptx',size:bytes.length,arrayBuffer:()=>new Promise(r=>{release=r;})}];n('ppt-file').onchange();const pending=n('ppt-read').onclick();await settle();n('ppt-file').onchange();release(bytes.buffer);await pending;assert.match(n('error').textContent,/selected presentation file changed/);assert.equal(n('ppt-title').value,'');
     n('ppt-file').files=[{name:'Source.pptx',size:bytes.length,arrayBuffer:async()=>bytes.buffer}];n('ppt-file').onchange();await n('ppt-read').onclick();assert.match(n('ppt-summary').textContent,/2 slides/);assert.equal(n('ppt-title').value,'Title 2');assert.match(n('ppt-baseline').textContent,/Title 2/);assert.match(n('ppt-warnings').textContent,/External/);
     n('ppt-title').value='Edited review title';n('ppt-notes').value='PRIVATE REVIEW NOTES';n('ppt-module').value=p.modules[0].id;n('ppt-lesson').value='Lesson One';
     n('ppt-slide').value='slide:256';await n('ppt-slide').onchange();assert.match(n('error').textContent,/Save this slide review/);assert.equal(n('ppt-title').value,'Edited review title');assert.equal(n('ppt-slide').value,'slide:258');

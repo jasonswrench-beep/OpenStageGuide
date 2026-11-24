@@ -4,7 +4,7 @@ export const MAX_REVIEW_BYTES=32*1024*1024;
 // worst-case escaped unit, plus fixed slide identity/keys/punctuation.
 export const MAX_EDITOR_BYTES=5*50000*6+256;
 const fields=['id','title','text','notes','moduleId','lesson'];
-const fail=()=>{throw new Error('Unsupported or mismatched PowerPoint review. Keep the original files; choose the matching PPTX and a supported private review record.');};
+const fail=()=>{throw new Error('Unsupported or mismatched presentation review. Keep the original files; choose the matching PPTX and a supported private review record.');};
 function keys(value,names){if(!value||typeof value!=='object'||Array.isArray(value)||Object.keys(value).length!==names.length||names.some(k=>!Object.hasOwn(value,k)))fail();}
 function string(value,max=50000){if(typeof value!=='string'||value.length>max)fail();}
 function list(value,max,check){if(!Array.isArray(value)||value.length>max)fail();value.forEach(check);}

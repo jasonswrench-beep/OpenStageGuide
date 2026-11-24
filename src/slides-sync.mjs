@@ -4,7 +4,7 @@
 // What the guide remembers. A slide's number, title, animation clicks, speaker notes and (if it had one) picture are in the document as
 // a block (guide-slides.mjs). What a block cannot say is which slide of which presentation it came from, or whether its notes are still
 // the presentation's words, so each import also leaves a small record in the document's settings: for each presentation, the permanent
-// number PowerPoint keeps inside every slide (it stays when a slide moves or is renamed), the line the slide's block starts with, a
+// number the presentation program keeps inside every slide (it stays when a slide moves or is renamed), the line the slide's block starts with, a
 // fingerprint of the notes as imported and of the picture. A guide made before this record existed still works: slides are then matched
 // by title, and by number when the title changed, and nothing is offered as new without asking first.
 //
