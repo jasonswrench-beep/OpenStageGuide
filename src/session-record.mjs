@@ -35,8 +35,8 @@ const PART_SETS=Object.freeze({
 });
 const LABELS={title:'Title',minutes:'Minutes',notes:'Facilitator notes',...Object.fromEntries(ACTIVITY_PARTS.map(p=>[p.id,p.label]))};
 
-/** Every Activity block of the guide for learners or not, in order, with its lesson and its words. `scope` may be {lesson:index} to keep one lesson's. */
-export function activityBlocks(paras,{lessonIndex=null}={}){
+/** Every Activity block of the guide for learners or not, in order, with its lesson and its words. `lessonIndex` or `lessonTitle` keeps one lesson's (a title survives edits that move paragraphs). */
+export function activityBlocks(paras,{lessonIndex=null,lessonTitle=null}={}){
   const out=[],seen=new Map();
   for(const mod of readGuide(paras).modules)for(const lesson of mod.lessons){
     for(let i=lesson.index+1;i<=lesson.end;i++){
@@ -51,6 +51,7 @@ export function activityBlocks(paras,{lessonIndex=null}={}){
       const title=oneLine(String(b.text).split('\n')[0]);
       const n=(seen.get(norm(title))||0)+1;seen.set(norm(title),n);
       if(lessonIndex!==null&&lesson.index!==lessonIndex)continue;
+      if(lessonTitle!==null&&norm(lesson.text)!==norm(lessonTitle))continue;
       out.push({key:`${norm(title)}#${n}`,title,lesson:lesson.title,lessonIndex:lesson.index,index:span.start,minutes:Number(b.minutes)||0,audience:b.audience,parts:b.parts||{instructions:String(b.text).split('\n').slice(1).join('\n')},notes:b.notes||''});
     }
   }
@@ -108,7 +109,7 @@ function cleanOutput(o,i){
   if(!isObject(o)||!OUTPUT_KINDS[o.kind])return null;
   return {
     id:id(o.id,`o${i+1}`),kind:o.kind,name:oneLine(o.name).slice(0,LIMITS.name)||OUTPUT_KINDS[o.kind],scope:oneLine(o.scope).slice(0,LIMITS.scope)||'The whole guide',
-    lessonIndex:Number.isInteger(o.lessonIndex)&&o.lessonIndex>=0?o.lessonIndex:null,
+    lessonTitle:typeof o.lessonTitle==='string'&&oneLine(o.lessonTitle)?oneLine(o.lessonTitle).slice(0,200):null,
     builtAt:iso(o.builtAt),excluded:o.excluded===true,
     sources:(Array.isArray(o.sources)?o.sources:[]).slice(0,LIMITS.sources).map(cleanSource).filter(Boolean)
   };
@@ -146,15 +147,15 @@ export const sessionsText=s=>JSON.stringify(readSessions(JSON.stringify(s)));
 export function outputStatus(output,paras){
   if(output.excluded)return {status:'Excluded',diff:null};
   if(!output.builtAt)return {status:'Suggested',diff:null};
-  const diff=diffSources(output.sources,fingerprints(paras,output.kind,output.lessonIndex===null?{}:{lessonIndex:output.lessonIndex}));
+  const diff=diffSources(output.sources,fingerprints(paras,output.kind,output.lessonTitle===null?{}:{lessonTitle:output.lessonTitle}));
   return {status:diff.same?'Ready':'Review needed',diff};
 }
 const nextId=(list,prefix)=>{let n=list.length+1;while(list.some(x=>x.id===`${prefix}${n}`))n++;return `${prefix}${n}`;};
 /** Records that an output was made now from the guide as it is: a new record, or the same one made again (same kind and name), so refreshing keeps its place. */
-export function recordOutput(sessions,{kind,name,scope='The whole guide',lessonIndex=null,paras,now=()=>new Date().toISOString()}){
+export function recordOutput(sessions,{kind,name,scope='The whole guide',lessonTitle=null,paras,now=()=>new Date().toISOString()}){
   const next=readSessions(JSON.stringify(sessions)),same=next.outputs.find(o=>o.kind===kind&&o.name===name&&o.scope===scope);
-  const sources=fingerprints(paras,kind,lessonIndex===null?{}:{lessonIndex});
-  const rec={id:same?same.id:nextId(next.outputs,'o'),kind,name,scope,lessonIndex,builtAt:now(),excluded:false,sources};
+  const sources=fingerprints(paras,kind,lessonTitle===null?{}:{lessonTitle});
+  const rec={id:same?same.id:nextId(next.outputs,'o'),kind,name,scope,lessonTitle,builtAt:now(),excluded:false,sources};
   if(same)next.outputs=next.outputs.map(o=>o===same?rec:o);
   else{
     if(next.outputs.length>=LIMITS.outputs)next.outputs=next.outputs.slice(0,LIMITS.outputs-1);
