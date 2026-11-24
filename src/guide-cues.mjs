@@ -137,12 +137,26 @@ export const customCueNames=()=>Array.from({length:CUSTOM_CUE_SLOTS},(_,i)=>cust
 // An Activity can be written as labelled parts, in this order. Each part is a labelled paragraph; the ones for the facilitator
 // are written in the facilitator-notes style, so they are shaded and never reach the learner workbook. The activity's minutes
 // are the "(N min)" on its first line, as for every block, and its title is that line's text.
+//
+// The first five parts are the ones Insert > Block... lays out as empty labels. The ones marked `extra` (session templates, milestone 1 of the product spec of 2026-11-22) are
+// written only when they have words: the expected output and the grouping (learners read them), the phase of the session, what the activity needs from earlier work, the timed steps,
+// the debrief prompts, the likely challenges and the access options. A part marked `prose` stays on its label's line when it has several lines; every other part with
+// several lines is a bulleted list under its label.
 export const ACTIVITY_PARTS=Object.freeze([
-  {id:'objective',label:'Objective',for:'everyone',help:'What learners will be able to do after the activity.'},
+  {id:'objective',label:'Objective',for:'everyone',prose:true,help:'What learners will be able to do after the activity.'},
+  {id:'output',label:'Expected output',for:'everyone',prose:true,extra:true,help:'What the group has when the activity ends, such as a ranked list or a revised draft.'},
+  {id:'grouping',label:'Grouping',for:'everyone',prose:true,extra:true,help:'How people work: alone, in pairs, in small groups or as a whole group.'},
+  {id:'phase',label:'Phase',for:'facilitator',prose:true,extra:true,help:'Where the activity sits in the session: Open, Explore, Practice, Decide, Reflect, Close or Break. Facilitator only.'},
+  {id:'needs',label:'Needs',for:'everyone',extra:true,help:'What the activity needs from earlier work, such as the list the activity before it makes. One line each.'},
   {id:'materials',label:'Materials',for:'facilitator',help:'What you need to have ready. Facilitator only.'},
   {id:'preparation',label:'Preparation',for:'facilitator',help:'What to do before the activity starts. Facilitator only.'},
+  {id:'steps',label:'Timed steps',for:'facilitator',extra:true,help:'What the facilitator does, step by step, each with its minutes, such as "3 min: Hand out the cards". Facilitator only.'},
   {id:'instructions',label:'Instructions',for:'everyone',help:'What learners do, one step to a line.'},
-  {id:'caseStudy',label:'Case study',for:'everyone',help:'A case for learners to read, if the activity uses one.'}
+  {id:'caseStudy',label:'Case study',for:'everyone',prose:true,help:'A case for learners to read, if the activity uses one.'},
+  {id:'debrief',label:'Debrief prompts',for:'facilitator',extra:true,help:'Questions to ask when the activity ends. Facilitator only.'},
+  {id:'challenges',label:'Likely challenges',for:'facilitator',extra:true,help:'What often goes wrong, and what to do about it. Facilitator only.'},
+  {id:'access',label:'Access options',for:'facilitator',extra:true,help:'Other ways to take part: spoken or written, with or without a screen. Facilitator only.'},
+  {id:'source',label:'Source',for:'facilitator',prose:true,extra:true,help:'The catalog activity this one was made from, such as "Scenario rehearsal (A13, version 1)". Facilitator only.'}
 ]);
 export const TIME_ICON='time-on-task';
 export const ICON_FILES=Object.freeze([...new Set([TIME_ICON,CUSTOM_ICON,...CUES.map(c=>c.icon)])]);

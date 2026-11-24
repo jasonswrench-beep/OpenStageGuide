@@ -168,6 +168,7 @@ export const removeMine=(mine,id)=>mine.filter(m=>m.id!==id);
 export function matches(e,query){
   const q=oneLine(query).toLowerCase();
   if(!q)return true;
-  const hay=`${e.title} ${e.kind} ${e.summary}`.toLowerCase();
+  // The ready-made session activities also have a method, a mode and a grouping to find them by (session-text.mjs libraryEntry).
+  const hay=`${e.title} ${e.kind} ${e.summary} ${e.method||''} ${e.mode||''} ${e.grouping||''} ${e.output||''}`.toLowerCase();
   return q.split(' ').every(w=>hay.includes(w));
 }

@@ -42,7 +42,8 @@ export function buildChoice(id,{minutes=''}={}){
   if(!choice)throw new Error('Choose a kind of block first.');
   const mins=blockMinutes(minutes);
   if(id===ACTIVITY_PARTS_CHOICE){
-    return ctx=>cueBlock({cue:'activity',text:'',minutes:mins||undefined},ctx)+ACTIVITY_PARTS.map(p=>
+    // Only the five original parts come as empty labels; the others (expected output, timed steps...) are in the Activity tool and in the session templates.
+    return ctx=>cueBlock({cue:'activity',text:'',minutes:mins||undefined},ctx)+ACTIVITY_PARTS.filter(p=>!p.extra).map(p=>
       para(p.for==='facilitator'?STYLE_IDS.notes:STYLE_IDS.body,run(`${p.label}:`,STYLE_IDS.cueLabel)+run(' '))).join('');
   }
   return ctx=>cueBlock({cue:cueById(id),text:'',minutes:mins||undefined},ctx);

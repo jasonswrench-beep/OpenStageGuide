@@ -45,7 +45,7 @@ test('every tool, the add-in\'s twenty-one and the program\'s four, is one item 
 test('each menu holds the tools the author listed (2026-11-14), in that order; Save and Restore a backup are in File and Help is in Help',()=>{
   const {menus}=make();
   const names=id=>menuEntries(menus,id).filter(i=>i!=='-').map(i=>i.label);
-  assert.deepEqual(names('start'),['Guide overview','Course settings','Course outline']);
+  assert.deepEqual(names('start'),['Guide overview','Course settings','Course outline','Session templates']);
   assert.deepEqual(names('sections'),['Add module','Learning outcomes','Add lesson','Lesson details']);
   assert.deepEqual(names('activities'),['Add activity','Instructional cues','Activity library','Forms']);
   assert.deepEqual(names('slides'),['Import slides','Update from slides']);

@@ -5,6 +5,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {STARTER_ACTIVITIES,STORE_KEY,MAX_MINE,blockFromEntry,entryFromBlock,cleanMine,addMine,removeMine,matches} from '../src/activity-library.mjs';
 import {ACTIVITY_PARTS} from '../src/guide-cues.mjs';
+import {CATALOG_ENTRIES} from '../src/session-text.mjs';
 import {readBlock} from '../src/guide-model.mjs';
 import {started,click,addModule,addLesson,addBlock} from './helpers/guide-harness.mjs';
 
@@ -49,8 +50,9 @@ test('the Activity Library opens on its own panel, with the ready-made activitie
   const {a}=await withLibrary();
   assert.equal(a.n('guide-sec-library').hidden,false);
   assert.equal(a.n('guide-sec-module').hidden,true);assert.equal(a.n('guide-sec-block').hidden,true);
-  assert.deepEqual(itemTitles(a,'guide-lib-list'),STARTER_ACTIVITIES.map(e=>`${e.title} (${e.minutes} min)${e.kind}`));
-  assert.equal(a.n('guide-lib-count').textContent,'13 activities ready to use.');
+  // The 13 starters, then the 46 activities of the session catalog (each listed with its phase as its kind).
+  assert.deepEqual(itemTitles(a,'guide-lib-list'),[...STARTER_ACTIVITIES,...CATALOG_ENTRIES].map(e=>`${e.title} (${e.minutes} min)${e.kind}`));
+  assert.equal(a.n('guide-lib-count').textContent,'59 activities ready to use.');
   assert.match(a.n('guide-lib-mine-note').textContent,/You have not saved any yet/);
   const li=a.n('guide-lib-list').children[1];
   assert.equal(li.children[1].textContent,STARTER_ACTIVITIES[1].summary);
@@ -80,6 +82,49 @@ test('every ready-made activity goes into the guide and reads back as the same p
   }
 });
 
+test('every activity of the session catalog goes into the guide with all its parts: steps that add up, the participant task apart from the facilitator\'s, and its source',async()=>{
+  const {a}=await withLibrary();
+  for(const e of CATALOG_ENTRIES){
+    const li=a.n('guide-lib-list').children.find(x=>x.children[0].id===`guide-lib-${e.id}-title`);
+    assert.ok(li,e.id);
+    await buttonOf(li,'Insert').onclick();
+    assert.equal(a.err(),'',e.id);
+    const {paras,i}=await activityAt(a);
+    const b=readBlock(paras,i);
+    assert.ok(b&&b.parts,`${e.id} reads back as labelled parts`);
+    assert.equal(b.text,e.title);assert.equal(b.minutes,String(e.minutes));
+    for(const part of ACTIVITY_PARTS.map(p=>p.id))assert.equal(b.parts[part]??'',lines(e[part]).join('\n'),`${e.id} ${part}`);
+    assert.match(b.parts.source,/\(A\d\d, version 1\)$/);
+    await a.adapter.deleteRange({start:b.span.start,end:b.span.end,guard:paras[b.span.start].text});await a.p.refresh();
+  }
+});
+
+test('the library can be narrowed by phase and by how people work, which only the session catalog\'s activities have',async()=>{
+  const {a}=await withLibrary();
+  const titles=()=>itemTitles(a,'guide-lib-list').map(t=>t.replace(/ \(.*/,''));
+  a.type('guide-lib-phase','Decide');a.n('guide-lib-phase').onchange();
+  assert.deepEqual(titles(),['Priority vote','Impact and effort sort','Decision record','Working agreements','Plan for failure','Constraint and capacity check','Owner and handoff map']);
+  assert.equal(a.n('guide-lib-count').textContent,'7 activities found.');
+  assert.equal(a.n('guide-lib-mine').children.length,0,'your own have no phase, so a phase leaves them out');
+  a.type('guide-lib-mode','Pairs');a.n('guide-lib-mode').onchange();
+  assert.deepEqual(titles(),[]);
+  a.type('guide-lib-phase','');a.n('guide-lib-phase').onchange();
+  assert.ok(titles().includes('Pair introductions')&&titles().includes('Listening and paraphrase'));
+  assert.ok(!titles().includes('Think, pair, share'),'a starter has no mode');
+  a.type('guide-lib-mode','');a.n('guide-lib-mode').onchange();
+  assert.equal(a.n('guide-lib-list').children.length,59);
+  assert.deepEqual(a.n('guide-lib-phase').children.map(o=>o.value),['','Open','Explore','Practice','Decide','Reflect','Close','Break']);
+});
+
+test('the panel says where an activity will go before anything is inserted, and follows the cursor',async()=>{
+  const {a}=await withLibrary();
+  assert.match(a.n('guide-lib-dest').textContent,/^It goes after/);
+  assert.match(a.n('guide-lib-dest').textContent,/Lesson 1\.1: Lesson one/);
+  await buttonOf(a.n('guide-lib-list').children[1],'Insert').onclick();
+  await a.p.quietRefresh();
+  assert.match(a.n('guide-lib-dest').textContent,/Lesson 1\.1/);
+});
+
 test('a second activity goes after the first, and the guide says how to take it back',async()=>{
   const {a}=await withLibrary();
   await buttonOf(a.n('guide-lib-list').children[1],'Insert').onclick();
@@ -92,14 +137,17 @@ test('a second activity goes after the first, and the guide says how to take it 
 test('finding an activity narrows both lists by title, kind or summary',async()=>{
   const {a}=await withLibrary();
   a.type('guide-lib-find','role');a.n('guide-lib-find').oninput();
-  assert.deepEqual(itemTitles(a,'guide-lib-list').map(t=>t.replace(/ \(.*/,'')),['Role play in threes']);
-  assert.equal(a.n('guide-lib-count').textContent,'1 activity found.');
+  // the starter, the catalog activity whose method is role play, and the one whose output names roles
+  assert.deepEqual(itemTitles(a,'guide-lib-list').map(t=>t.replace(/ \(.*/,'')),['Role play in threes','Scenario rehearsal','Owner and handoff map']);
+  assert.equal(a.n('guide-lib-count').textContent,'3 activities found.');
   a.type('guide-lib-find','check');a.n('guide-lib-find').oninput();
-  assert.deepEqual(itemTitles(a,'guide-lib-list').map(t=>t.replace(/ \(.*/,'')),['Pulse check','Teach-back'],'by kind');
+  const checks=itemTitles(a,'guide-lib-list').map(t=>t.replace(/ \(.*/,''));
+  assert.ok(checks.includes('Pulse check')&&checks.includes('Teach-back'),'by kind');
+  assert.ok(checks.includes('Exit check')&&checks.includes('Opening check-in'),'and the catalog\'s own');
   a.type('guide-lib-find','zzz');a.n('guide-lib-find').oninput();
   assert.equal(a.n('guide-lib-count').textContent,'0 activities found.');assert.equal(a.n('guide-lib-list').children.length,0);
   a.type('guide-lib-find','');a.n('guide-lib-find').oninput();
-  assert.equal(a.n('guide-lib-list').children.length,13);
+  assert.equal(a.n('guide-lib-list').children.length,59);
   assert.ok(matches({title:'A',kind:'B',summary:'C d'},'c D'));assert.ok(!matches({title:'A',kind:'B',summary:'C'},'x'));
 });
 

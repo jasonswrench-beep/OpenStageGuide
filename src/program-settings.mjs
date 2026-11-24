@@ -2,8 +2,9 @@
 // agenda's start time. In a browser these were kept in the page's local storage, but the program's window starts its server on a port that is new
 // every time, and local storage belongs to one address and port, so they were gone the next time the program started. In the program they are kept
 // in one small file beside the guides (OpenStage Guide settings.json), which the program's own server reads and writes: the page asks for a setting by
-// name and never sees a file name or a folder, and only the names below are ever kept (the activities, the look, the start time and the zoom of the guide's page).
+// name and never sees a file name or a folder, and only the names below are ever kept (the activities, the session templates, the look, the start time and the zoom of the guide's page).
 import {STORE_KEY as LIBRARY_KEY} from './activity-library.mjs';
+import {TEMPLATES_KEY} from './session-text.mjs';
 import {ZOOM_KEY} from './zoom.mjs';
 
 export const AGENDA_START_KEY='osg.agendaStart.v1';
@@ -11,7 +12,7 @@ export const AGENDA_START_KEY='osg.agendaStart.v1';
 export const GUIDES_CLEARED_KEY='osg.guidesClearedAt.v1';
 export const LOOK_KEY='openstage-guide.workbook-look';
 /** The only settings the program keeps (the zoom of the window is kept by the server itself: src/zoom.mjs). */
-export const SETTING_KEYS=Object.freeze([LIBRARY_KEY,AGENDA_START_KEY,LOOK_KEY,ZOOM_KEY,GUIDES_CLEARED_KEY]);
+export const SETTING_KEYS=Object.freeze([LIBRARY_KEY,TEMPLATES_KEY,AGENDA_START_KEY,LOOK_KEY,ZOOM_KEY,GUIDES_CLEARED_KEY]);
 export const SETTINGS_FORMAT='openstage-guide-settings';
 export const SETTINGS_FILE='OpenStage Guide settings.json';
 export const SETTINGS_PATH='/api/settings';

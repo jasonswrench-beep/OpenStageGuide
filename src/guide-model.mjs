@@ -8,6 +8,7 @@ import {ITEM_TYPES,RATING_SCALES,itemTypeByKeyLabel,readNumericKey} from './guid
 import {formPlan} from './guide-forms.mjs';
 import {factIssues,dayIssues,lengthIssue} from './guide-facts.mjs';
 import {captionEdits} from './guide-reference.mjs';
+import {readSteps,readSource,readNeedFrom,activityById} from './session-text.mjs';
 
 const MODULE=/^Module\s+(\d+)\s*:\s*(.*)$/s;
 const LESSON=/^Lesson\s+(\d+)\.(\d+)\s*:\s*(.*)$/s;
@@ -367,8 +368,44 @@ export function updatePlan(paras,options={}){
   // A block that was added (Insert > Block...) and never written: its icon and label, and nothing else.
   const lessonAt=i=>guide.modules.flatMap(m=>m.lessons).find(l=>i>l.index&&i<=l.end);
   const emptyIssues=emptyBlocks(paras).map(b=>({level:'warn',rule:'BLOCK-EMPTY',message:`A ${b.label} block${lessonAt(b.index)?` in ${lessonAt(b.index).text||'a lesson'}`:''} has no words yet. Type its words in the guide, or delete the block.`,paragraph:b.index}));
-  const facts={issues:[...factIssues(paras,guide,lessonMinutes),...dayIssues(paras,guide,lessonMinutes,cueIdsOf),...(length?[length]:[]),...expectedIssues,...emptyIssues]};
+  const facts={issues:[...factIssues(paras,guide,lessonMinutes),...dayIssues(paras,guide,lessonMinutes,cueIdsOf),...(length?[length]:[]),...expectedIssues,...emptyIssues,...activityIssues(paras,guide)]};
   return {guide,assess,forms,facts,edits,totalMinutes:cumulative};
+}
+
+// What the Review says about Activity blocks written as parts (the session templates, milestone 1 of the product spec): timed steps that do not add up to the activity's minutes
+// (a shorter block with unchanged steps is found the same way), a step with no minutes, a need that names an earlier activity that is not there any more, and an activity made from a
+// version of the catalog that has since been replaced.
+const normTitle=t=>String(t??'').replace(/\s+/g,' ').trim().toLowerCase();
+export function activityIssues(paras,guide){
+  const out=[],earlier=new Set();
+  for(const mod of guide.modules)for(const lesson of mod.lessons){
+    for(let i=lesson.index+1;i<=lesson.end;i++){
+      if(kindOf(paras[i])!=='cue')continue;
+      const cue=cueFromText(paras[i].text);
+      if(!cue||cue.id!=='activity')continue;
+      const span=blockSpan(paras,i);
+      if(!span||span.start!==i)continue;
+      i=span.end;
+      const b=readBlock(paras,span.start);
+      if(!b)continue;
+      const title=String(b.text).split('\n')[0].trim()||'An activity',at=span.start;
+      if(b.parts){
+        if(b.parts.steps){
+          const s=readSteps(b.parts.steps),planned=Number(b.minutes)||0;
+          if(s.without.length)out.push({level:'warn',rule:'ACTIVITY-STEP-MINUTES',message:`A timed step of "${title}" gives no minutes, so its steps cannot be added up. Write each one as "3 min: what happens".`,paragraph:at});
+          else if(planned&&s.steps.length&&s.minutes!==planned)out.push({level:'warn',rule:'ACTIVITY-STEPS',message:`The timed steps of "${title}" add up to ${s.minutes} minutes, but the activity is ${planned} minutes. Change a step or the activity's minutes so that they agree.`,paragraph:at});
+        }
+        const src=b.parts.source?readSource(b.parts.source):null,made=src&&activityById(src.id);
+        if(made&&made.version>src.version)out.push({level:'warn',rule:'ACTIVITY-SOURCE',message:`"${title}" was made from version ${src.version} of the catalog activity "${made.title}", and the catalog now has version ${made.version}. Put the activity in again to see what changed.`,paragraph:at});
+        for(const line of String(b.parts.needs||'').split(/\r?\n/)){
+          const from=readNeedFrom(line);
+          if(from&&!earlier.has(normTitle(from)))out.push({level:'warn',rule:'ACTIVITY-NEEDS',message:`"${title}" needs the output of "${from}", but no activity with that name comes before it. It may have been renamed, moved after this one or removed. Choose another earlier activity, or take the line out.`,paragraph:at});
+        }
+      }
+      earlier.add(normTitle(title));
+    }
+  }
+  return out;
 }
 
 // Whether the contents table lists the headings the guide has. Page numbers cannot be told from here, so a table

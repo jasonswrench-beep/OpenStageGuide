@@ -31,7 +31,7 @@ export const ACTIVITIES=deepFreeze([
  materials:["Prompt slide or paper"],
  access:"Accept a spoken or written response.",
  task:["Read the prompt.", "Write a one-line answer for yourself. You may pass.", "Listen for a theme as volunteers share."],
- uses:"",
+ needs:"",
  debrief:["What theme did you hear in the room?"],
  challenges:["Answers run long: remind people the prompt asks for one line."]
 },
@@ -50,7 +50,7 @@ export const ACTIVITIES=deepFreeze([
  materials:["Agenda and outcome slide"],
  access:"Provide the same information in text.",
  task:["Read the outcome and the agenda.", "Say what is unclear before we start."],
- uses:"",
+ needs:"",
  debrief:["What does the outcome mean for the task you do today?"],
  challenges:["The group wants more detail: point to the step where it will be covered."]
 },
@@ -69,7 +69,7 @@ export const ACTIVITIES=deepFreeze([
  materials:["Prompt card"],
  access:"Allow solo written reflection.",
  task:["Pick one of the two prompts.", "Take two minutes each to answer your partner.", "Find one point of connection. Do not share anything private."],
- uses:"",
+ needs:"",
  debrief:["What connection did you find that you did not expect?"],
  challenges:["An odd number of people: make one group of three."]
 },
@@ -88,7 +88,7 @@ export const ACTIVITIES=deepFreeze([
  materials:["Text prompt", "Shared notes"],
  access:"Allow an asynchronous exchange.",
  task:["Write your answer and one reason.", "Swap with your partner and compare reasoning.", "Agree one combined answer and one question you still have."],
- uses:"",
+ needs:"",
  debrief:["Where did your partner's reasoning differ from yours?"],
  challenges:["Pairs finish early: ask them to find a second reason."]
 },
@@ -107,7 +107,7 @@ export const ACTIVITIES=deepFreeze([
  materials:["Shared board or worksheet"],
  access:"Provide a text-only path.",
  task:["Write one idea on your own.", "Compare ideas with a partner, then join another pair.", "Choose what your group of four will report."],
- uses:"",
+ needs:"",
  debrief:["Which ideas appeared in more than one group?"],
  challenges:["A few voices dominate the fours: ask each person to name the idea they find strongest first."]
 },
@@ -126,7 +126,7 @@ export const ACTIVITIES=deepFreeze([
  materials:["Idea slips or shared notes"],
  access:"Use anonymous text if helpful.",
  task:["Write ideas on your own, in silence.", "Pass your notes on and extend a peer's idea.", "Choose the strongest idea and say what changed."],
- uses:"",
+ needs:"",
  debrief:["Which idea changed the most after it was passed on?"],
  challenges:["The silence feels long: say how many minutes remain."]
 },
@@ -145,7 +145,7 @@ export const ACTIVITIES=deepFreeze([
  materials:["Cards or worksheet"],
  access:"Supply a text list as an alternative to dragging.",
  task:["Read all the ideas.", "Group related ideas and name each group.", "Leave anything uncertain in a separate pile."],
- uses:"The ideas from the earlier idea activity",
+ needs:"The ideas from the earlier idea activity",
  debrief:["Which items were hardest to place, and why?"],
  challenges:["Groups argue over labels: name a group later and keep sorting."]
 },
@@ -164,7 +164,7 @@ export const ACTIVITIES=deepFreeze([
  materials:["Dot stickers or accessible ballot"],
  access:"Offer private voting.",
  task:["Agree how votes count.", "Cast up to three votes.", "Check the tally and any ties."],
- uses:"The list of options to choose from",
+ needs:"The list of options to choose from",
  debrief:["Does the result surprise anyone? Who makes the final call?"],
  challenges:["Ties: agree a tie-break rule before counting."]
 },
@@ -183,7 +183,7 @@ export const ACTIVITIES=deepFreeze([
  materials:["2 by 2 worksheet"],
  access:"Provide the text equivalent of the grid.",
  task:["Agree what impact and effort mean here.", "Place each option on the grid or label it.", "Explain two placements and write down one uncertainty."],
- uses:"The options from the earlier activity",
+ needs:"The options from the earlier activity",
  debrief:["Which options moved after discussion?"],
  challenges:["Everything lands in high impact: agree how many may go there."]
 },
@@ -202,7 +202,7 @@ export const ACTIVITIES=deepFreeze([
  materials:["One-page decision log"],
  access:"Read the final entry aloud.",
  task:["Restate the choice and its owner.", "Record the decision, the reason and one open risk.", "Agree how and when it will be reviewed."],
- uses:"The ranked shortlist",
+ needs:"The ranked shortlist",
  debrief:["What would make us reopen this decision?"],
  challenges:["No owner is named: stop and agree one before leaving."]
 },
@@ -221,7 +221,7 @@ export const ACTIVITIES=deepFreeze([
  materials:["Plain-text case", "Prompts"],
  access:"Offer quiet reading time.",
  task:["Read the case and name the decision.", "Pick the facts that matter and compare two responses.", "Present your choice and the evidence for it."],
- uses:"",
+ needs:"",
  debrief:["Which facts did the groups weigh differently?"],
  challenges:["Groups jump to a solution: ask which fact supports it."]
 },
@@ -240,7 +240,7 @@ export const ACTIVITIES=deepFreeze([
  materials:["Example", "Transcript"],
  access:"Describe relevant visual actions.",
  task:["Read the success criterion.", "Watch the demonstration.", "Write down the evidence of the criterion that you noticed."],
- uses:"",
+ needs:"",
  debrief:["What exactly did you see or hear that showed the criterion?"],
  challenges:["Observers describe feelings, not behavior: ask what the person said or did."]
 },
@@ -259,7 +259,7 @@ export const ACTIVITIES=deepFreeze([
  materials:["Scenario", "Cue card", "Observation checklist"],
  access:"Offer a written simulation.",
  task:["Take the roles of performer, counterpart and observer.", "Run the scenario while the observer records evidence.", "Give and hear feedback, then repeat one moment."],
- uses:"The success criterion from the demonstration",
+ needs:"The success criterion from the demonstration",
  debrief:["What changed when you repeated the moment?"],
  challenges:["The rehearsal feels exposing: let the performer pause or restart."]
 },
@@ -278,7 +278,7 @@ export const ACTIVITIES=deepFreeze([
  materials:["Checklist with criteria"],
  access:"Offer written or spoken feedback.",
  task:["Swap your work and name the criterion.", "Give one example from the work and one suggested change.", "Plan one revision and check that the feedback makes sense."],
- uses:"The rehearsed response and the observation notes",
+ needs:"The rehearsed response and the observation notes",
  debrief:["Which feedback was specific enough to act on?"],
  challenges:["Feedback turns into general praise: ask for the example that shows it."]
 },
@@ -297,7 +297,7 @@ export const ACTIVITIES=deepFreeze([
  materials:["Shared record"],
  access:"Invite independent written input first.",
  task:["Recall what we intended.", "List the facts of what happened.", "Say what helped and what got in the way.", "Choose one adjustment you can repeat."],
- uses:"",
+ needs:"",
  debrief:["Which adjustment will we actually try next?"],
  challenges:["Blame appears: return to observable facts."]
 },
@@ -316,7 +316,7 @@ export const ACTIVITIES=deepFreeze([
  materials:["Three-column table"],
  access:"Offer a private written contribution.",
  task:["Write one item for each prompt: keep, change, try.", "Compare and merge suggestions.", "Pick one change to test and name the evidence."],
- uses:"The review of what happened",
+ needs:"The review of what happened",
  debrief:["Which change is small enough to try this cycle?"],
  challenges:["Too many items: merge duplicates before choosing."]
 },
@@ -335,7 +335,7 @@ export const ACTIVITIES=deepFreeze([
  materials:["Reflection page"],
  access:"Sharing is optional.",
  task:["Write your first interpretation.", "Revisit it after the new example or evidence.", "Describe what changed and why."],
- uses:"",
+ needs:"",
  debrief:["What caused the change in your thinking?"],
  challenges:["Nothing changed for someone: that is a valid answer; ask what confirmed their view."]
 },
@@ -354,7 +354,7 @@ export const ACTIVITIES=deepFreeze([
  materials:["Paper form or accessible digital response"],
  access:"Offer paper or an accessible digital form.",
  task:["Look back at the outcome.", "Write one thing you can do and one question.", "Hand it in or keep a copy, as directed."],
- uses:"",
+ needs:"",
  debrief:["What open questions do we still need to address?"],
  challenges:["Blank responses: allow a minute of silence before collecting."]
 },
@@ -373,7 +373,7 @@ export const ACTIVITIES=deepFreeze([
  materials:["Action log"],
  access:"Allow a calendar or written reminder.",
  task:["Name your first action.", "Add an owner, a date and the evidence that it is done.", "Read the plan back and schedule a review."],
- uses:"",
+ needs:"",
  debrief:["Who will check this plan, and when?"],
  challenges:["Actions are vague: ask what someone would see when it is done."]
 },
@@ -392,7 +392,7 @@ export const ACTIVITIES=deepFreeze([
  materials:["Gap worksheet"],
  access:"Use a fictional case if confidentiality matters.",
  task:["Describe the current and the target behavior.", "Sort causes into skill, environment or expectations.", "State which response you would test."],
- uses:"",
+ needs:"",
  debrief:["Which cause is training able to fix?"],
  challenges:["Everything is called a skill problem: ask what else is in the way."]
 },
@@ -411,7 +411,7 @@ export const ACTIVITIES=deepFreeze([
  materials:["Outcome worksheet", "Worked example"],
  access:"Offer the worksheet as a fillable text document.",
  task:["Draft the action a participant should take.", "Add the conditions and the evidence.", "Test with your partner whether someone could recognize the behavior."],
- uses:"The gap statement",
+ needs:"The gap statement",
  debrief:["Could an observer tell whether it happened?"],
  challenges:["Outcomes use words like understand: ask what a person would do."]
 },
@@ -430,7 +430,7 @@ export const ACTIVITIES=deepFreeze([
  materials:["Short, equivalent reading segments"],
  access:"Offer text and audio.",
  task:["Read your assigned material.", "Compare summaries with others who read the same part.", "Teach your key point to a mixed group.", "Answer one synthesis question."],
- uses:"",
+ needs:"",
  debrief:["What did the whole topic look like once the pieces were combined?"],
  challenges:["One segment is much harder than the others: pair readers on it."]
 },
@@ -449,7 +449,7 @@ export const ACTIVITIES=deepFreeze([
  materials:["Station materials"],
  access:"Offer a seated or digital review sequence.",
  task:["Learn the review criteria.", "Review two examples and write comments.", "Agree what should change."],
- uses:"",
+ needs:"",
  debrief:["Which comment will change your own work?"],
  challenges:["Comments are unclear: ask for a quotation from the example."]
 },
@@ -468,7 +468,7 @@ export const ACTIVITIES=deepFreeze([
  materials:["Accessibility checklist"],
  access:"Include keyboard and text alternatives.",
  task:["Pick one learner and one task.", "Check the instructions, the format and the response options.", "Log one barrier, a repair and how you will check that it worked."],
- uses:"The lesson or material being reviewed",
+ needs:"The lesson or material being reviewed",
  debrief:["Which barrier was the easiest to repair?"],
  challenges:["Checks stay generic: name the learner and the task."]
 },
@@ -487,7 +487,7 @@ export const ACTIVITIES=deepFreeze([
  materials:["Visible return time"],
  access:"Give the return cue in text and aloud.",
  task:["Return at the time shown."],
- uses:"",
+ needs:"",
  debrief:[],
  challenges:[]
 },
@@ -506,7 +506,7 @@ export const ACTIVITIES=deepFreeze([
  materials:["Setup checklist"],
  access:"Supply links before moving on.",
  task:["Follow the instructions for the next task.", "Collect the materials or open the files you need."],
- uses:"",
+ needs:"",
  debrief:[],
  challenges:["Materials are missing: keep spare printed items and links ready."]
 },
@@ -525,7 +525,7 @@ export const ACTIVITIES=deepFreeze([
  materials:["Shared text document"],
  access:"Give private time to propose ideas.",
  task:["Name problems that happen when we work together.", "Draft working agreements that someone could observe.", "Choose which to try and set a review date."],
- uses:"",
+ needs:"",
  debrief:["Which agreement will be easiest to see in practice?"],
  challenges:["Agreements are values, not behavior: rewrite each as an action."]
 },
@@ -544,7 +544,7 @@ export const ACTIVITIES=deepFreeze([
  materials:["Accessible quiz or response sheet"],
  access:"Avoid time pressure where possible.",
  task:["Read how the questions and the feedback work.", "Answer three short items.", "Compare your answers with the explanations."],
- uses:"",
+ needs:"",
  debrief:["Which explanation corrected a misunderstanding?"],
  challenges:["Everyone gets the same item wrong: re-teach that point to the room."]
 },
@@ -563,7 +563,7 @@ export const ACTIVITIES=deepFreeze([
  materials:["Text table or diagram"],
  access:"Include a text outline of the branches.",
  task:["Describe the issue with one piece of evidence.", "Trace possible causes and branches.", "Pick one assumption and name the evidence that would check it."],
- uses:"The problem statement",
+ needs:"The problem statement",
  debrief:["Which cause could we test first?"],
  challenges:["The chain stops at a person: ask what in the system allowed it."]
 },
@@ -582,7 +582,7 @@ export const ACTIVITIES=deepFreeze([
  materials:["Risk worksheet"],
  access:"Invite individual anonymous entries.",
  task:["Imagine the plan failed.", "List plausible causes and early signs.", "Pick a prevention step and an owner."],
- uses:"The plan or priority being tested",
+ needs:"The plan or priority being tested",
  debrief:["Which early sign will we actually watch for?"],
  challenges:["Risks stay vague: ask for the first sign someone would notice."]
 },
@@ -601,7 +601,7 @@ export const ACTIVITIES=deepFreeze([
  materials:["Cards or list"],
  access:"Offer checkbox or table-based sorting.",
  task:["Scan all the items.", "Group them by a principle you agree on.", "Name each group and note one item that does not fit."],
- uses:"",
+ needs:"",
  debrief:["What principle did you choose, and what did it hide?"],
  challenges:["No principle is agreed: sort by two principles and compare."]
 },
@@ -620,7 +620,7 @@ export const ACTIVITIES=deepFreeze([
  materials:["Matrix"],
  access:"Provide a linear text equivalent of the matrix.",
  task:["Name the groups affected.", "Mark what each needs and how much influence it has.", "Choose who to consult and what to ask."],
- uses:"",
+ needs:"",
  debrief:["Who is missing from the map?"],
  challenges:["Groups are listed by department: ask who inside each one is affected."]
 },
@@ -639,7 +639,7 @@ export const ACTIVITIES=deepFreeze([
  materials:["Interview prompt"],
  access:"Allow fictional or low-stakes examples.",
  task:["Answer the prompt about a positive experience.", "Interview each other and note practices worth repeating.", "Share one insight if you wish."],
- uses:"",
+ needs:"",
  debrief:["Which practice could the whole group use?"],
  challenges:["The story turns into a complaint: return to what worked."]
 },
@@ -658,7 +658,7 @@ export const ACTIVITIES=deepFreeze([
  materials:["Printed and digital copy of the artifact"],
  access:"Number the evidence references.",
  task:["Read the review question.", "Mark evidence and unanswered questions.", "Compare findings and choose the next evidence to collect."],
- uses:"The artifact to review",
+ needs:"The artifact to review",
  debrief:["What evidence is still missing?"],
  challenges:["Opinions replace evidence: ask for the reference number."]
 },
@@ -677,7 +677,7 @@ export const ACTIVITIES=deepFreeze([
  materials:["Accessible shared notes"],
  access:"Provide a private response option.",
  task:["Read the question and the response options.", "Write a response and build on one other contribution.", "Help summarize the themes and one open issue."],
- uses:"",
+ needs:"",
  debrief:["Which open issue matters most?"],
  challenges:["Silence at the start: model a first response."]
 },
@@ -696,7 +696,7 @@ export const ACTIVITIES=deepFreeze([
  materials:["Capacity table"],
  access:"Use counts and labels alongside color.",
  task:["List obligations and resources.", "Compare capacity with the proposed work.", "Remove or defer a task and record why."],
- uses:"The list of proposed work",
+ needs:"The list of proposed work",
  debrief:["What trade-off did we accept?"],
  challenges:["Nothing is removed: ask what would not get done."]
 },
@@ -715,7 +715,7 @@ export const ACTIVITIES=deepFreeze([
  materials:["Experiment card"],
  access:"Offer a fillable text version.",
  task:["State a change you can test.", "Name a measure and a review day.", "Choose a test owner and write the decision rule."],
- uses:"The change chosen earlier",
+ needs:"The change chosen earlier",
  debrief:["What result would make us stop?"],
  challenges:["The experiment is too large: shrink it to one week."]
 },
@@ -734,7 +734,7 @@ export const ACTIVITIES=deepFreeze([
  materials:["Perspective prompts"],
  access:"Do not ask learners to speak for identities.",
  task:["Describe the proposal from one viewpoint.", "Write concerns from a different viewpoint.", "Note one assumption to check with that group."],
- uses:"The proposal being reviewed",
+ needs:"The proposal being reviewed",
  debrief:["Which assumption should we check first?"],
  challenges:["People speak for a group they belong to: assign viewpoints instead."]
 },
@@ -753,7 +753,7 @@ export const ACTIVITIES=deepFreeze([
  materials:["Pair prompts"],
  access:"Accept a written chat exchange.",
  task:["Talk about a low-stakes topic.", "Take turns: the speaker talks and the listener paraphrases.", "Ask what the paraphrase missed and revise it."],
- uses:"",
+ needs:"",
  debrief:["What did the paraphrase miss?"],
  challenges:["Listeners add opinions: ask them to repeat only what they heard."]
 },
@@ -772,7 +772,7 @@ export const ACTIVITIES=deepFreeze([
  materials:["One-page practice planner"],
  access:"Accept low-tech or digital submission.",
  task:["Pick a realistic task you can do at work.", "Name the time it takes, what you will produce and where you will submit it.", "Ask a partner to check that it is feasible and revise it."],
- uses:"The observable outcomes",
+ needs:"The observable outcomes",
  debrief:["What will get in the way, and what will you do about it?"],
  challenges:["The task is too big: halve it."]
 },
@@ -791,7 +791,7 @@ export const ACTIVITIES=deepFreeze([
  materials:["Paper or an accessible digital editor"],
  access:"Offer a linear description route.",
  task:["Choose the question your prototype must answer.", "Make the simplest usable version.", "Give it to a peer to try.", "Record one finding and the next change."],
- uses:"The idea chosen to prototype",
+ needs:"The idea chosen to prototype",
  debrief:["What did the test show that you did not expect?"],
  challenges:["The prototype keeps growing: restate the question it must answer."]
 },
@@ -810,7 +810,7 @@ export const ACTIVITIES=deepFreeze([
  materials:["Scenario deck", "Accessible card list"],
  access:"Participants can choose a different case.",
  task:["Draw or choose a scenario.", "Work through the dilemma and record a response.", "Compare your choices against a shared criterion."],
- uses:"",
+ needs:"",
  debrief:["Which criterion decided between the choices?"],
  challenges:["A scenario is too close to home: allow a swap."]
 },
@@ -829,7 +829,7 @@ export const ACTIVITIES=deepFreeze([
  materials:["Editable grid with column headers", "Worked example"],
  access:"Provide the grid as an editable text table.",
  task:["List the behaviors learners should show.", "Pick evidence and a practice task for each.", "Check the links and revise one row."],
- uses:"The observable outcomes",
+ needs:"The observable outcomes",
  debrief:["Is each practice task linked to its evidence?"],
  challenges:["Evidence repeats the behavior: ask what could actually be collected."]
 },
@@ -848,7 +848,7 @@ export const ACTIVITIES=deepFreeze([
  materials:["Paper or accessible form"],
  access:"Offer a pass option.",
  task:["Read the question and the scale.", "Answer on your own.", "Hear the summary of the group's answers."],
- uses:"",
+ needs:"",
  debrief:["What should we adjust now?"],
  challenges:["Responses are not anonymous: collect them without names."]
 },
@@ -867,7 +867,7 @@ export const ACTIVITIES=deepFreeze([
  materials:["Accessible table"],
  access:"Use role names where people may change.",
  task:["Name the workflow step and who receives its output.", "Agree who owns each input and output.", "Record one handoff rule and what to do when something is missing."],
- uses:"",
+ needs:"",
  debrief:["Who is affected if this rule fails?"],
  challenges:["Ownership is shared: name one person or role."]
 },
@@ -886,7 +886,7 @@ export const ACTIVITIES=deepFreeze([
  materials:["Text prompts"],
  access:"Allow private or written responses.",
  task:["Write one insight and one next step.", "Share a short response, or pass.", "Confirm the follow-up."],
- uses:"",
+ needs:"",
  debrief:["What is the one takeaway for the group?"],
  challenges:["Only a few people speak: take written slips."]
 }

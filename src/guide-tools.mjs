@@ -28,7 +28,7 @@ export const GROUPS=Object.freeze([
 // (Slides, Assessment). Four of the tools below exist only in the program (PROGRAM_TOOLS): they open an existing panel set up for one job, or the Add module
 // form's lesson half, or half of Review guide. Save and Restore a backup are in File and Help is in Help, as before.
 export const PROGRAM_MENUS=Object.freeze([
-  {id:'start',label:'Start',tools:['openDesigner','courseSettings','courseOutline']},
+  {id:'start',label:'Start',tools:['openDesigner','courseSettings','courseOutline','sessionTemplates']},
   {id:'sections',label:'Sections',tools:['addModule','learningOutcomes','addLesson','lessonDetails']},
   {id:'activities',label:'Activities',tools:['addActivity','instructionalCues','activityLibrary','forms']},
   {id:'slides',label:'Slides',tools:['importSlides','updateFromSlides']},
@@ -43,7 +43,7 @@ export const GUIDE_SECTIONS=Object.freeze([
   'guide-sec-module','guide-sec-lesson','guide-sec-block','guide-sec-owncues',
   'guide-sec-import','guide-sec-update',
   'guide-sec-look','guide-sec-standard','guide-sec-built',
-  'guide-sec-move','guide-sec-keeptidy','guide-sec-contents','guide-sec-library','guide-sec-agenda','guide-sec-forms','guide-sec-details','guide-sec-reference','guide-sec-layout','guide-sec-align','guide-sec-versions',
+  'guide-sec-move','guide-sec-keeptidy','guide-sec-contents','guide-sec-templates','guide-sec-library','guide-sec-agenda','guide-sec-forms','guide-sec-details','guide-sec-reference','guide-sec-layout','guide-sec-align','guide-sec-versions',
   'guide-sec-backup','guide-sec-restore'
 ]);
 
@@ -58,7 +58,7 @@ export const TOOLS=Object.freeze(Object.fromEntries([
     tip:'Add the standard pages a guide opens with, and the Appendix.',related:['openDesigner','appearance','generateMaterials']}),
   tool('addModule',{label:'Add Module',icon:'AddModule',group:'write',kind:'guide',part:'add',sections:['guide-sec-module'],selected:true,
     title:'Add a module',note:'A module goes after the module your cursor is in.',
-    tip:'Add a module with its title; the program numbers it and gives it a Transition block.',related:['addLesson','learningOutcomes','courseOutline']}),
+    tip:'Add a module with its title; the program numbers it and gives it a Transition block.',related:['addLesson','learningOutcomes','courseOutline','sessionTemplates']}),
   tool('addActivity',{label:'Add Activity',icon:'AddActivity',group:'write',kind:'guide',part:'add',sections:['guide-sec-block'],selected:true,preset:{cue:'activity',parts:true},
     title:'Add an activity',note:'An activity written as labelled parts.',
     tip:'Add a teaching activity with a Wrench instructional icon.',related:['addModule','instructionalCues','activityLibrary']}),
@@ -117,6 +117,9 @@ export const TOOLS=Object.freeze(Object.fromEntries([
 
 // The tools only the program has. They are not in the ribbon's list (TOOLS, TOOL_IDS and GROUPS stay the add-in's twenty-one in seven groups of three).
 export const PROGRAM_TOOLS=Object.freeze(Object.fromEntries([
+  tool('sessionTemplates',{label:'Session Templates',icon:'SessionTemplates',group:'start',kind:'guide',part:'add',sections:['guide-sec-templates'],selected:true,
+    title:'Session templates',note:'Ready-made lessons: preview one, then put a copy in your guide. Save a lesson of your own as a template.',
+    tip:'Browse ready-made sessions by purpose and length, preview the agenda and materials of one, put a copy of it into your guide as a lesson or a module, and save a lesson of your own as a template.',related:['addModule','addLesson','activityLibrary','timingAndAgenda']}),
   tool('addLesson',{label:'Add Lesson',icon:'AddLesson',group:'sections',kind:'guide',part:'add',sections:['guide-sec-lesson'],selected:true,
     title:'Add a lesson',note:'A lesson goes after the lesson your cursor is in.',
     tip:'Add a lesson with its title and minutes; the program numbers it and gives it a time line.',related:['addModule','learningOutcomes','instructionalCues','lessonDetails']}),
@@ -153,6 +156,7 @@ export const PROGRAM_NAMES=Object.freeze({
   openDesigner:'Guide overview',
   courseSettings:'Course settings',
   courseOutline:'Course outline',
+  sessionTemplates:'Session templates',
   addModule:'Add module',
   addLesson:'Add lesson',
   learningOutcomes:'Learning outcomes',

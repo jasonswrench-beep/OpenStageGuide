@@ -4,7 +4,7 @@
 //
 // Where the minutes come from: a block's own "(N min)" at the end of its first line, and each lesson's "Time:" line. A lesson that has
 // minutes on its blocks takes the sum of them (lessonMinutes), as the contents table and Training at a Glance do.
-import {readGuide,kindOf,cueFromText,lessonMinutes} from './guide-model.mjs';
+import {readGuide,readBlock,kindOf,cueFromText,lessonMinutes} from './guide-model.mjs';
 import {para,run,esc} from './guide-ooxml.mjs';
 import {NS,stylesPart} from './guide-styles.mjs';
 import {clockLabel} from './planning.mjs';
@@ -25,7 +25,9 @@ export function blocksOf(paras,lesson){
     let minutes=0;
     const m=BLOCK_MINUTES.exec(rest);
     if(m){minutes=Number(m[1]);rest=rest.slice(0,m.index).trim();}
-    out.push({index:i,cue:cue?cue.id:'',label:cue?cue.label:'Block',title:rest,minutes});
+    // An activity written as parts may say its phase (Open, Explore, Practice, Decide, Reflect, Close or Break): the agenda shows it next to the time.
+    const phase=cue&&cue.id==='activity'?String(readBlock(paras,i)?.parts?.phase||'').split('\n')[0].trim():'';
+    out.push({index:i,cue:cue?cue.id:'',label:cue?cue.label:'Block',title:rest,minutes,phase});
   }
   return out;
 }
@@ -61,7 +63,7 @@ export function guideAgenda(paras,start='09:00'){
       let t=first;
       for(const b of blocksOf(paras,l)){
         if(b.minutes<=0)continue;
-        rows.push({kind:'block',text:`${b.label}${b.title?`: ${b.title}`:''}`,cue:b.cue,index:b.index,start:clockLabel(t),end:clockLabel(t+b.minutes*60),minutes:b.minutes});
+        rows.push({kind:'block',text:`${b.label}${b.title?`: ${b.title}`:''}`,cue:b.cue,index:b.index,start:clockLabel(t),end:clockLabel(t+b.minutes*60),minutes:b.minutes,phase:b.phase||''});
         t+=b.minutes*60;
       }
       cursor=last;
@@ -80,17 +82,21 @@ export const agendaSummary=a=>a.lessons
 
 // ---- the agenda as a Word file: a table for each module (header row, repeated on each page), lessons in bold, timed blocks indented
 const W=[2300,5860,1200];
+// With a phase on any row, the table gains a Phase column (its words, never only a color, say what the phase is) and keeps its width.
+const W_PHASE=[2200,4300,1500,1360];
 const text=(t,bold=false)=>`<w:r>${bold?'<w:rPr><w:b/></w:rPr>':''}<w:t xml:space="preserve">${esc(t)}</w:t></w:r>`;
 const cell=(width,inner)=>`<w:tc><w:tcPr><w:tcW w:w="${width}" w:type="dxa"/></w:tcPr>${inner}</w:tc>`;
 const tr=(cells,header=false)=>`<w:tr><w:trPr><w:cantSplit/>${header?'<w:tblHeader/>':''}</w:trPr>${cells.join('')}</w:tr>`;
 const BORDER=['top','left','bottom','right','insideH','insideV'].map(s=>`<w:${s} w:val="single" w:sz="4" w:space="0" w:color="808080"/>`).join('');
+export const hasPhases=rows=>rows.some(r=>r.phase);
 function tableOf(rows){
-  const head=tr([cell(W[0],para(null,text('Time',true))),cell(W[1],para(null,text('What',true))),cell(W[2],para(null,text('Minutes',true)))],true);
+  const phased=hasPhases(rows),widths=phased?W_PHASE:W;
+  const head=tr([cell(widths[0],para(null,text('Time',true))),cell(widths[1],para(null,text('What',true))),...(phased?[cell(widths[2],para(null,text('Phase',true)))]:[]),cell(widths.at(-1),para(null,text('Minutes',true)))],true);
   const body=rows.map(r=>{
     const bold=r.kind==='lesson',indent=r.kind==='block'?'<w:ind w:left="360"/>':'';
-    return tr([cell(W[0],para(null,text(`${r.start} to ${r.end}`,bold))),cell(W[1],para(null,text(r.text,bold),indent)),cell(W[2],para(null,text(String(r.minutes),bold)))]);
+    return tr([cell(widths[0],para(null,text(`${r.start} to ${r.end}`,bold))),cell(widths[1],para(null,text(r.text,bold),indent)),...(phased?[cell(widths[2],para(null,text(r.phase||'',bold)))]:[]),cell(widths.at(-1),para(null,text(String(r.minutes),bold)))]);
   });
-  return `<w:tbl><w:tblPr><w:tblW w:w="${W.reduce((a,b)=>a+b)}" w:type="dxa"/><w:tblBorders>${BORDER}</w:tblBorders><w:tblLayout w:type="fixed"/></w:tblPr><w:tblGrid>${W.map(w=>`<w:gridCol w:w="${w}"/>`).join('')}</w:tblGrid>${head}${body.join('')}</w:tbl>`;
+  return `<w:tbl><w:tblPr><w:tblW w:w="${widths.reduce((a,b)=>a+b)}" w:type="dxa"/><w:tblBorders>${BORDER}</w:tblBorders><w:tblLayout w:type="fixed"/></w:tblPr><w:tblGrid>${widths.map(w=>`<w:gridCol w:w="${w}"/>`).join('')}</w:tblGrid>${head}${body.join('')}</w:tbl>`;
 }
 export function agendaFiles(a,{language='en-US'}={}){
   const body=[para('Title',run(`${a.title} - agenda`)),para(null,run(`${a.minutes} ${a.minutes===1?'minute':'minutes'} · ${a.start} to ${a.end}`))];

@@ -64,9 +64,10 @@ function activityParts(parts,ctx){
     const ls=lines(parts[p.id]);
     if(!ls.length)continue;
     const style=p.for==='facilitator'?STYLE_IDS.notes:STYLE_IDS.body;
-    // A part of several lines that are steps or items (instructions, materials, preparation) is a bulleted list under its label; the
-    // objective and the case study are prose, and a part of one line stays on its label's line (author, 2026-11-07: bullet the lists).
-    if(ls.length>1&&p.id!=='objective'&&p.id!=='caseStudy'){
+    // A part of several lines that are steps or items (instructions, materials, preparation) is a bulleted list under its label; a prose part
+    // (the objective, the case study, the output, the grouping, the phase) stays together, and a part of one line stays on its label's line
+    // (author, 2026-11-07: bullet the lists).
+    if(ls.length>1&&!p.prose){
       out.push(para(style,run(`${p.label}:`,STYLE_IDS.cueLabel),'<w:keepNext/>'));
       const list=++ctx.lists;
       (ctx.bullets||(ctx.bullets=new Set())).add(list);

@@ -171,7 +171,7 @@ test('Edit this block opens the parts filled in, Update block replaces the whole
   assert.equal(a.n('guide-activity-parts').checked,true);
   assert.equal(a.n('guide-activity-fields').hidden,false);
   assert.equal(a.n('guide-block-text').value,'Reframe in pairs');
-  for(const p of ACTIVITY_PARTS)assert.equal(a.n(`guide-act-${p.id}`).value,PARTS[p.id],p.id);
+  for(const p of ACTIVITY_PARTS)assert.equal(a.n(`guide-act-${p.id}`).value,PARTS[p.id]??'',p.id);
   assert.equal(a.n('guide-block-notes').value,'Walk the room.');
   assert.equal(a.n('guide-block-minutes').value,'8');
   a.type('guide-act-instructions','Pair up.\nSwap roles after three minutes.\nDebrief together.');

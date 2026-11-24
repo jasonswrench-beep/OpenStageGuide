@@ -155,14 +155,32 @@
 <div id="guide-activity-fields" hidden>
 <label for="guide-act-objective">Objective (optional)</label>
 <textarea id="guide-act-objective" rows="2"></textarea>
+<label for="guide-act-output">Expected output (optional)</label>
+<textarea id="guide-act-output" rows="2"></textarea>
+<label for="guide-act-grouping">Grouping (optional)</label>
+<textarea id="guide-act-grouping" rows="1"></textarea>
+<label for="guide-act-phase">Phase (optional, facilitator only)</label>
+<textarea id="guide-act-phase" rows="1"></textarea>
+<label for="guide-act-needs">Needs from earlier work (optional)</label>
+<textarea id="guide-act-needs" rows="2"></textarea>
 <label for="guide-act-materials">Materials (optional, facilitator only)</label>
 <textarea id="guide-act-materials" rows="2"></textarea>
 <label for="guide-act-preparation">Preparation (optional, facilitator only)</label>
 <textarea id="guide-act-preparation" rows="2"></textarea>
+<label for="guide-act-steps">Timed steps (optional, facilitator only), one to a line, such as 3 min: Hand out the cards</label>
+<textarea id="guide-act-steps" rows="3"></textarea>
 <label for="guide-act-instructions">Instructions, one step to a line</label>
 <textarea id="guide-act-instructions" rows="4"></textarea>
 <label for="guide-act-caseStudy">Case study (optional)</label>
 <textarea id="guide-act-caseStudy" rows="3"></textarea>
+<label for="guide-act-debrief">Debrief prompts (optional, facilitator only)</label>
+<textarea id="guide-act-debrief" rows="2"></textarea>
+<label for="guide-act-challenges">Likely challenges (optional, facilitator only)</label>
+<textarea id="guide-act-challenges" rows="2"></textarea>
+<label for="guide-act-access">Access options (optional, facilitator only)</label>
+<textarea id="guide-act-access" rows="2"></textarea>
+<label for="guide-act-source">Source (optional, facilitator only)</label>
+<textarea id="guide-act-source" rows="1"></textarea>
 </div>
 <label for="guide-block-notes">Facilitator notes (optional)</label>
 <textarea id="guide-block-notes" rows="2"></textarea>
@@ -191,11 +209,66 @@
 <p id="guide-own-note" class="hint" role="status" aria-live="polite"></p>
 </details>
 </div>
+<div id="guide-sec-templates">
+<h2 id="guide-tpl-heading">Session templates</h2>
+<p class="hint">A session template is a ready-made lesson: its activities and minutes, its materials and what the group leaves with. Preview reads it without changing anything. Apply writes a copy into your guide; the template itself never changes.</p>
+<label for="guide-tpl-find">Find a template</label>
+<input id="guide-tpl-find" type="search" autocomplete="off" aria-controls="guide-tpl-list">
+<div class="guide-row2"><div><label for="guide-tpl-family">What it is for</label>
+<select id="guide-tpl-family"></select></div>
+<div><label for="guide-tpl-band">How long</label>
+<select id="guide-tpl-band"></select></div></div>
+<label for="guide-tpl-pack">Which set</label>
+<select id="guide-tpl-pack"></select>
+<p id="guide-tpl-count" class="hint" role="status" aria-live="polite"></p>
+<ul id="guide-tpl-list" class="guide-lib-list"></ul>
+<section id="guide-tpl-preview" aria-labelledby="guide-tpl-preview-title" hidden>
+<h3 id="guide-tpl-preview-title" tabindex="-1"></h3>
+<p id="guide-tpl-preview-meta" class="hint"></p>
+<div id="guide-tpl-preview-facts"></div>
+<table id="guide-tpl-preview-table" class="guide-agenda-table">
+<caption>Agenda</caption>
+<thead><tr><th scope="col">Time</th><th scope="col">Activity</th><th scope="col">Phase</th><th scope="col">Min.</th><th scope="col">What it makes</th></tr></thead>
+<tbody id="guide-tpl-preview-body"></tbody>
+</table>
+<form id="guide-tpl-apply-form">
+<fieldset><legend>Put a copy in the guide</legend>
+<label class="guide-check" for="guide-tpl-where-here"><input id="guide-tpl-where-here" type="radio" name="guide-tpl-where" value="here" checked> As a new lesson in the module my cursor is in</label>
+<label class="guide-check" for="guide-tpl-where-new"><input id="guide-tpl-where-new" type="radio" name="guide-tpl-where" value="new"> As a new module</label>
+<p id="guide-tpl-where-note" class="hint" role="status" aria-live="polite"></p>
+<label for="guide-tpl-title">Title of the session</label>
+<input id="guide-tpl-title" type="text" autocomplete="off">
+<label for="guide-tpl-audience">Who it is for (optional)</label>
+<input id="guide-tpl-audience" type="text" autocomplete="off">
+<label for="guide-tpl-start">Start time (optional, such as 9:00)</label>
+<input id="guide-tpl-start" type="text" inputmode="numeric" autocomplete="off">
+<p class="hint">A start time makes the session begin its own day on the agenda. You can keep the suggested minutes or change them in the guide afterward.</p>
+</fieldset>
+<div class="guide-actions"><button id="guide-tpl-apply" type="submit" class="primary">Apply template</button><button id="guide-tpl-close" type="button">Close preview</button></div>
+</form>
+</section>
+<h3 id="guide-tpl-mine-heading">Your templates</h3>
+<p id="guide-tpl-mine-note" class="hint">Put your cursor in a lesson, give the template a name and choose Save. It keeps the lesson's activities, steps and prompts, and is kept on this computer for every guide you open.</p>
+<label for="guide-tpl-name">Name of the template</label>
+<input id="guide-tpl-name" type="text" autocomplete="off">
+<label class="guide-check" for="guide-tpl-keep-examples"><input id="guide-tpl-keep-examples" type="checkbox"> Keep the case studies (they may name people)</label>
+<label class="guide-check" for="guide-tpl-keep-notes"><input id="guide-tpl-keep-notes" type="checkbox"> Keep the facilitator's notes (they may name people)</label>
+<button id="guide-tpl-save" type="button">Save the lesson my cursor is in as a template</button>
+<ul id="guide-tpl-mine" class="guide-lib-list"></ul>
+<details id="guide-tpl-ai"><summary>Suggest changes with an AI helper</summary>
+<p id="guide-tpl-ai-note" class="hint">No AI helper is set up in this program, so nothing here is sent anywhere. Everything above works without one. When a helper is added, its suggestions will be shown here to accept, edit or discard, and a failure will leave your session as it is.</p>
+</details>
+</div>
 <div id="guide-sec-library">
 <h2 id="guide-lib-heading">Activity library</h2>
-<p class="hint">Choose an activity and it goes into your guide after the block your cursor is in, written as labelled parts: objective, materials, preparation, instructions and, if it uses one, a case study. Change the words afterward, in the guide or with Edit.</p>
-<label for="guide-lib-find">Find an activity</label>
+<p class="hint">Choose an activity and it goes into your guide after the block your cursor is in, written as labelled parts: objective, materials, preparation, instructions and, if it uses one, a case study. The ready-made ones also have a phase, timed steps, the output, debrief prompts and ways to adapt them. Change the words afterward, in the guide or with Edit.</p>
+<label for="guide-lib-find">Find an activity (a name, a method or what it makes)</label>
 <input id="guide-lib-find" type="search" autocomplete="off" aria-controls="guide-lib-list">
+<div class="guide-row2"><div><label for="guide-lib-phase">Phase</label>
+<select id="guide-lib-phase"></select></div>
+<div><label for="guide-lib-mode">How people work</label>
+<select id="guide-lib-mode"></select></div></div>
+<p id="guide-lib-dest" class="hint" role="status" aria-live="polite"></p>
 <p id="guide-lib-count" class="hint" role="status" aria-live="polite"></p>
 <ul id="guide-lib-list" class="guide-lib-list"></ul>
 <h3 id="guide-lib-mine-heading">Your activities</h3>
@@ -338,7 +411,7 @@
 </fieldset>
 <table id="guide-agenda-table" class="guide-agenda-table" hidden>
 <caption>Agenda</caption>
-<thead><tr><th scope="col">Time</th><th scope="col">What</th><th scope="col">Min.</th></tr></thead>
+<thead><tr><th scope="col">Time</th><th scope="col">What</th><th scope="col" id="guide-agenda-phase-head" hidden>Phase</th><th scope="col">Min.</th></tr></thead>
 <tbody id="guide-agenda-body"></tbody>
 </table>
 <ul id="guide-agenda-notes" class="guide-issues"></ul>

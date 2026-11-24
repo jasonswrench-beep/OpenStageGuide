@@ -31,6 +31,7 @@ export const TOOL_ICONS = {
   openDesigner: "layout-dashboard",
   courseSettings: "settings",
   courseOutline: "list-tree",
+  sessionTemplates: "layout-dashboard",
   addModule: "square-plus",
   addLesson: "list-plus",
   learningOutcomes: "goal",

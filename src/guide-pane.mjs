@@ -25,14 +25,18 @@ import {GUIDE_LOOKS,cleanLook,parseLook,resolveGuideLook,lookSpecs,headerPackage
 import {screensOf,narrationStats,elearningIssues,screenBlocks,scriptText,scriptFiles,scriptFileName,WORDS_PER_MINUTE} from './guide-elearning.mjs';
 import {authorProject,authorZipName} from './guide-author.mjs';
 import {toolFor,GUIDE_SECTIONS} from './guide-tools.mjs';
-import {guideAgenda,agendaSummary,agendaFiles,agendaFileName,START_TIME} from './guide-agenda.mjs';
+import {guideAgenda,agendaSummary,agendaFiles,agendaFileName,hasPhases,START_TIME} from './guide-agenda.mjs';
 import {alignment,alignmentSummary} from './guide-alignment.mjs';
 import {readVersions,writeVersions,lessonList,lessonKey,newVersion,toggleLesson,moveLesson,versionAgenda,versionSummary,parseTarget} from './guide-versions.mjs';
 import {STARTER_ACTIVITIES,STORE_KEY as LIBRARY_KEY,blockFromEntry,entryFromBlock,cleanMine,addMine,removeMine,matches as libraryMatches} from './activity-library.mjs';
 import {AGENDA_START_KEY,LOOK_KEY} from './program-settings.mjs';
+import {CATALOG_ENTRIES} from './session-text.mjs';
+import {PHASES} from './session-catalog.mjs';
+import {destinationText} from './session-templates.mjs';
+import {mountTemplatesTool} from './guide-pane-templates.mjs';
 import {fingerprint,notesPrint,readMemory,writeMemory,recordFor,remember,slideBlocksIn,labelOf,planSlideUpdate,planSummary,operations,entriesAfter} from './slides-sync.mjs';
 
-const BUSY_IDS=['guide-leave-block','guide-bk-save','guide-bk-open','guide-upd-choose','guide-upd-which','guide-upd-all','guide-upd-none','guide-upd-go','guide-help-sample','guide-tab-guide','guide-tab-assess','guide-tab-workbook','guide-workbook-go','guide-sec-level-one','guide-sec-level-two','guide-sec-level-three','guide-item-go','guide-paste-go','guide-bank-go','guide-item-cancel','guide-item-start-two','guide-assess-edit','guide-retry','guide-start-go','guide-sample','guide-add-module','guide-add-lesson','guide-lib-save','guide-agenda-refresh','guide-agenda-download','guide-align-refresh','guide-ver-new','guide-ver-make','guide-block-go','guide-block-cancel','guide-update','guide-build-glance','guide-build-cues','guide-build-overview','guide-open-review','guide-refresh','guide-review-run','guide-review-back','guide-review-pdf','guide-edit-selected','guide-edit-save','guide-edit-cancel','guide-move-up','guide-move-down','guide-delete','guide-delete-yes','guide-delete-no','guide-add-standard','guide-add-appendix','guide-own-save','guide-pic-choose','guide-slides-choose','guide-slides-all','guide-slides-none','guide-slides-go','guide-look-apply','guide-el-add','guide-el-script','guide-el-text','guide-el-author'];
+const BUSY_IDS=['guide-leave-block','guide-bk-save','guide-bk-open','guide-upd-choose','guide-upd-which','guide-upd-all','guide-upd-none','guide-upd-go','guide-help-sample','guide-tab-guide','guide-tab-assess','guide-tab-workbook','guide-workbook-go','guide-sec-level-one','guide-sec-level-two','guide-sec-level-three','guide-item-go','guide-paste-go','guide-bank-go','guide-item-cancel','guide-item-start-two','guide-assess-edit','guide-retry','guide-start-go','guide-sample','guide-add-module','guide-add-lesson','guide-lib-save','guide-agenda-refresh','guide-agenda-download','guide-align-refresh','guide-ver-new','guide-ver-make','guide-tpl-apply','guide-tpl-save','guide-block-go','guide-block-cancel','guide-update','guide-build-glance','guide-build-cues','guide-build-overview','guide-open-review','guide-refresh','guide-review-run','guide-review-back','guide-review-pdf','guide-edit-selected','guide-edit-save','guide-edit-cancel','guide-move-up','guide-move-down','guide-delete','guide-delete-yes','guide-delete-no','guide-add-standard','guide-add-appendix','guide-own-save','guide-pic-choose','guide-slides-choose','guide-slides-all','guide-slides-none','guide-slides-go','guide-look-apply','guide-el-add','guide-el-script','guide-el-text','guide-el-author'];
 // What only a person can check. Review guide has the first; Accessibility (the document's own checks) has the other two.
 const CHECK_YOURSELF=[
   'Does each cue read sensibly when spoken aloud?'
@@ -72,6 +76,7 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
   let tool=null;
   let queuedTool=null,busyIsSlow=false;
   let layoutDirty=false,layoutLoop=null; // the Layout tool: a choice waits to be kept (layoutDirty) and the loop that keeps them (layoutLoop)
+  let templates=null; // the Session templates tool (guide-pane-templates.mjs), mounted at the end
   let formSettings=readFormSettings(null),busy=false,plan=null,contents={present:false,stale:false},paras=[],at=-1,mode='start',selectedCue='say',connected=false,editing=null,pinned=false,contentsSig='',waiting=false,pendingDelete=null,lastOwn='',pictureReady=null;
 
   const status=text=>{$('guide-error').hidden=true;$('guide-error').textContent='';$('guide-status').textContent=text;};
@@ -150,7 +155,7 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
     $('guide-sec-selected').hidden=guide&&!t.selected;
     // A piece whose own heading says what the strip above already says (Add a module or lesson, E-Learning screens, Update from slides)
     // leaves the saying to the strip, so a screen reader does not read the same heading twice.
-    for(const id of ['guide-module-heading','guide-lesson-heading','guide-el-heading','guide-upd-heading','guide-lib-heading','guide-agenda-heading','guide-forms-heading','guide-details-heading','guide-reference-heading','guide-layout-heading','guide-align-heading','guide-ver-heading','guide-bk-heading','guide-rs-heading']){
+    for(const id of ['guide-module-heading','guide-lesson-heading','guide-el-heading','guide-upd-heading','guide-tpl-heading','guide-lib-heading','guide-agenda-heading','guide-forms-heading','guide-details-heading','guide-reference-heading','guide-layout-heading','guide-align-heading','guide-ver-heading','guide-bk-heading','guide-rs-heading']){
       const heading=$(id);
       if(heading)heading.hidden=!!t&&clean(heading.textContent).toLowerCase()===t.title.toLowerCase();
     }
@@ -614,8 +619,12 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
       bullets.replaceChildren(...rows.map(x=>{const step=doc.createElement('li');step.textContent=x;return step;}));
       inside.append(bullets);
     };
-    part('Objective',e.objective);part('Materials',e.materials,{facilitator:true});part('Preparation',e.preparation,{facilitator:true});
-    part('Instructions',e.instructions,{list:true});part('Case study',e.caseStudy);part('Facilitator notes',e.notes,{facilitator:false});
+    // The parts a ready-made session activity has besides the original five: shown in the order the block is written in, each with its own list or prose and its audience.
+    const extra=ids=>{for(const id of ids){const p=ACTIVITY_PARTS.find(x=>x.id===id);part(p.label,e[id],{list:!p.prose,facilitator:p.for==='facilitator'});}};
+    part('Objective',e.objective);extra(['output','grouping','phase','needs']);
+    part('Materials',e.materials,{facilitator:true});part('Preparation',e.preparation,{facilitator:true});extra(['steps']);
+    part('Instructions',e.instructions,{list:true});part('Case study',e.caseStudy);extra(['debrief','challenges','access','source']);
+    part('Facilitator notes',e.notes,{facilitator:false});
     details.append(sum,inside);
     const buttons=doc.createElement('div'),insert=doc.createElement('button');
     buttons.className='guide-actions';
@@ -632,12 +641,23 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
     li.append(title,summary,details,buttons);
     return li;
   }
+  // The ready-made activities: the starters, and the ones of the session catalog (which have a phase, a mode, timed steps and the rest).
+  const READY_ACTIVITIES=[...STARTER_ACTIVITIES,...CATALOG_ENTRIES];
+  function fillLibraryFilters(){
+    const option=(value,label)=>{const o=doc.createElement('option');o.value=value;o.textContent=label;return o;};
+    $('guide-lib-phase').replaceChildren(option('','Any phase'),...PHASES.map(p=>option(p,p)));
+    $('guide-lib-mode').replaceChildren(option('','Any way of working'),...MODES.map(m=>option(m,m)));
+  }
   function drawLibrary(){
-    const q=$('guide-lib-find').value,ready=STARTER_ACTIVITIES.filter(e=>libraryMatches(e,q)),own=mine.filter(e=>libraryMatches(e,q));
+    const q=$('guide-lib-find').value,phase=$('guide-lib-phase').value,how=$('guide-lib-mode').value,filtered=!!(q.trim()||phase||how);
+    // A phase or a way of working belongs to the catalog's activities; the plain starters and your own have neither, so they are left out when one is chosen.
+    const fits=e=>libraryMatches(e,q)&&(!phase||e.phase===phase)&&(!how||e.mode===how);
+    const ready=READY_ACTIVITIES.filter(fits),own=mine.filter(e=>!phase&&!how&&libraryMatches(e,q));
     $('guide-lib-list').replaceChildren(...ready.map(e=>libraryItem(e,false)));
     $('guide-lib-mine').replaceChildren(...own.map(e=>libraryItem(e,true)));
     const activities=n=>`${n} ${n===1?'activity':'activities'}`;
-    $('guide-lib-count').textContent=q.trim()?`${activities(ready.length+own.length)} found.`:`${activities(STARTER_ACTIVITIES.length)} ready to use${mine.length?`, and ${mine.length} of your own`:''}.`;
+    $('guide-lib-count').textContent=filtered?`${activities(ready.length+own.length)} found.`:`${activities(READY_ACTIVITIES.length)} ready to use${mine.length?`, and ${mine.length} of your own`:''}.`;
+    $('guide-lib-dest').textContent=destinationText(paras,at);
     $('guide-lib-mine-heading').hidden=false;
     $('guide-lib-mine-note').textContent=mine.length?'Your own activities are kept on this computer and are here in every guide you open. To change one, insert it, edit it in the guide, and save it again with the same title.'
       :'You have not saved any yet. Put your cursor in an Activity you wrote, then choose Save. It is kept on this computer and is here in every guide you open.';
@@ -671,12 +691,13 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
   let agendaShown='',versions=[],chosenVersion='',confirmingDelete=false;
   const cellOf=(tag,text,scope)=>{const c=doc.createElement(tag);c.textContent=text;if(scope)c.setAttribute('scope',scope);return c;};
   const listItem=text=>{const li=doc.createElement('li');li.textContent=text;return li;};
-  function agendaRowsInto(body,rows){
+  // `phases` adds a Phase column (its own head cell is in the page): the words of an activity's phase, never only a color.
+  function agendaRowsInto(body,rows,{phases=false}={}){
     body.replaceChildren(...rows.map(r=>{
       const tr=doc.createElement('tr');
-      if(r.kind==='module'||r.kind==='day'){tr.className='guide-agenda-module';const th=cellOf('th',r.text,'rowgroup');th.setAttribute('colspan','3');tr.append(th);return tr;}
+      if(r.kind==='module'||r.kind==='day'){tr.className='guide-agenda-module';const th=cellOf('th',r.text,'rowgroup');th.setAttribute('colspan',phases?'4':'3');tr.append(th);return tr;}
       tr.className=r.kind==='lesson'?'guide-agenda-lesson':'guide-agenda-block';
-      tr.append(cellOf('td',`${r.start} to ${r.end}`),cellOf('td',r.text),cellOf('td',String(r.minutes)));
+      tr.append(cellOf('td',`${r.start} to ${r.end}`),cellOf('td',r.text),...(phases?[cellOf('td',r.phase||'')]:[]),cellOf('td',String(r.minutes)));
       return tr;
     }));
   }
@@ -698,7 +719,9 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
     $('guide-agenda-summary').textContent=agendaSummary(a);
     drawLength(a.minutes);
     $('guide-agenda-table').hidden=!a.lessons;
-    agendaRowsInto($('guide-agenda-body'),a.rows);
+    const phases=hasPhases(a.rows);
+    $('guide-agenda-phase-head').hidden=!phases;
+    agendaRowsInto($('guide-agenda-body'),a.rows,{phases});
     $('guide-agenda-notes').replaceChildren(...a.notes.map(n=>listItem(n.text)));
     try{storage?.setItem(AGENDA_START_KEY,start);}catch{/* the start time is just not remembered */}
   }
@@ -1105,6 +1128,8 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
   async function paintPlanning(){
     try{
       if(tool==='timingAndAgenda')drawAgenda();
+      else if(tool==='sessionTemplates')templates?.draw();
+      else if(tool==='activityLibrary')drawLibrary();
       else if(tool==='forms')drawForms();
       else if(tool==='lessonDetails')drawDetails();
       else if(tool==='referencePages')drawReference();
@@ -2232,8 +2257,11 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
   $('guide-ver-make').onclick=()=>act(makeVersionAgenda);
   try{const saved=storage?.getItem(AGENDA_START_KEY);if(START_TIME.test(saved||''))$('guide-agenda-start').value=saved;}catch{/* the usual 09:00 */}
   $('guide-lib-find').oninput=drawLibrary;
+  $('guide-lib-phase').onchange=drawLibrary;$('guide-lib-mode').onchange=drawLibrary;
   $('guide-lib-save').onclick=()=>act(saveToLibrary);
-  loadMine();drawLibrary();
+  fillLibraryFilters();loadMine();drawLibrary();
+  // The Session templates tool is drawn by its own module, which is handed what the pane already has.
+  templates=mountTemplatesTool({doc,$,adapter,act,status,state:()=>({paras,at}),keepOpen,load,tidy,undo:UNDO,storage,focus});
   // The buttons are disabled while an action runs, so focus returns to the one pressed only once it has finished.
   $('guide-add-standard').onclick=async()=>{await act(addStandardPages);focus('guide-add-standard');};
   $('guide-add-appendix').onclick=async()=>{await act(addAppendix);focus('guide-add-appendix');};
