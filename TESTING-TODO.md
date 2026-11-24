@@ -46,7 +46,7 @@ computer's presentation program) is there too; what is below needs a person.
   pre-release) with the signed setup and its checksum, downloaded again without signing in (same SHA-256, valid timestamped signature). Its page says what was not checked: the unpacked setup was not driven by the browser
   checks and its signed window was not started. The checks of "Alpha 11" above are still yours.
 - [x] **Alpha 10 is pushed and published** (2026-11-16): `main` is on GitHub, the tag is `v0.1.0-alpha.10`, and the release is a plain release (not marked pre-release) with the signed setup and its checksum.
-  Alpha 9 was built but never published; its fixes are in alpha 10 (`C:\Dev\OpenStageGuide-a9` and its branch `alpha9-fixes` are the other session's and were left alone). How it was built and checked is
+  Alpha 9 was built but never published; its fixes are in alpha 10 (the other session's worktree and its branch `alpha9-fixes` were left alone). How it was built and checked is
   in section 10 of `docs/BUILD-STATUS-CHECKLIST-2026-11-15.md` and in `shell/README.md`.
 - Nothing is waiting to be pushed or released. The checks below are held for later (2026-11-16): none of them blocks this stage, and each one found wrong is a fix for the next alpha.
 

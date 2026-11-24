@@ -23,7 +23,7 @@ and when the desk is left, and travel with a backup, a restore and **Make a new 
 ## Checks
 
 - Unit tests for each module (`tests/design-*.test.mjs`, `tests/prm-client.test.mjs`): the Bloom verbs and checks, the notes, the models and their citations, the maps, the storyboard's four outputs, the evaluation file, the client of Prism Reference Manager against a stand-in.
-- **The files are held to the other tools' own checks**: the Author skeleton passes Author's `tools/validate.py` with 0 errors (runs when Author is at `C:\Dev\openstage-author`, or `OPENSTAGE_AUTHOR_VALIDATOR`); the Scroll course passes OpenScroll's published `course-v3.schema.json` (opt-in: `OPENSCROLL_SCHEMA` and `OPENSCROLL_AJV_DIR`; it passed); both `.pstat` files pass `checkPstat` of `@openstage/pstat` 1.2.0.
+- **The files are held to the other tools' own checks**: the Author skeleton passes Author's `tools/validate.py` with 0 errors (runs when `OPENSTAGE_AUTHOR_VALIDATOR` names its `validate.py`); the Scroll course passes OpenScroll's published `course-v3.schema.json` (opt-in: `OPENSCROLL_SCHEMA` and `OPENSCROLL_AJV_DIR`; it passed); both `.pstat` files pass `checkPstat` of `@openstage/pstat` 1.2.0.
 - `npm run check:design` is a browser check of the desk: the menu, the screens, what is kept in the project file, back to the guide, the files it makes, a new guide from the storyboard.
 
 ## What the core does not offer yet

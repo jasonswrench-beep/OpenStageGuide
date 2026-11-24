@@ -104,7 +104,7 @@ test('the pane sends the storyboard as a zip that opens as an OpenStage Author p
 });
 
 // The author's own validator is the real test of the format. It lives in another project (OpenStage Author, tools/validate.py), so this runs
-// only when OPENSTAGE_AUTHOR_VALIDATOR names that file, or when Author is in its usual place on the author's PC (C:\Dev\openstage-author).
+// only when OPENSTAGE_AUTHOR_VALIDATOR names that file.
 // (tests/helpers/author-validator.mjs: when Author's working copy has moved ahead of the version it published, it says so and this test is skipped; any other finding fails it.)
 test('the project passes OpenStage Author\'s own validator with no errors',{skip:SKIP_WITHOUT},async t=>{
   const dir=fs.mkdtempSync(path.join(os.tmpdir(),'osg-author-'));

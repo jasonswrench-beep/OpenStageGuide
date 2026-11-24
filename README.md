@@ -38,7 +38,7 @@ npm run check:sessions
 
 After changing the list of icons in `program/icons.json`, rebuild `program/ui/ui-icons.js` with `npm run icons -- --lucide <path to OpenStage Author's editor/web/icons/lucide.json>`.
 
-One test is skipped unless `OPENSTAGE_AUTHOR_VALIDATOR` names the `validate.py` of OpenStage Author, or Author is in its usual place on the author's PC (`C:\Dev\openstage-author`): the project file Guide makes for e-learning (schema 0.49.0, Author's current format) is checked against that program's own validator.
+One test is skipped unless `OPENSTAGE_AUTHOR_VALIDATOR` names the `validate.py` of OpenStage Author: the project file Guide makes for e-learning (schema 0.49.0, Author's current format) is checked against that program's own validator.
 
 ## What is where
 

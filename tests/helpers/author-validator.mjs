@@ -5,11 +5,10 @@
 // that a project "was made with an older version and needs updating" (rule needs-migration) and checks nothing else. That is not a fault in what Guide writes: Guide writes the
 // version Author last published, and Author's editor offers to update such a project when it is opened. `staleOnly` says that is the only thing the validator found, so a test can
 // say so and skip, and still fail for any other finding.
-import fs from 'node:fs';
 import {spawnSync} from 'node:child_process';
 import path from 'node:path';
 
-export const VALIDATOR=process.env.OPENSTAGE_AUTHOR_VALIDATOR||['C:/Dev/openstage-author/tools/validate.py'].find(f=>fs.existsSync(f))||'';
+export const VALIDATOR=process.env.OPENSTAGE_AUTHOR_VALIDATOR||'';
 export const SKIP_WITHOUT=!VALIDATOR&&'set OPENSTAGE_AUTHOR_VALIDATOR to the OpenStage Author validate.py to run this';
 
 /** Run the validator on a project folder. @returns {{status:number|null,stdout:string,stderr:string,staleOnly:boolean,newerVersion:string}} */
