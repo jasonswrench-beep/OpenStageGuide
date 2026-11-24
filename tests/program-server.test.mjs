@@ -17,7 +17,8 @@ async function withServer(fn,{existing={},start={}}={}){
   const dir=fs.mkdtempSync(path.join(os.tmpdir(),'osg-program-'));
   const folder=path.join(dir,'My guides');
   if(Object.keys(existing).length){fs.mkdirSync(folder);for(const [n,t] of Object.entries(existing))fs.writeFileSync(path.join(folder,n),t);}
-  const s=await startProjectServer({folder,port:0,snapshot,...start});
+  // (Its own data folder: a test never touches the real one.)
+  const s=await startProjectServer({folder,port:0,snapshot,dataFolder:path.join(dir,'Data'),...start});
   // The page of the program holds the token the program gave it when it opened or made a guide, and sends it with every read and save of the
   // guide. The helper does the same unless a test says otherwise (an explicit X-Guide-Token header, or none, wins).
   let token=null;

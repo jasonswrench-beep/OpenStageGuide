@@ -195,10 +195,10 @@ function post(port,urlPath,body){
     req.on('error',reject);req.write(data);req.end();
   });
 }
-test('POST /api/prm answers the desk\'s Reference Manager actions, with the token kept beside the guides and out of the answer',async()=>{
+test('POST /api/prm answers the desk\'s Reference Manager actions, with the token kept in the data folder and out of the answer',async()=>{
   const ps=await standIn({approveAfter:0});
   const dir=fs.mkdtempSync(path.join(os.tmpdir(),'osg-prm-server-'));
-  const server=await startProjectServer({folder:path.join(dir,'guides'),port:0,snapshot:{version:'0-test',buildId:'test-build',record:{},read:()=>null}});
+  const server=await startProjectServer({folder:path.join(dir,'guides'),port:0,snapshot:{version:'0-test',buildId:'test-build',record:{},read:()=>null},dataFolder:path.join(dir,'data')});
   try{
     const none=await post(server.port,'/api/prm',{action:'status'});
     assert.equal(none.status,200);
@@ -208,8 +208,9 @@ test('POST /api/prm answers the desk\'s Reference Manager actions, with the toke
     const done=await post(server.port,'/api/prm',{action:'status'});
     assert.equal(JSON.parse(done.body).state,'connected');
     assert.ok(!done.body.includes('prm_secret'));
-    const file=path.join(dir,'guides','OpenStage Guide Reference Manager.json');
+    const file=path.join(dir,'data','OpenStage Guide Reference Manager.json');
     assert.equal(JSON.parse(fs.readFileSync(file,'utf8')).token,'prm_secret');
+    assert.equal(fs.existsSync(path.join(dir,'guides','OpenStage Guide Reference Manager.json')),false,'not among the guides');
     const cited=JSON.parse((await post(server.port,'/api/prm',{action:'cite',source:'merrill2002'})).body);
     assert.deepEqual([cited.ok,cited.inText],[true,'(Merrill, 2002)']);
     assert.equal((await post(server.port,'/api/prm',{action:'forget'})).status,200);

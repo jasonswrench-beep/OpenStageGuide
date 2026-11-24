@@ -1,7 +1,9 @@
 // The program's connection to Prism Reference Manager, kept on the server side (a web page cannot call it, and the token it is given is never shown to the page).
 // One action at a time, from the design desk's Models screen: status, connect (ask to be paired; the person chooses Allow in Prism Reference Manager's window), cite (the
-// citation of a source of the catalogue) and forget. The port and the token are kept in a file beside the guides, `OpenStage Guide Reference Manager.json`: what the person
-// allowed, and nothing else. A token that Prism Reference Manager no longer knows (the person removed the program there) is dropped, with a message that says so.
+// citation of a source of the catalogue) and forget. The port and the token are kept in a file in the program's own data folder, `OpenStage Guide Reference Manager.json`
+// (never in the guides folder, which people copy, sync and send to others): what the person allowed, and nothing else. A token that Prism Reference Manager no longer
+// knows (the person removed the program there) is dropped, with a message that says so, and so is a file whose port is not a port. Earlier releases kept the file in the
+// guides folder: it is moved to the data folder the first time the program starts, and the old copy is deleted.
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import {SOURCES} from '../src/design-models.mjs';
@@ -9,16 +11,43 @@ import {PrmError,cleanPort,probe,startPairing,pollPairing,call,citeSource,PRM_DE
 
 export const PRM_FILE='OpenStage Guide Reference Manager.json';
 
-/** @param {{file:string, fetch?:typeof fetch, read?:(f:string)=>Promise<string>, write?:(f:string,t:string)=>Promise<void>, remove?:(f:string)=>Promise<void>}} deps */
-export function createPrmLink({file,fetch=globalThis.fetch,read=f=>fs.readFile(f,'utf8'),write=async(f,t)=>{await fs.mkdir(path.dirname(f),{recursive:true});await fs.writeFile(f,t,{encoding:'utf8',mode:0o600});},remove=f=>fs.rm(f,{force:true})}){
+/** What a kept file holds, when it is a connection that can still be used: its port (one Prism Reference Manager could be on) and its token. Otherwise null. @param {string} text */
+function keptFrom(text){
+  try{
+    const o=JSON.parse(text);
+    if(!o||typeof o.token!=='string'||!o.token||!Number.isInteger(o.port))return null;
+    cleanPort(o.port);
+    return {port:o.port,token:o.token};
+  }catch{return null;}
+}
+const isJson=text=>{try{JSON.parse(text);return true;}catch{return false;}};
+
+/** @param {{file:string, legacyFile?:string, fetch?:typeof fetch, read?:(f:string)=>Promise<string>, write?:(f:string,t:string)=>Promise<void>, remove?:(f:string)=>Promise<void>}} deps `file` is where the connection is kept (in the program's data folder); `legacyFile` is where earlier releases kept it (in the guides folder). */
+export function createPrmLink({file,legacyFile,fetch=globalThis.fetch,read=f=>fs.readFile(f,'utf8'),write=async(f,t)=>{await fs.mkdir(path.dirname(f),{recursive:true});await fs.writeFile(f,t,{encoding:'utf8',mode:0o600});},remove=f=>fs.rm(f,{force:true})}){
   let pairing=null;   // {id, port}: a request that waits for the person's Allow
   let busy=false;
+  let moving=null;
+  /** Moves a connection kept in the guides folder to the data folder, once, and deletes the old file. One that could not be written is left, and tried again at the next start. */
+  function migrate(){
+    moving??=(async()=>{
+      if(!legacyFile||legacyFile===file)return;
+      let old;
+      try{old=await read(legacyFile);}catch{return;}   // nothing there
+      let there=false;
+      try{await read(file);there=true;}catch{/* none yet */}
+      const kept=there?null:keptFrom(old);
+      if(kept){try{await write(file,JSON.stringify(kept));}catch{return;}}
+      await remove(legacyFile);
+    })().catch(()=>{});
+    return moving;
+  }
   async function load(){
-    try{
-      const o=JSON.parse(await read(file));
-      if(o&&typeof o.token==='string'&&o.token&&Number.isInteger(o.port))return {port:o.port,token:o.token};
-    }catch{/* nothing kept, or not readable: not connected */}
-    return null;
+    let text;
+    try{text=await read(file);}catch{return null;}   // nothing kept, or not readable: not connected
+    const kept=keptFrom(text);
+    // A file that says something else than a connection (a port of 0 or 70000, no token) is not kept; one that is not whole yet is left alone.
+    if(!kept&&isJson(text)){try{await remove(file);}catch{/* it stays; it is not used */}}
+    return kept;
   }
   const state=(s,extra={})=>({ok:true,state:s,...extra});
   const fail=(e,extra={})=>({ok:false,message:e instanceof PrmError?e.message:'The connection to Prism Reference Manager failed.',code:e instanceof PrmError?e.code:'error',...extra});
@@ -71,11 +100,13 @@ export function createPrmLink({file,fetch=globalThis.fetch,read=f=>fs.readFile(f
   }
 
   return {
+    migrate,
     /** One action of the desk's Models screen. @param {{action?:string, port?:unknown, source?:unknown, style?:unknown}} body */
     async handle(body){
       if(busy)return {ok:false,message:'Prism Reference Manager is being asked something already. Wait a moment.',code:'busy'};
       busy=true;
       try{
+        await migrate();
         switch(body?.action){
           case 'status':return await status();
           case 'connect':return await connect(body);

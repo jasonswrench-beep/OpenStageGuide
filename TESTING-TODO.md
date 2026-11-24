@@ -92,4 +92,4 @@ computer's PowerPoint) is there too; what is below needs a person.
   constant (`AUTHOR_SCHEMA_VERSION` in `src/guide-author.mjs`) and a look at what the new version asks.
 - Running the whole automatic suite at once, one test of `guide-lesson-details` failed once while another session was changing the same working folder, and passes by itself (17 of 17). I think it was that.
 - Rows added to the guide with Insert > Block come with no words. The Review warns of a block with no words (BLOCK-EMPTY); it does not stop anything.
-- The Reference Manager port has to be told (23119 unless changed): it has no way to be found. The token is kept in `OpenStage Guide Reference Manager.json` beside your guides, and is not shown to the page.
+- The Reference Manager port has to be told (23119 unless changed): it has no way to be found. The token is kept in `OpenStage Guide Reference Manager.json` in the program's own data folder (`%APPDATA%\org.openstage.guide`), not among your guides, and is not shown to the page. A file that alpha 11 or earlier left in the guides folder is moved there the first time the program starts, and the old copy is deleted.

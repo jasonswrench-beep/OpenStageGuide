@@ -22,7 +22,7 @@ const PORT=3856,BASE=`http://127.0.0.1:${PORT}`;
 let pass=0,fail=0;
 const ok=(cond,what)=>{if(cond){pass++;console.log('PASS',what);}else{fail++;console.log('FAIL',what);}};
 
-const server=spawn(process.execPath,['scripts/project-server.mjs','--folder',GUIDES,'--port',String(PORT)],{cwd:APP,stdio:['ignore','pipe','pipe']});
+const server=spawn(process.execPath,['scripts/project-server.mjs','--folder',GUIDES,'--data',path.join(RUN,'data'),'--port',String(PORT)],{cwd:APP,stdio:['ignore','pipe','pipe']});
 await new Promise((res,rej)=>{let t='';server.stdout.on('data',d=>{t+=d;if(/OpenStage Guide at/.test(t))res();});server.stderr.on('data',d=>rej(new Error(String(d))));setTimeout(()=>rej(new Error('server did not start')),20000);});
 const FILE='Design check.guide-project.json';
 const onDisk=()=>parseProject(fs.readFileSync(path.join(GUIDES,FILE),'utf8')).guide;

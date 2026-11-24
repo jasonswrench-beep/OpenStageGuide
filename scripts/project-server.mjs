@@ -4,6 +4,8 @@
 //   node scripts/project-server.mjs --folder "C:\Users\me\Documents\OpenStage Guides" [--port 3850]    the program: http://127.0.0.1:3850/
 //                                   (with no --folder: OpenStage Guides in the person's Documents folder, as Windows has it, like the window)
 //   node scripts/project-server.mjs --file "C:\path\My guide.guide-project.json" [--port 3850]          the pane on one project: /taskpane.html?project=1
+//   --data "<folder>"                                                                                   the program's own data folder (default: %APPDATA%\org.openstage.guide), where the
+//                                                                                                       Reference Manager token is kept; never the guides folder
 //
 // The page asks this server to list, make, open and close guides (/api/...) and to read and store the one that is open (GET and PUT /project).
 // Nothing else on the disk is reachable, and a guide is never named by a path: the page says a file's name and the server finds it in the
@@ -65,6 +67,20 @@ export function documentsFolder({platform=process.platform,env=process.env,home=
 }
 export const defaultGuidesFolder=options=>path.join(documentsFolder(options),'OpenStage Guides');
 
+// The program's own data folder, for what is not a guide (the connection to Prism Reference Manager, which holds a token): the folder the window's
+// framework gives the program by its identifier (%APPDATA%\org.openstage.guide on Windows). It is never the guides folder, which people copy, sync and
+// send to others. --data names another one, for trying the program without touching the real one.
+export const DATA_FOLDER_NAME='org.openstage.guide';
+export function defaultDataFolder({platform=process.platform,env=process.env,home=os.homedir()}={}){
+  if(platform==='win32'){
+    const roaming=typeof env.APPDATA==='string'&&path.win32.isAbsolute(env.APPDATA)?env.APPDATA:path.win32.join(home,'AppData','Roaming');
+    return path.win32.join(roaming,DATA_FOLDER_NAME);
+  }
+  if(platform==='darwin')return path.posix.join(home,'Library','Application Support',DATA_FOLDER_NAME);
+  const config=typeof env.XDG_CONFIG_HOME==='string'&&path.posix.isAbsolute(env.XDG_CONFIG_HOME)?env.XDG_CONFIG_HOME:path.posix.join(home,'.config');
+  return path.posix.join(config,DATA_FOLDER_NAME);
+}
+
 // A guide's name made into a file name: what Windows does not allow is taken out, and a name that is nothing but that is refused.
 export function fileNameFor(raw){
   const name=String(raw??'').replace(/[<>:"/\\|?*\u0000-\u001f]/g,' ').replace(/\s+/g,' ').trim().replace(/[. ]+$/,'');
@@ -76,11 +92,15 @@ export function fileNameFor(raw){
 
 // `release` is the release this copy is (a tag such as v0.1.0-alpha.1; the window gives it from the installer's build), `updateCheck` false turns
 // Check for updates off, and `releases` is how GitHub's list is fetched (replaced in tests, which never reach the network). See scripts/updates.mjs.
-export async function startProjectServer({file,folder,port=3850,snapshot,maxBytes=LIMITS.fileCharacters*4,release,updateCheck=true,releases=fetchReleases,onClosing,pdfMaker=makePdf,prmFetch=globalThis.fetch}={}){
+export async function startProjectServer({file,folder,port=3850,snapshot,maxBytes=LIMITS.fileCharacters*4,release,updateCheck=true,releases=fetchReleases,onClosing,pdfMaker=makePdf,prmFetch=globalThis.fetch,dataFolder=defaultDataFolder()}={}){
   if(!file&&!folder)throw new Error('Name the guides folder with --folder, or one project file with --file.');
   const dir=path.resolve(folder||path.dirname(file));
-  // The connection to Prism Reference Manager, for the design desk's citations: made here, because a web page cannot call it (scripts/prm-link.mjs).
-  const prm=createPrmLink({file:path.join(dir,PRM_FILE),fetch:prmFetch});
+  const dataDir=path.resolve(dataFolder);
+  if(dataDir===dir)throw new Error('The program\'s data folder cannot be the guides folder.');
+  // The connection to Prism Reference Manager, for the design desk's citations: made here, because a web page cannot call it (scripts/prm-link.mjs). Its token is
+  // kept in the data folder, not among the guides; a file that earlier releases left in the guides folder is moved there now.
+  const prm=createPrmLink({file:path.join(dataDir,PRM_FILE),legacyFile:path.join(dir,PRM_FILE),fetch:prmFetch});
+  await prm.migrate();
   let current=file?path.basename(file):null,backedUp=false,token=null,pdfBusy=false;
   const snap=snapshot||await createBuildSnapshot(root);
   const handler=createHandler(snap);
@@ -320,7 +340,7 @@ export async function startProjectServer({file,folder,port=3850,snapshot,maxByte
   server.requestTimeout=60000;
   server.headersTimeout=15000;
   await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(port,'127.0.0.1',resolve);});
-  return {server,port:server.address().port,folder:dir,file:target(),close:()=>new Promise(r=>server.close(r))};
+  return {server,port:server.address().port,folder:dir,dataFolder:dataDir,file:target(),close:()=>new Promise(r=>server.close(r))};
 }
 
 // Run from the command line.
@@ -333,7 +353,7 @@ if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.ur
     // In the window, closing it is held until the page has saved: the page tells the server (/api/closing) and the server tells the window on its
     // output, one line, which is all the window reads from it (shell/src-tauri/src/main.rs).
     const onClosing=windowMode?saved=>console.log(saved?'OPENSTAGE_CLOSE_READY':'OPENSTAGE_CLOSE_HELD'):undefined;
-    const s=await startProjectServer({file,folder:folder||(file?undefined:defaultGuidesFolder()),port:Number(arg('--port')||3850),release:arg('--release'),updateCheck:!updateOff,onClosing});
+    const s=await startProjectServer({file,folder:folder||(file?undefined:defaultGuidesFolder()),port:Number(arg('--port')||3850),release:arg('--release'),updateCheck:!updateOff,onClosing,dataFolder:arg('--data')||undefined});
     console.log(`OpenStage Guide at http://127.0.0.1:${s.port}/  (guides folder: ${s.folder})`);
     // The program's window (shell/) starts this server, reads this line to learn where it is listening, and stops it by closing its input:
     // when the window goes, with it or without it, the server goes too.
