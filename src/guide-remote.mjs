@@ -14,7 +14,7 @@ import {makeContext} from './guide-ooxml.mjs';
 
 export const REMOTE_METHODS=Object.freeze([
   'paragraphs','title','setTitle','customCues','setCustomCues','getLook','setLook','slideMemory','setSlideMemory','versionMemory','setVersionMemory',
-  'formSettings','setFormSettings','applyLook','setHeaderFooter','cursorIndex','plainLineAfter','go','deleteRange','moveRange','applyEdits',
+  'formSettings','setFormSettings','sessions','setSessions','applyLook','setHeaderFooter','cursorIndex','plainLineAfter','go','deleteRange','moveRange','applyEdits',
   'reviewParts','sourcePackage','refreshFields','captureFile','exportPdf','keepPaneOpen','pickFiles','insert','ready','status','flush'
 ]);
 

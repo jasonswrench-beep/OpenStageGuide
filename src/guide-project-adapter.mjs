@@ -20,7 +20,7 @@ export const NO_PDF='The program does not make PDFs yet. Choose File > Save as W
 // The few settings below it only describe the session (a stand-in file picker, the theme the pane draws with) and are not part of the guide.
 const READ_ONLY=new Set([
   'kind','paragraphs','title','customCues','getLook','slideMemory','versionMemory','cursorIndex','reviewParts','sourcePackage','captureFile',
-  'exportPdf','pickFiles','keepPaneOpen','onSelectionChanged','cursor','snapshot','lookState','autoShow','openedDocuments','downloads','exportState','formSettings','design',
+  'exportPdf','pickFiles','keepPaneOpen','onSelectionChanged','cursor','snapshot','lookState','autoShow','openedDocuments','downloads','exportState','formSettings','design','sessions',
   'setTheme','setPicker','refuse','setAutoShow','fireSelection','offerDownload','setCapturedFile','place','historyState','mediaOf','listStyles','styleEdits','styleUse'
 ]);
 

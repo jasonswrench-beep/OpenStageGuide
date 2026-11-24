@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {PROJECT_FORMAT,PROJECT_VERSION,LIMITS,ProjectError,cleanGuide,serializeProject,parseProject} from '../src/guide-project.mjs';
 
 const para=(text,style='Normal',xml='')=>({xml,text,style});
-const guide=(over={})=>({title:'Reframing conflict',paragraphs:[para('Reframing conflict','OSG Guide Title','<w:p xmlns:w="w"><w:r><w:t>Reframing conflict</w:t></w:r></w:p>'),para('Module 1: Naming it','OSG Module')],cursor:1,ownCues:['Pause here'],look:'{"name":"calm"}',slideMemory:'{"slides":3}',versionMemory:null,forms:null,design:null,applied:[[{name:'OSG Module',size:16}]],headerFooter:[{header:'A'}],media:{},styles:{overrides:{},custom:[]},...over});
+const guide=(over={})=>({title:'Reframing conflict',paragraphs:[para('Reframing conflict','OSG Guide Title','<w:p xmlns:w="w"><w:r><w:t>Reframing conflict</w:t></w:r></w:p>'),para('Module 1: Naming it','OSG Module')],cursor:1,ownCues:['Pause here'],look:'{"name":"calm"}',slideMemory:'{"slides":3}',versionMemory:null,forms:null,design:null,sessions:null,applied:[[{name:'OSG Module',size:16}]],headerFooter:[{header:'A'}],media:{},styles:{overrides:{},custom:[]},...over});
 const refused=(fn,pattern)=>assert.throws(fn,e=>e instanceof ProjectError&&pattern.test(e.message),String(pattern));
 
 test('a guide written to a project file reads back exactly',()=>{
@@ -60,7 +60,7 @@ test('limits are enforced: too many paragraphs, a paragraph that is too long, to
 
 test('missing optional parts take their empty value, unknown parts are dropped, the cursor is kept inside the guide',()=>{
   const g=cleanGuide({paragraphs:[para('a'),para('b')],cursor:99,extra:'ignored',paragraphs_note:1});
-  assert.deepEqual(g,{title:'',paragraphs:[para('a'),para('b')],cursor:1,ownCues:[],look:null,slideMemory:null,versionMemory:null,forms:null,design:null,applied:[],headerFooter:[],media:{},styles:{overrides:{},custom:[]}});
+  assert.deepEqual(g,{title:'',paragraphs:[para('a'),para('b')],cursor:1,ownCues:[],look:null,slideMemory:null,versionMemory:null,forms:null,design:null,sessions:null,applied:[],headerFooter:[],media:{},styles:{overrides:{},custom:[]}});
   assert.equal(cleanGuide({paragraphs:[para('a')],cursor:-5}).cursor,-1);
   assert.equal(cleanGuide({paragraphs:[para('a')],cursor:'2'}).cursor,-1);
   assert.equal('extra' in g,false);
@@ -118,4 +118,14 @@ test('the notes of the design desk are kept as text, left empty when there are n
   assert.equal(parseProject(serializeProject(guide({design:notes}))).guide.design,notes);
   assert.throws(()=>cleanGuide(guide({design:'x'.repeat(LIMITS.words+1)})),ProjectError);
   assert.throws(()=>cleanGuide(guide({design:{not:'text'}})),ProjectError);
+});
+
+test('the record of the materials and decks made from the guide is kept as text, left empty when there is none, and refused when larger than a project can hold',()=>{
+  assert.equal(cleanGuide(guide()).sessions,null);
+  const record=JSON.stringify({version:1,outputs:[],decks:[]});
+  assert.equal(cleanGuide(guide({sessions:record})).sessions,record);
+  assert.equal(parseProject(serializeProject(guide({sessions:record}))).guide.sessions,record);
+  assert.throws(()=>cleanGuide(guide({sessions:'x'.repeat(LIMITS.words+1)})),ProjectError);
+  assert.throws(()=>cleanGuide(guide({sessions:{not:'text'}})),ProjectError);
+  assert.equal(cleanGuide({...guide(),sessions:undefined}).sessions,null,'a project from before it has none');
 });
