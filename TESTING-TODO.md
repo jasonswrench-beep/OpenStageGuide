@@ -42,6 +42,9 @@ computer's PowerPoint) is there too; what is below needs a person.
 
 ## Publishing
 
+- [x] **Alpha 11 is pushed and published** (2026-11-24): `main` is on GitHub at `375da41`, the tag is `v0.1.0-alpha.11` (at `eed6d87`, the commit the setup was built from), and the release is a plain release (not marked
+  pre-release) with the signed setup and its checksum, downloaded again without signing in (same SHA-256, valid timestamped signature). Its page says what was not checked: the unpacked setup was not driven by the browser
+  checks and its signed window was not started. The checks of "Alpha 11" above are still yours.
 - [x] **Alpha 10 is pushed and published** (2026-11-16): `main` is on GitHub, the tag is `v0.1.0-alpha.10`, and the release is a plain release (not marked pre-release) with the signed setup and its checksum.
   Alpha 9 was built but never published; its fixes are in alpha 10 (`C:\Dev\OpenStageGuide-a9` and its branch `alpha9-fixes` are the other session's and were left alone). How it was built and checked is
   in section 10 of `docs/BUILD-STATUS-CHECKLIST-2026-11-15.md` and in `shell/README.md`.
