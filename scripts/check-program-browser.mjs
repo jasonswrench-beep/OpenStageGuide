@@ -153,7 +153,7 @@ try{
   ok(!!(await iconOf()),'and is there again afterwards');
 
   // ---- the menus of the tools, as the author listed them (2026-11-14), and the tools that are new
-  const MENUS={Start:['Guide overview','Course settings','Course outline'],Sections:['Add module','Learning outcomes','Add lesson','Lesson details'],Activities:['Add activity','Instructional cues','Activity library','Forms'],Slides:['Import slides','Update from slides'],Assessment:['Assessments','Learning alignment'],eLearning:['E-learning screens','E-learning cues'],'Check & Plan':['Review guide','Timing and agenda','Accessibility'],Make:['Delivery versions','Appearance','Generate materials','Reference pages','Layout','Participant workbook']};
+  const MENUS={Start:['Guide overview','Course settings','Course outline','Session templates'],Sections:['Add module','Learning outcomes','Add lesson','Lesson details'],Activities:['Add activity','Instructional cues','Activity library','Forms'],Slides:['Import slides','Update from slides'],Assessment:['Assessments','Learning alignment'],eLearning:['E-learning screens','E-learning cues'],'Check & Plan':['Review guide','Timing and agenda','Accessibility'],Make:['Delivery versions','Appearance','Generate materials','Session materials','Decks and slides','Reference pages','Layout','Participant workbook']};
   for(const [menu,names] of Object.entries(MENUS)){
     await page.getByRole('menuitem',{name:new RegExp('^'+menu.replace(/[&]/g,'\\$&'))}).click();
     const got=(await page.locator('[role=menu]:visible [role=menuitem]').allInnerTexts()).map(t=>t.replace(/\s+/g,' ').trim());

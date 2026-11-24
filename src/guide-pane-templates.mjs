@@ -144,7 +144,7 @@ export function mountTemplatesTool({doc,$,adapter,act,status,state,keepOpen,load
     await adapter.insert(build,{where:'after',after:anchor,select:'first'});
     await keepOpen();
     await load();
-    status(`A copy of "${t.title}" is in the guide as ${label}: ${title}. The template itself is unchanged. Choose Update guide to bring the numbers and times up to date.${tidy()} ${undo}`);
+    status(`A copy of "${t.title}" is in the guide as ${label}: ${title}. The template itself is unchanged.${tidy()} ${undo}`);
   }
 
   async function saveTemplate(){

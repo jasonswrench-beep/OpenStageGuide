@@ -6,6 +6,8 @@ You write the facilitator guide once, in modules, lessons and blocks (what to sa
 
 **Status: alpha 0.1.** The program has its own window and a signed Windows setup, on the [releases page](https://github.com/jasonswrench-beep/OpenStageGuide/releases), and it also runs from source in a browser on your own computer (below). Its editing surface is not finished (words and whole paragraphs can be written, given a look (bold, italic, color, size, font, a character style), aligned, put in styles of your own, chosen, moved, deleted, copied and pasted on the page; tables are filled in on the page, and new blocks are still added and changed with the tools beside it), and nothing has been tried yet with a screen reader. The Word files the program makes pass the Word schema validator and open in a real Word; that is one machine's Word, read-only. [docs/PROGRAM-SHELL-2026-11-13.md](docs/PROGRAM-SHELL-2026-11-13.md) says exactly what exists and what does not.
 
+A guide can also be started from a **session template** (16 ready-made sessions, with 46 timed activities in the activity library), and the run sheet, the preparation checklist, five layouts of the workbook, card decks and a PowerPoint file are made from the same activities; what was made says when the guide has changed since ([docs/SESSION-MATERIALS-2026-11-23.md](docs/SESSION-MATERIALS-2026-11-23.md)).
+
 ## Run it
 
 Node 20 or later. No other software.
@@ -23,7 +25,7 @@ On Windows, double-clicking `Start OpenStage Guide.cmd` does both steps (it inst
 npm test
 ```
 
-Five checks drive a real browser and need [Playwright](https://playwright.dev/) installed somewhere (this repository does not depend on it). Set `PLAYWRIGHT_DIR` to the `playwright` package folder, then:
+Six checks drive a real browser and need [Playwright](https://playwright.dev/) installed somewhere (this repository does not depend on it). Set `PLAYWRIGHT_DIR` to the `playwright` package folder, then:
 
 ```
 npm run check:program
@@ -31,6 +33,7 @@ npm run check:project
 npm run check:settings
 npm run check:closing
 npm run check:design
+npm run check:sessions
 ```
 
 After changing the list of icons in `program/icons.json`, rebuild `program/ui/ui-icons.js` with `npm run icons -- --lucide <path to OpenStage Author's editor/web/icons/lucide.json>`.
