@@ -30,7 +30,9 @@ to give the test build its own WebView2 profile (the installed program's is `org
 
 - Node.js 20 or later (a copy of the one that builds it is carried inside the window, so the computer it is installed on needs nothing)
 - Rust with the `x86_64-pc-windows-msvc` toolchain and the Visual Studio C++ build tools
-- The Microsoft Edge WebView2 runtime (Windows 11 has it)
+- The Microsoft Edge WebView2 runtime (Windows 11 has it). The setup carries the small WebView2 bootstrapper itself (`webviewInstallMode` `embedBootstrapper` in `src-tauri/tauri.conf.json`), so
+  the installer does not download a program while it runs; on a computer without the runtime the bootstrapper fetches it. Building needs a network the first time, to get that bootstrapper.
+  After a build, `src-tauri/target/release/nsis/x64/installer.nsi` should say `INSTALLWEBVIEW2MODE "embedBootstrapper"` and the setup should not carry `NSISdl.dll`.
 
 ## Building
 

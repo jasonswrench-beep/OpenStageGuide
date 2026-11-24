@@ -36,6 +36,7 @@
     "shortDescription": "Write facilitator guides and participant workbooks.",
     "longDescription": "OpenStage Guide helps training and development professionals write a facilitator guide once, with its handouts and forms, and make the participant workbook from it. Guides are kept as files on your own computer.",
     "windows": {
+      "webviewInstallMode": { "type": "embedBootstrapper" },
       "nsis": {
         "installMode": "currentUser",
         "languages": ["English"],
