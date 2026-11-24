@@ -17,6 +17,7 @@ import {itemBlock,sectionBlock} from './guide-assess-ooxml.mjs';
 import {readPastedQuestions,MAX_PASTE} from './guide-paste.mjs';
 import {readBankFile,MAX_BANK_ADD} from './guide-bank.mjs';
 import {summarize,readSource,buildWorkbook,zipWorkbook,pdfFileName,WORKBOOK_LOOKS} from './guide-workbook.mjs';
+import {WORKBOOK_LAYOUTS,layoutById} from './workbook-layouts.mjs';
 import {workbookStructure,printCheck,checkPdfTags,WORKBOOK_HUMAN_CHECKS} from './workbook-checks.mjs';
 import {leakCheck} from './workbook-leak.mjs';
 import {toBase64,pictureSize,PICTURE_WIDTHS,PICTURE_HELP} from './image-prepare.mjs';
@@ -2181,12 +2182,24 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
     if($('guide-wb-page-a4').checked)brand.pageSize='A4';
     const raw=String($('guide-wb-lines').value??'').trim();
     if(raw&&!/^\d$/.test(raw))throw new Error('Lines to write on must be a whole number from 0 to 6.');
-    return {familyId:chosenLook(),brand,lines:raw===''?3:Number(raw)};
+    return {familyId:chosenLook(),brand,lines:raw===''?3:Number(raw),layout:$('guide-wb-layout').value||'',scoreKey:!!$('guide-wb-score-key').checked};
+  }
+  // The five layouts of the workbook (workbook-layouts.mjs): what is added around the guide's learner content, in words, beside the choice.
+  function buildLayouts(){
+    const option=(value,label)=>{const o=doc.createElement('option');o.value=value;o.textContent=label;return o;};
+    $('guide-wb-layout').replaceChildren(...WORKBOOK_LAYOUTS.map(l=>option(l.id,l.id?`${l.label} (${l.fit})`:l.label)));
+    $('guide-wb-layout').value='';
+    drawLayoutNote();
+  }
+  function drawLayoutNote(){
+    const l=layoutById($('guide-wb-layout').value);
+    $('guide-wb-layout-note').textContent=l?l.distinct:'';
+    $('guide-wb-score-key').disabled=$('guide-wb-layout').value!=='assessment';
   }
   function saveLook(){
     try{
       storage?.setItem(LOOK_KEY,JSON.stringify({look:chosenLook(),org:$('guide-wb-org').value,accent:$('guide-wb-accent').value,
-        gray:!!$('guide-wb-print-gray').checked,a4:!!$('guide-wb-page-a4').checked,lines:$('guide-wb-lines').value}));
+        gray:!!$('guide-wb-print-gray').checked,a4:!!$('guide-wb-page-a4').checked,lines:$('guide-wb-lines').value,layout:$('guide-wb-layout').value||''}));
     }catch{/* nothing remembered is no harm */}
   }
   function restoreLook(){
@@ -2199,6 +2212,8 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
     $('guide-wb-print-gray').checked=!!saved.gray;$('guide-wb-print-color').checked=!saved.gray;
     $('guide-wb-page-a4').checked=!!saved.a4;$('guide-wb-page-letter').checked=!saved.a4;
     $('guide-wb-lines').value=String(saved.lines??'3');
+    $('guide-wb-layout').value=layoutById(saved.layout)?String(saved.layout||''):'';
+    drawLayoutNote();
   }
   async function makeWorkbook(){
     hideWorkbookMessages();
@@ -2317,7 +2332,7 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
   $('guide-tab-assess').onclick=()=>act(async()=>{status('');show('assess',{moveFocus:true});await load();});
   $('guide-tab-workbook').onclick=()=>act(async()=>{status('');hideWorkbookMessages();show('workbook',{moveFocus:true});await load();});
   $('guide-workbook-go').onclick=()=>act(makeWorkbook);
-  buildLooks();restoreLook();
+  buildLooks();buildLayouts();$('guide-wb-layout').onchange=()=>{drawLayoutNote();saveLook();};$('guide-wb-score-key').onchange=saveLook;restoreLook();
   for(const id of ['guide-wb-org','guide-wb-accent','guide-wb-lines','guide-wb-print-color','guide-wb-print-gray','guide-wb-page-letter','guide-wb-page-a4'])$(id).onchange=saveLook;
   hideWorkbookMessages();
   for(const level of LEVELS)$(`guide-sec-${level.id}`).onclick=()=>act(()=>startSection(level.id));

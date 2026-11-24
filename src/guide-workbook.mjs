@@ -10,6 +10,7 @@ import {resolveWorkbookBrand,textContrast,WORKBOOK_FAMILIES} from './workbook-pr
 import {allCues,cueById} from './guide-cues.mjs';
 import {esc,para,run} from './guide-ooxml.mjs';
 import {landscapeFlags} from './guide-forms.mjs';
+import {layoutById,layoutPages,participantPlan} from './workbook-layouts.mjs';
 
 // The looks the author can choose from: the five the product already has, each with a few words on what it is for.
 const LOOK_NOTES={clearline:'Spacious, one column.','editorial-study':'Reference style with serif headings.','practice-lab':'Numbered responses.','field-guide':'Step by step.','reflection-journal':'Prompt and response.'};
@@ -391,8 +392,10 @@ export const MAX_WRITING_LINES=6;
 // source: readSource(...). options: familyId (a look), brand (organizationName, accent, pageSize, printMode and the rest of the
 // look's own settings, as resolveWorkbookBrand takes them), lines (lines to write on after each question or activity, 0 to 6).
 // Returns {files:[{name,text|base64}],summary,facilitatorTexts,allowedTexts,title}.
-export function buildWorkbook(source,{familyId='clearline',brand={},lines=3}={},{DOMParserClass=globalThis.DOMParser,SerializerClass=globalThis.XMLSerializer}={}){
+// `layout` is one of the five layouts of workbook-layouts.mjs (what the workbook adds around the guide's learner content); `scoreKey` adds the scoring words of the Assessment and Evidence layout.
+export function buildWorkbook(source,{familyId='clearline',brand={},lines=3,layout='',scoreKey=false}={},{DOMParserClass=globalThis.DOMParser,SerializerClass=globalThis.XMLSerializer}={}){
   if(!Number.isInteger(lines)||lines<0||lines>MAX_WRITING_LINES)throw new Error(`Lines to write on must be a whole number from 0 to ${MAX_WRITING_LINES}.`);
+  if(!layoutById(layout))throw new Error('Choose one of the five workbook layouts, or the guide as it is.');
   const look=resolveWorkbookBrand(familyId,brand);
   if(!look.eligible)throw new Error(`This look cannot be used: ${look.issues.join(' ')}`);
   const effective=look.effective,theme=lookTheme(effective,source.language),gray=effective.printMode==='grayscale';
@@ -412,6 +415,8 @@ export function buildWorkbook(source,{familyId='clearline',brand={},lines=3}={},
   const keptEntries=entries.filter((e,ei)=>owner[ei].some(i=>decisions[i].keep));
   if(!decisions.some(d=>d.keep&&d.reason!=='heading'))throw new Error('Nothing in this guide is for learners yet. Add a block for Everyone, or an assessment, first.');
   const title=result.title||'Guide';
+  // What the chosen layout adds is written from the activities' learner parts only (workbook-layouts.mjs), so it needs no leak check of its own beyond the file's.
+  const layoutPart=layout?layoutPages(layout,{plan:participantPlan(paras),objectives:result.objectives,scoreKey}):null;
 
   const out=new DOMParserClass().parseFromString(`<w:document ${NS}><w:body/></w:document>`,'application/xml');
   const outBody=els(out.documentElement)[0];
@@ -463,7 +468,7 @@ export function buildWorkbook(source,{familyId='clearline',brand={},lines=3}={},
   let pending=0;
   const flush=()=>{
     if(pending<=0)return;
-    append(para(STYLE_IDS.answerLine,run('Your notes:'))+Array.from({length:pending-1},()=>para(STYLE_IDS.answerLine,'')).join(''));
+    append(para(STYLE_IDS.answerLine,run(layoutPart?.note||'Your notes:'))+Array.from({length:pending-1},()=>para(STYLE_IDS.answerLine,'')).join(''));
     pending=0;
   };
   for(const e of keptEntries){
@@ -516,11 +521,14 @@ export function buildWorkbook(source,{familyId='clearline',brand={},lines=3}={},
     if(lines>0&&firstKind==='cue'&&WRITING_CUES.has(cueIdOf(clean(textOf(copy)))))pending=lines;
   }
   flush();
-  if(objectiveXml){
-    const frag=fragment(objectiveXml.replace(/@BULLET@/g,String(listIds.size+1)));
+  // The learning objectives, then what the layout puts in front of the content; what it puts at the back comes after the last page of the guide's own.
+  const frontXml=(objectiveXml?objectiveXml.replace(/@BULLET@/g,String(listIds.size+1)):'')+(layoutPart?.front||'');
+  if(frontXml){
+    const frag=fragment(frontXml);
     const before=outBody.childNodes[objectiveAt]||null;
     for(const n of els(frag))outBody.insertBefore(out.importNode(n,true),before);
   }
+  if(layoutPart?.back)append(layoutPart.back);
   append(sectPr(effective,{landscape:landscapeNow,titlePg:closedSections===0&&!landscapeNow}));
   const ser=new SerializerClass(),documentXml=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n${ser.serializeToString(out)}`;
 
@@ -541,7 +549,7 @@ export function buildWorkbook(source,{familyId='clearline',brand={},lines=3}={},
   for(const m of media)files.push({name:m.name,base64:m.base64});
 
   return {files,title,workbookTitle:workbookTitle(title),fileName:workbookFileName(title),lookId:familyId,effective,lines,
-    facilitatorTexts:facilitatorTextsFrom(paras,decisions),allowedTexts:allowedTextsFrom(paras,decisions,result),
+    facilitatorTexts:facilitatorTextsFrom(paras,decisions),allowedTexts:[...allowedTextsFrom(paras,decisions,result),...(layoutPart?.allowed||[])],
     summary:summarize(paras)};
 }
 
