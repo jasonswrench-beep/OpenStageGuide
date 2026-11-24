@@ -66,11 +66,11 @@ fn close_answer(state: &AtomicU8, line: &str) -> Option<bool> {
 }
 
 /// Whether the window may show this address: its own first page, and the server's address on this machine (the port it said). A web page of
-/// any other site is not the program, and is never shown inside the program's window, where it could be mistaken for it. (Pictures and files the
-/// program makes arrive as blob: and data: addresses, which stay.)
+/// any other site is not the program, and is never shown inside the program's window, where it could be mistaken for it. (Files the program makes arrive
+/// as blob: addresses, which stay. A data: address is not let through: nothing in the program goes to one, and a page written into an address is not the program.)
 fn may_open(url: &Url) -> bool {
     match url.scheme() {
-        "tauri" | "about" | "blob" | "data" => true,
+        "tauri" | "about" | "blob" => true,
         "http" | "https" => {
             let host = url.host_str().unwrap_or("");
             let port = SERVER_PORT.load(Ordering::SeqCst);
@@ -432,6 +432,8 @@ mod tests {
         assert!(may_open(&url("http://tauri.localhost/index.html")));
         assert!(may_open(&url("tauri://localhost/index.html")));
         assert!(may_open(&url("about:blank")));
+        assert!(may_open(&url("blob:http://tauri.localhost/6f1c1f2e-0000-4000-8000-000000000000")), "a file the program made, to save");
+        assert!(!may_open(&url("data:text/html,<p>not the program</p>")), "a page written into an address is not shown in the window");
         assert!(!may_open(&url("http://127.0.0.1:47321/")), "no port of the server is let through before it says where it is");
         for other in ["https://example.invalid/", "http://example.invalid/", "file:///C:/x.html", "ftp://example.invalid/x", "https://github.com/jasonswrench-beep/OpenStageGuide/releases"] {
             assert!(!may_open(&url(other)), "{other}");
