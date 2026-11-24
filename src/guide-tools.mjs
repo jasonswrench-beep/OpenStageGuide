@@ -35,7 +35,7 @@ export const PROGRAM_MENUS=Object.freeze([
   {id:'assessment',label:'Assessment',tools:['assessments','learningAlignment']},
   {id:'elearning',label:'eLearning',tools:['eLearningScreens','eLearningCues']},
   {id:'check',label:'Check & Plan',tools:['reviewGuide','timingAndAgenda','accessibility']},
-  {id:'make',label:'Make',tools:['deliveryVersions','appearance','generateMaterials','referencePages','layout','participantWorkbook']}
+  {id:'make',label:'Make',tools:['deliveryVersions','appearance','generateMaterials','sessionMaterials','sessionDecks','referencePages','layout','participantWorkbook']}
 ]);
 
 // The pieces of the Guide screen that a tool can show on its own. Anything not listed for a tool is hidden while it is open.
@@ -43,7 +43,7 @@ export const GUIDE_SECTIONS=Object.freeze([
   'guide-sec-module','guide-sec-lesson','guide-sec-block','guide-sec-owncues',
   'guide-sec-import','guide-sec-update',
   'guide-sec-look','guide-sec-standard','guide-sec-built',
-  'guide-sec-move','guide-sec-keeptidy','guide-sec-contents','guide-sec-templates','guide-sec-library','guide-sec-agenda','guide-sec-forms','guide-sec-details','guide-sec-reference','guide-sec-layout','guide-sec-align','guide-sec-versions',
+  'guide-sec-move','guide-sec-keeptidy','guide-sec-contents','guide-sec-templates','guide-sec-materials','guide-sec-decks','guide-sec-library','guide-sec-agenda','guide-sec-forms','guide-sec-details','guide-sec-reference','guide-sec-layout','guide-sec-align','guide-sec-versions',
   'guide-sec-backup','guide-sec-restore'
 ]);
 
@@ -100,7 +100,7 @@ export const TOOLS=Object.freeze(Object.fromEntries([
     tip:'Choose the look of the guide: fonts, colors, header and footer.',related:['generateMaterials','courseSettings','participantWorkbook']}),
   tool('generateMaterials',{label:'Generate Materials',icon:'GenerateMaterials',group:'make',kind:'guide',part:'look',sections:['guide-sec-built'],
     title:'Generate materials',note:'Pages built from your guide when you ask.',
-    tip:'Build Training at a Glance, the Graphic Cues page and a module overview.',related:['appearance','participantWorkbook','referencePages','layout']}),
+    tip:'Build Training at a Glance, the Graphic Cues page and a module overview.',related:['appearance','participantWorkbook','referencePages','sessionMaterials','layout']}),
   tool('participantWorkbook',{label:'Participant Workbook',icon:'ParticipantWorkbook',group:'make',kind:'screen',screen:'workbook',ownHeading:true,
     title:'Participant workbook',note:'Blocks for learners. Facilitator-only blocks are left out.',
     tip:'Preview and download learner instructions and writing space.',related:['appearance','generateMaterials','reviewGuide']}),
@@ -120,6 +120,12 @@ export const PROGRAM_TOOLS=Object.freeze(Object.fromEntries([
   tool('sessionTemplates',{label:'Session Templates',icon:'SessionTemplates',group:'start',kind:'guide',part:'add',sections:['guide-sec-templates'],selected:true,
     title:'Session templates',note:'Ready-made lessons: preview one, then put a copy in your guide. Save a lesson of your own as a template.',
     tip:'Browse ready-made sessions by purpose and length, preview the agenda and materials of one, put a copy of it into your guide as a lesson or a module, and save a lesson of your own as a template.',related:['addModule','addLesson','activityLibrary','timingAndAgenda']}),
+  tool('sessionMaterials',{label:'Session Materials',icon:'SessionMaterials',group:'make',kind:'guide',part:'look',sections:['guide-sec-materials'],selected:true,
+    title:'Session materials',note:'A run sheet and a preparation checklist from the guide, and what has been made with whether the guide has changed since.',
+    tip:'Make a run sheet with clock times, steps, supplies and debrief prompts, and a preparation checklist of what to print, bring and open; see which materials the guide has changed under, and make just that one again.',related:['generateMaterials','participantWorkbook','sessionDecks','timingAndAgenda']}),
+  tool('sessionDecks',{label:'Decks and Slides',icon:'SessionDecks',group:'make',kind:'guide',part:'look',sections:['guide-sec-decks'],selected:true,
+    title:'Decks and slides',note:'Card decks to print and cut apart, and the session as a PowerPoint file with speaker notes.',
+    tip:'Make prompt and scenario cards, a participant toolkit or facilitator pocket cards, edit both sides and print them on Letter or A4; make the session as an editable PowerPoint file with the steps in the speaker notes.',related:['sessionMaterials','importSlides','generateMaterials']}),
   tool('addLesson',{label:'Add Lesson',icon:'AddLesson',group:'sections',kind:'guide',part:'add',sections:['guide-sec-lesson'],selected:true,
     title:'Add a lesson',note:'A lesson goes after the lesson your cursor is in.',
     tip:'Add a lesson with its title and minutes; the program numbers it and gives it a time line.',related:['addModule','learningOutcomes','instructionalCues','lessonDetails']}),
@@ -157,6 +163,8 @@ export const PROGRAM_NAMES=Object.freeze({
   courseSettings:'Course settings',
   courseOutline:'Course outline',
   sessionTemplates:'Session templates',
+  sessionMaterials:'Session materials',
+  sessionDecks:'Decks and slides',
   addModule:'Add module',
   addLesson:'Add lesson',
   learningOutcomes:'Learning outcomes',

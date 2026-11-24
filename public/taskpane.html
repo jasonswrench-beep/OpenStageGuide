@@ -367,6 +367,73 @@
 <p id="guide-overview-note" class="hint"></p>
 </div>
 
+<div id="guide-sec-materials">
+<h2 id="guide-mat-heading">Session materials</h2>
+<p class="hint">Make the sheets a facilitator and a room need from the guide, and see which of them are still right after the guide changes. Each is a copy: the guide is not changed, and a copy you edited by hand is never overwritten.</p>
+<fieldset class="guide-audience"><legend>For</legend>
+<label class="guide-check" for="guide-mat-scope-guide"><input id="guide-mat-scope-guide" type="radio" name="guide-mat-scope" value="guide" checked> The whole guide</label>
+<label class="guide-check" for="guide-mat-scope-lesson"><input id="guide-mat-scope-lesson" type="radio" name="guide-mat-scope" value="lesson"> The lesson my cursor is in</label>
+</fieldset>
+<p id="guide-mat-scope-note" class="hint" role="status" aria-live="polite"></p>
+<label for="guide-mat-start">Start time of the first lesson</label>
+<input id="guide-mat-start" type="text" inputmode="numeric" autocomplete="off" value="09:00">
+<label class="guide-check" for="guide-mat-notes"><input id="guide-mat-notes" type="checkbox"> Put the facilitator's private notes in the run sheet</label>
+<label for="guide-mat-paper">Paper for what is printed</label>
+<select id="guide-mat-paper"></select>
+<p id="guide-mat-counts" class="hint"></p>
+<div class="guide-actions"><button id="guide-mat-runsheet" type="button" class="primary">Make the run sheet</button><button id="guide-mat-checklist" type="button">Make the preparation checklist</button><button id="guide-mat-workbook" type="button">Open the participant workbook</button></div>
+<h3 id="guide-mat-outputs-heading">What has been made</h3>
+<p id="guide-mat-outputs-note" class="hint" role="status" aria-live="polite"></p>
+<ul id="guide-mat-outputs" class="guide-lib-list"></ul>
+<section id="guide-mat-changes-box" aria-labelledby="guide-mat-changes-title" hidden>
+<h3 id="guide-mat-changes-title" tabindex="-1"></h3>
+<ul id="guide-mat-changes" class="guide-issues"></ul>
+</section>
+</div>
+
+<div id="guide-sec-decks">
+<h2 id="guide-deck-heading">Decks and slides</h2>
+<p class="hint">Cards are real text, printed two-sided and cut apart. Slides are a PowerPoint file with the words and the speaker notes, made from the guide's agenda.</p>
+<h3 id="guide-deck-list-heading">Card decks</h3>
+<ul id="guide-deck-list" class="guide-lib-list"></ul>
+<form id="guide-deck-new-form">
+<label for="guide-deck-title">Name of a new deck</label>
+<input id="guide-deck-title" type="text" autocomplete="off">
+<label for="guide-deck-type">Kind of deck</label>
+<select id="guide-deck-type"></select>
+<label for="guide-deck-activity">Start from an activity of the guide (or leave blank for a blank deck)</label>
+<select id="guide-deck-activity"></select>
+<button id="guide-deck-new" type="submit">Start a deck</button>
+</form>
+<section id="guide-deck-editor" aria-labelledby="guide-deck-editor-title" hidden>
+<h3 id="guide-deck-editor-title" tabindex="-1"></h3>
+<div class="guide-row2"><div><label for="guide-deck-paper">Paper</label><select id="guide-deck-paper"></select></div>
+<div><label for="guide-deck-perpage">Cards to a page</label><select id="guide-deck-perpage"></select></div></div>
+<div class="guide-row2"><div><label for="guide-deck-flip">Flip two-sided pages on the</label><select id="guide-deck-flip"></select></div>
+<div><label for="guide-deck-sequence">Page order</label><select id="guide-deck-sequence"></select></div></div>
+<label class="guide-check" for="guide-deck-marks"><input id="guide-deck-marks" type="checkbox"> Crop marks in the margins</label>
+<h4 id="guide-deck-cards-heading">Cards</h4>
+<ol id="guide-deck-cards" class="guide-lib-list"></ol>
+<label for="guide-deck-front">Front of the card (one line to a line; up to 8 lines)</label>
+<textarea id="guide-deck-front" rows="4"></textarea>
+<label for="guide-deck-back">Back of the card (optional)</label>
+<textarea id="guide-deck-back" rows="4"></textarea>
+<div id="guide-deck-preview" class="guide-lib-part" role="group" aria-label="Preview of the card, front and back"></div>
+<ul id="guide-deck-fit" class="guide-issues"></ul>
+<div class="guide-actions"><button id="guide-deck-add" type="button">Add this as a new card</button><button id="guide-deck-update" type="button">Change the chosen card</button><button id="guide-deck-remove" type="button">Remove the chosen card</button><button id="guide-deck-up" type="button">Move it up</button><button id="guide-deck-down" type="button">Move it down</button></div>
+<div class="guide-actions"><button id="guide-deck-print" type="button" class="primary">Make the print sheet as a Word file</button><button id="guide-deck-text" type="button">Show the deck as text</button><button id="guide-deck-link" type="button">Name the deck in the activity's materials</button><button id="guide-deck-forget" type="button">Delete the deck</button></div>
+<pre id="guide-deck-textview" hidden></pre>
+</section>
+<h3 id="guide-slide-heading">Slides</h3>
+<p class="hint">One slide for the opening, one for each activity and each break, and one to close, with the time as text and everything else the facilitator says in the notes. The slides keep the name of the activity they came from, so changes can be brought back from the file.</p>
+<label for="guide-slide-start">Start time of the first lesson</label>
+<input id="guide-slide-start" type="text" inputmode="numeric" autocomplete="off" value="09:00">
+<p id="guide-slide-note" class="hint" role="status" aria-live="polite"></p>
+<ul id="guide-slide-list" class="guide-issues"></ul>
+<ul id="guide-slide-fit" class="guide-issues"></ul>
+<div class="guide-actions"><button id="guide-slide-make" type="button" class="primary">Make the slides as a PowerPoint file</button></div>
+</div>
+
 </div>
 
 <div id="guide-part-organize" class="guide-part" role="tabpanel" aria-labelledby="guide-part-tab-organize" hidden>

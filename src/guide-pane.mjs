@@ -35,9 +35,11 @@ import {CATALOG_ENTRIES} from './session-text.mjs';
 import {PHASES} from './session-catalog.mjs';
 import {destinationText} from './session-templates.mjs';
 import {mountTemplatesTool} from './guide-pane-templates.mjs';
+import {mountMaterialsTool} from './guide-pane-materials.mjs';
+import {mountDecksTool} from './guide-pane-decks.mjs';
 import {fingerprint,notesPrint,readMemory,writeMemory,recordFor,remember,slideBlocksIn,labelOf,planSlideUpdate,planSummary,operations,entriesAfter} from './slides-sync.mjs';
 
-const BUSY_IDS=['guide-leave-block','guide-bk-save','guide-bk-open','guide-upd-choose','guide-upd-which','guide-upd-all','guide-upd-none','guide-upd-go','guide-help-sample','guide-tab-guide','guide-tab-assess','guide-tab-workbook','guide-workbook-go','guide-sec-level-one','guide-sec-level-two','guide-sec-level-three','guide-item-go','guide-paste-go','guide-bank-go','guide-item-cancel','guide-item-start-two','guide-assess-edit','guide-retry','guide-start-go','guide-sample','guide-add-module','guide-add-lesson','guide-lib-save','guide-agenda-refresh','guide-agenda-download','guide-align-refresh','guide-ver-new','guide-ver-make','guide-tpl-apply','guide-tpl-save','guide-block-go','guide-block-cancel','guide-update','guide-build-glance','guide-build-cues','guide-build-overview','guide-open-review','guide-refresh','guide-review-run','guide-review-back','guide-review-pdf','guide-edit-selected','guide-edit-save','guide-edit-cancel','guide-move-up','guide-move-down','guide-delete','guide-delete-yes','guide-delete-no','guide-add-standard','guide-add-appendix','guide-own-save','guide-pic-choose','guide-slides-choose','guide-slides-all','guide-slides-none','guide-slides-go','guide-look-apply','guide-el-add','guide-el-script','guide-el-text','guide-el-author'];
+const BUSY_IDS=['guide-leave-block','guide-bk-save','guide-bk-open','guide-upd-choose','guide-upd-which','guide-upd-all','guide-upd-none','guide-upd-go','guide-help-sample','guide-tab-guide','guide-tab-assess','guide-tab-workbook','guide-workbook-go','guide-sec-level-one','guide-sec-level-two','guide-sec-level-three','guide-item-go','guide-paste-go','guide-bank-go','guide-item-cancel','guide-item-start-two','guide-assess-edit','guide-retry','guide-start-go','guide-sample','guide-add-module','guide-add-lesson','guide-lib-save','guide-agenda-refresh','guide-agenda-download','guide-align-refresh','guide-ver-new','guide-ver-make','guide-tpl-apply','guide-tpl-save','guide-mat-runsheet','guide-mat-checklist','guide-mat-workbook','guide-deck-new','guide-deck-add','guide-deck-update','guide-deck-remove','guide-deck-up','guide-deck-down','guide-deck-print','guide-deck-text','guide-deck-link','guide-deck-forget','guide-block-go','guide-block-cancel','guide-update','guide-build-glance','guide-build-cues','guide-build-overview','guide-open-review','guide-refresh','guide-review-run','guide-review-back','guide-review-pdf','guide-edit-selected','guide-edit-save','guide-edit-cancel','guide-move-up','guide-move-down','guide-delete','guide-delete-yes','guide-delete-no','guide-add-standard','guide-add-appendix','guide-own-save','guide-pic-choose','guide-slides-choose','guide-slides-all','guide-slides-none','guide-slides-go','guide-look-apply','guide-el-add','guide-el-script','guide-el-text','guide-el-author'];
 // What only a person can check. Review guide has the first; Accessibility (the document's own checks) has the other two.
 const CHECK_YOURSELF=[
   'Does each cue read sensibly when spoken aloud?'
@@ -77,7 +79,7 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
   let tool=null;
   let queuedTool=null,busyIsSlow=false;
   let layoutDirty=false,layoutLoop=null; // the Layout tool: a choice waits to be kept (layoutDirty) and the loop that keeps them (layoutLoop)
-  let templates=null; // the Session templates tool (guide-pane-templates.mjs), mounted at the end
+  let templates=null,materials=null,decks=null; // the Session templates, Session materials and Decks and slides tools (guide-pane-templates.mjs and its kin), mounted at the end
   let formSettings=readFormSettings(null),busy=false,plan=null,contents={present:false,stale:false},paras=[],at=-1,mode='start',selectedCue='say',connected=false,editing=null,pinned=false,contentsSig='',waiting=false,pendingDelete=null,lastOwn='',pictureReady=null;
 
   const status=text=>{$('guide-error').hidden=true;$('guide-error').textContent='';$('guide-status').textContent=text;};
@@ -156,7 +158,7 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
     $('guide-sec-selected').hidden=guide&&!t.selected;
     // A piece whose own heading says what the strip above already says (Add a module or lesson, E-Learning screens, Update from slides)
     // leaves the saying to the strip, so a screen reader does not read the same heading twice.
-    for(const id of ['guide-module-heading','guide-lesson-heading','guide-el-heading','guide-upd-heading','guide-tpl-heading','guide-lib-heading','guide-agenda-heading','guide-forms-heading','guide-details-heading','guide-reference-heading','guide-layout-heading','guide-align-heading','guide-ver-heading','guide-bk-heading','guide-rs-heading']){
+    for(const id of ['guide-module-heading','guide-lesson-heading','guide-el-heading','guide-upd-heading','guide-tpl-heading','guide-mat-heading','guide-deck-heading','guide-lib-heading','guide-agenda-heading','guide-forms-heading','guide-details-heading','guide-reference-heading','guide-layout-heading','guide-align-heading','guide-ver-heading','guide-bk-heading','guide-rs-heading']){
       const heading=$(id);
       if(heading)heading.hidden=!!t&&clean(heading.textContent).toLowerCase()===t.title.toLowerCase();
     }
@@ -1130,6 +1132,8 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
     try{
       if(tool==='timingAndAgenda')drawAgenda();
       else if(tool==='sessionTemplates')templates?.draw();
+      else if(tool==='sessionMaterials')await materials?.draw();
+      else if(tool==='sessionDecks')await decks?.draw();
       else if(tool==='activityLibrary')drawLibrary();
       else if(tool==='forms')drawForms();
       else if(tool==='lessonDetails')drawDetails();
@@ -2231,6 +2235,8 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
       // The structure rules and the print check do not stop the workbook: what they find can be fixed in the copy.
       const structure=workbookStructure(built.files,{DOMParserClass:parser}),print=printCheck(built.effective,{lines:built.lines});
       showWorkbookChecks(structure,print);
+      // What the workbook was made from is remembered, so the guide can say later when it has changed since.
+      try{await materials?.record({kind:'workbook',name:`Participant workbook${choices.layout?` (${layoutById(choices.layout).label})`:''}`});}catch{/* the workbook is made all the same */}
       const checked=`Leak check passed: nothing meant for the facilitator is in the file. ${leftText(built.summary)} Structure check: ${structure.fix.length} to fix, ${structure.look.length} to look at.`;
       try{
         await adapter.openDocument(base64,built.fileName);
@@ -2277,6 +2283,8 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
   fillLibraryFilters();loadMine();drawLibrary();
   // The Session templates tool is drawn by its own module, which is handed what the pane already has.
   templates=mountTemplatesTool({doc,$,adapter,act,status,state:()=>({paras,at}),keepOpen,load,tidy,undo:UNDO,storage,focus});
+  materials=mountMaterialsTool({doc,$,adapter,act,status,state:()=>({paras,at}),Zip,group:()=>formSettings.group||{},openTool:id=>openToolScreen(id),focus});
+  decks=mountDecksTool({doc,$,adapter,act,status,state:()=>({paras,at}),Zip,record:o=>materials.record(o),keepOpen,load,focus});
   // The buttons are disabled while an action runs, so focus returns to the one pressed only once it has finished.
   $('guide-add-standard').onclick=async()=>{await act(addStandardPages);focus('guide-add-standard');};
   $('guide-add-appendix').onclick=async()=>{await act(addAppendix);focus('guide-add-appendix');};

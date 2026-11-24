@@ -32,6 +32,8 @@ export const TOOL_ICONS = {
   courseSettings: "settings",
   courseOutline: "list-tree",
   sessionTemplates: "layout-dashboard",
+  sessionMaterials: "file-stack",
+  sessionDecks: "presentation",
   addModule: "square-plus",
   addLesson: "list-plus",
   learningOutcomes: "goal",
