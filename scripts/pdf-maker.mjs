@@ -5,7 +5,8 @@
 //
 // The page is written to a temporary folder with a name nobody can guess, Edge is run on it with a fixed list of options (no shell, no address but that file's)
 // and a time limit, and the folder is removed again, whatever happens. The page has no script (and says so to the browser: Content-Security-Policy), so
-// nothing in a guide can run anything. Nothing is sent anywhere: Edge is not given an address on the network.
+// nothing in a guide can run anything. Nothing is sent anywhere: Edge is not given an address on the network. This does not rest on the page being the program's own:
+// the page is read here first, refused if it could reach outside itself, and printed under a policy that this file puts first in its head (see preparePdfPage).
 //
 // The process that is started is not the one that makes the PDF. Edge as it is now hands the work to a process of its own and the one we started exits (with
 // code 0, after a second or two) well before the PDF is there, which took about 13 seconds on a small page. So the file is waited for after the process has
@@ -49,6 +50,133 @@ export function pdfIsTagged(bytes){
 
 export class PdfError extends Error{
   constructor(message,code='failed'){super(message);this.name='PdfError';this.code=code;}
+}
+
+// ---- The page is read here before it is printed, and printed under a policy of our own.
+//
+// The page comes from the program's own page (src/guide-html.mjs), which writes only what it allows. This does not rely on that: whatever arrives is read here the way a
+// browser reads markup, and refused (not repaired) if it could make Edge reach for anything outside the page: a picture or a style sheet on another computer or on a network
+// share, a frame, an object, a redirect, a script. What is let through is the program's own kind of page, whose only addresses are pictures held inside it (data: addresses
+// of a png, jpeg or gif) and places in it (#...). And the policy that forbids the rest is put first in the head by us, whatever the page says, so that Edge fetches nothing even
+// if something got past this reading.
+
+/** What the page may do when it is printed: fetch nothing, and show only pictures that are inside it. The same words as the guide's own page says (a test holds them together). */
+export const PDF_PAGE_POLICY="default-src 'none'; img-src data:; style-src 'unsafe-inline'";
+const POLICY_META=`<meta http-equiv="Content-Security-Policy" content="${PDF_PAGE_POLICY}">`;
+// Elements a guide's page never has, and that could fetch or run something (the insides of svg and math are read by a browser in a way of their own).
+const REFUSED_ELEMENTS=new Set(['script','iframe','frame','frameset','object','embed','applet','link','base','svg','math']);
+// Attributes that hold an address: only a picture inside the page and a place in the page may be written in them.
+const ADDRESS_ATTRIBUTES=new Set(['src','srcset','href','xlink:href','poster','data','action','formaction','background','ping','manifest','codebase','longdesc','lowsrc','dynsrc']);
+const OWN_ADDRESS=/^(?:data:image\/(?:png|jpeg|gif);base64,[A-Za-z0-9+/]+={0,2}|#[A-Za-z0-9_-]*)$/;
+// CSS that can name an address or run something. (The page's own style sheet holds none of these, and the styles it writes are held to the same words when it is made.)
+const CSS_REACHES=/url\s*\(|image-set|cross-fade|\bimage\s*\(|element\s*\(|@import|expression|javascript|\\/i;
+const KNOWN_REFERENCE=/&(?:quot|amp|lt|gt|apos|#34|#39);/g;
+const SPACE=/^[\s﻿]*$/;
+const DOCTYPE=/<!doctype[\t\n\f\r ]+html[\t\n\f\r ]*>/iy;
+const START_NAME=/[A-Za-z][^\t\n\f\r />]*/y;
+const ATTRIBUTE_NAME=/[^\t\n\f\r />][^\t\n\f\r />=]*/y;
+const UNQUOTED_VALUE=/[^\t\n\f\r >]*/y;
+const BLANKS=/[\t\n\f\r ]*/y;
+const BLANKS_AND_SLASHES=/[\t\n\f\r /]*/y;
+
+const refuse=what=>{throw new PdfError(`That page ${what}, so it was not printed.`,'refused');};
+const plain=text=>String(text).slice(0,24).replace(/[^\x21-\x7e]/g,'?');
+
+/** The characters a style may be written with, once the few character references the page writes are read; any other reference could hide a word from this reading. @param {string} value */
+function styleText(value){
+  if(/&(?!(?:quot|amp|lt|gt|apos|#34|#39);)/.test(value))refuse('has a style written with a character reference, which a guide\'s page never does');
+  return value.replace(KNOWN_REFERENCE,m=>({'&quot;':'"','&lt;':'<','&gt;':'>','&apos;':"'",'&#34;':'"','&#39;':"'",'&amp;':'&'})[m]);
+}
+
+/**
+ * Reads the page as a browser reads markup (tags, attributes, quotes, the text of a style) and refuses what could reach outside it. Gives where the head begins and ends,
+ * for the policy to be put in.
+ * @param {string} html
+ * @returns {{ doctypeEnd: number, htmlEnd: number, headEnd: number }}
+ */
+function readPage(html){
+  if(html.includes('\u0000'))refuse('holds a null character');
+  const found={doctypeEnd:-1,htmlEnd:-1,headEnd:-1};
+  const at=(re,pos)=>{re.lastIndex=pos;return re.exec(html);};
+  let i=0,lastEnd=0,otherTag=false;
+  while((i=html.indexOf('<',i))>=0){
+    const next=html[i+1];
+    if(next===undefined)break;
+    if(next==='!'||next==='?'){
+      // Only the opening <!doctype html>, and only first. A comment, a CDATA section or an instruction for a program is read by a browser in ways that differ (and a page of the
+      // program has none), so none is let through.
+      if(next==='!'&&at(DOCTYPE,i)&&found.doctypeEnd<0&&found.htmlEnd<0&&found.headEnd<0&&!otherTag&&SPACE.test(html.slice(0,i))){found.doctypeEnd=lastEnd=DOCTYPE.lastIndex;i=lastEnd;continue;}
+      refuse('holds a comment, a declaration or an instruction for a program, which a guide\'s page never does');
+    }
+    if(next==='/'){i+=2;continue;}   // an end tag, or text: what it says is not read as a start
+    if(!/[A-Za-z]/.test(next)){i+=1;continue;}   // a "<" that is text
+    const name=at(START_NAME,i+1)[0].toLowerCase();
+    let j=START_NAME.lastIndex;
+    const attributes=[];
+    for(;;){
+      BLANKS_AND_SLASHES.lastIndex=j;BLANKS_AND_SLASHES.exec(html);j=BLANKS_AND_SLASHES.lastIndex;
+      if(j>=html.length)refuse('has a tag that is not closed');
+      if(html[j]==='>'){j+=1;break;}
+      const key=at(ATTRIBUTE_NAME,j)[0].toLowerCase();
+      j=ATTRIBUTE_NAME.lastIndex;
+      BLANKS.lastIndex=j;BLANKS.exec(html);
+      let k=BLANKS.lastIndex,value='';
+      if(html[k]==='='){
+        k+=1;BLANKS.lastIndex=k;BLANKS.exec(html);k=BLANKS.lastIndex;
+        const quote=html[k];
+        if(quote==='"'||quote==="'"){
+          const end=html.indexOf(quote,k+1);
+          if(end<0)refuse('has a tag that is not closed');
+          value=html.slice(k+1,end);j=end+1;
+        }else{
+          UNQUOTED_VALUE.lastIndex=k;UNQUOTED_VALUE.exec(html);
+          value=html.slice(k,UNQUOTED_VALUE.lastIndex);j=UNQUOTED_VALUE.lastIndex;
+        }
+      }
+      attributes.push([key,value]);
+    }
+    if(REFUSED_ELEMENTS.has(name))refuse(`holds a ${plain(name)} element, which a guide's page never does`);
+    for(const [key,value] of attributes){
+      if(key.startsWith('on')||key==='srcdoc')refuse(`holds a script handler (${plain(key)})`);
+      if(ADDRESS_ATTRIBUTES.has(key)&&!OWN_ADDRESS.test(value))refuse(`has an address (${plain(key)}) that points outside the page`);
+      if(key==='style'&&CSS_REACHES.test(styleText(value)))refuse('has a style that reaches for something outside the page');
+    }
+    if(name==='meta'){
+      for(const [key,value] of attributes){
+        if(key==='http-equiv'&&value.toLowerCase()!=='content-security-policy')refuse(`holds a meta element that acts on the page (${plain(value)})`);
+        if(key==='charset'&&value.toLowerCase()!=='utf-8')refuse('is not written in UTF-8');
+      }
+    }
+    if(name==='html'&&found.htmlEnd<0&&found.headEnd<0&&!otherTag){found.htmlEnd=lastEnd=j;}
+    else if(name==='head'&&found.headEnd<0){
+      // The policy is only read from the head, so the head must come first: nothing but the doctype and the html tag before it.
+      if(otherTag||!SPACE.test(html.slice(lastEnd,i)))refuse('is not laid out as the program\'s pages are (something comes before its head)');
+      found.headEnd=j;
+    }else if(name!=='html'&&name!=='head')otherTag=true;
+    if(name==='style'){
+      // The text of a style is read as style, up to its end tag.
+      const close=/<\/style(?=[\t\n\f\r />])/ig;
+      close.lastIndex=j;
+      const end=close.exec(html);
+      if(!end)refuse('has a style that is not closed');
+      if(CSS_REACHES.test(html.slice(j,end.index)))refuse('has a style that reaches for something outside the page');
+      i=end.index;
+      continue;
+    }
+    i=j;
+  }
+  return found;
+}
+
+/**
+ * The page as it is printed: read and refused (a PdfError, code `refused`) if it could reach outside itself, and with the policy of PDF_PAGE_POLICY as the first thing in its head.
+ * @param {string} html
+ */
+export function preparePdfPage(html){
+  const found=readPage(html);
+  if(found.headEnd>=0)return html.slice(0,found.headEnd)+POLICY_META+html.slice(found.headEnd);
+  const at=found.htmlEnd>=0?found.htmlEnd:found.doctypeEnd>=0?found.doctypeEnd:0;
+  return html.slice(0,at)+`<head>${POLICY_META}</head>`+html.slice(at);
 }
 
 /** How far a file that Edge is writing has got: not yet a whole PDF ('partial'), not a PDF at all ('bad'), or whole ('complete'). @param {Buffer} bytes */
@@ -119,12 +247,13 @@ export async function makePdf(html,{edge=findEdge(),run=spawn,tmp=os.tmpdir(),ti
   if(typeof html!=='string'||!html.trim())throw new PdfError('There is nothing to make a PDF of.','empty');
   if(html.length>PDF_MAX_HTML)throw new PdfError('This guide is too large to make into a PDF here.','too-large');
   if(/<script[\s>]/i.test(html))throw new PdfError('That page holds a script, so it was not printed.','refused');
+  const prepared=preparePdfPage(html);
   if(!edge)throw new PdfError('The program makes a PDF with Microsoft Edge, which is not on this computer. Save the Word file and make the PDF in Word instead.','no-edge');
   const dir=await fs.mkdtemp(path.join(tmp,`osg-pdf-${crypto.randomBytes(4).toString('hex')}-`));
   const page=path.join(dir,'page.html'),out=path.join(dir,'out.pdf');
   let watch=null;
   try{
-    await fs.writeFile(page,html,{encoding:'utf8',flag:'wx'});
+    await fs.writeFile(page,prepared,{encoding:'utf8',flag:'wx'});
     const args=['--headless=new','--disable-gpu','--no-pdf-header-footer','--no-first-run','--no-default-browser-check','--disable-extensions','--disable-sync','--disable-background-networking','--generate-pdf-document-outline',
       `--user-data-dir=${path.join(dir,'profile')}`,`--print-to-pdf=${out}`,pathToFileURL(page).href];
     const deadline=Date.now()+timeoutMs;
