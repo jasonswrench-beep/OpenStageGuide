@@ -13,8 +13,10 @@ import {createProjectAdapter,NO_PDF} from '../src/guide-project-adapter.mjs';
 import {createDemoAdapter} from '../src/guide-word.mjs';
 import {DOMParser,XMLSerializer} from '@xmldom/xmldom';
 
-const TAGGED='%PDF-1.4\n1 0 obj << /Type /Catalog /MarkInfo << /Marked true >> /StructTreeRoot 2 0 R /Lang (en) >> endobj\n2 0 obj << /Type /StructTreeRoot >> endobj\n'+'x'.repeat(80);
-const UNTAGGED='%PDF-1.4\n1 0 obj << /Type /Catalog >> endobj\n'+'x'.repeat(80);
+const TAGGED='%PDF-1.4\n1 0 obj << /Type /Catalog /MarkInfo << /Marked true >> /StructTreeRoot 2 0 R /Lang (en) >> endobj\n2 0 obj << /Type /StructTreeRoot >> endobj\n'+'x'.repeat(80)+'\n%%EOF\n';
+const UNTAGGED='%PDF-1.4\n1 0 obj << /Type /Catalog >> endobj\n'+'x'.repeat(80)+'\n%%EOF\n';
+// The options that make the waiting for Edge quick in a test (the real ones look at the file every quarter of a second).
+const FAST={pollMs:10};
 const PAGE='<!doctype html><html lang="en"><head><title>T</title></head><body><main><h1>Words</h1></main></body></html>';
 
 // A stand-in for Edge: it reads where the PDF should go from its options, writes `pdf` there, and exits.
@@ -25,6 +27,19 @@ function fakeRun(pdf,{exit=true,seen=[]}={}){
     child.kill=()=>{child.killed=true;};
     const out=args.find(a=>a.startsWith('--print-to-pdf=')).slice('--print-to-pdf='.length);
     setImmediate(()=>{if(pdf!==null)fs.writeFileSync(out,pdf);if(exit)child.emit('exit',0);});
+    return child;
+  };
+}
+// A stand-in for Edge as it is now: the process that is started exits at once (code 0, or `code`), and the PDF is written later, by something that is not that
+// process, in the steps of `steps` (each {after: ms since the start, text: what is written to the file from then on, whole}).
+function detachedRun(steps,{code=0,seen=[]}={}){
+  return (exe,args,options)=>{
+    seen.push({exe,args,options});
+    const child=new EventEmitter();
+    child.kill=()=>{child.killed=true;};
+    const out=args.find(a=>a.startsWith('--print-to-pdf=')).slice('--print-to-pdf='.length);
+    setImmediate(()=>child.emit('exit',code,null));
+    for(const {after,text} of steps)setTimeout(()=>{try{fs.writeFileSync(out,text);}catch{/* the folder is already gone */}},after).unref();
     return child;
   };
 }
@@ -50,7 +65,7 @@ test('a PDF is tagged when it is marked and holds a structure tree, and not othe
 test('the PDF is made by Edge run on a page in a folder of its own, with fixed options, and the folder is gone afterwards',async()=>{
   const tmp=tmpFolder(),seen=[];
   try{
-    const made=await makePdf(PAGE,{edge:'C:\\Edge\\msedge.exe',run:fakeRun(TAGGED,{seen}),tmp});
+    const made=await makePdf(PAGE,{edge:'C:\\Edge\\msedge.exe',run:fakeRun(TAGGED,{seen}),tmp,...FAST});
     assert.equal(made.tagged,true);assert.equal(made.bytes.subarray(0,5).toString(),'%PDF-');
     assert.equal(seen.length,1);
     const {exe,args,options}=seen[0];
@@ -61,7 +76,7 @@ test('the PDF is made by Edge run on a page in a folder of its own, with fixed o
     assert.match(page,/^file:\/\/\/.*page\.html$/,'the one address it is given is the page\'s file');
     assert.ok(!args.some(a=>/^https?:/i.test(a)),'no address on a network');
     assert.deepEqual(leftOver(tmp),[],'the folder the page and the PDF were in is removed');
-    const untagged=await makePdf(PAGE,{edge:'e',run:fakeRun(UNTAGGED),tmp});
+    const untagged=await makePdf(PAGE,{edge:'e',run:fakeRun(UNTAGGED),tmp,...FAST});
     assert.equal(untagged.tagged,false,'a PDF that is not tagged says so');
   }finally{fs.rmSync(tmp,{recursive:true,force:true});}
 });
@@ -82,15 +97,88 @@ test('a page that holds a script, an empty page, a page that is too large and a 
 test('Edge that makes nothing, makes something that is not a PDF, cannot start or takes too long fails with its reason, kills what is slow, and leaves nothing behind',async()=>{
   const tmp=tmpFolder();
   try{
-    const code=async run=>{try{await makePdf(PAGE,{edge:'e',run,tmp,timeoutMs:80});return 'made';}catch(e){return e.code;}};
-    assert.equal(await code(fakeRun(null)),'no-output');
+    const code=async run=>{try{await makePdf(PAGE,{edge:'e',run,tmp,timeoutMs:80,...FAST});return 'made';}catch(e){return e.code;}};
+    assert.equal(await code(fakeRun(null)),'timeout','a process that exits and leaves no file is waited for until the time is up: Edge may be carrying on elsewhere');
     assert.equal(await code(fakeRun('<html>not a pdf, and long enough to pass the size test of a real file..........</html>')),'bad-output');
+    assert.equal(await code(fakeRun('%PDF-1.4 whole, but too short to be a real PDF\n%%EOF')),'bad-output');
     assert.equal(await code(()=>{throw new Error('spawn EACCES');}),'start');
     assert.equal(await code(()=>{const c=new EventEmitter();setImmediate(()=>c.emit('error',new Error('ENOENT')));c.kill=()=>{};return c;}),'start');
     let killed=false;
     assert.equal(await code(()=>{const c=new EventEmitter();c.kill=()=>{killed=true;};return c;}),'timeout');
     assert.equal(killed,true,'a browser that does not finish is stopped');
     assert.deepEqual(leftOver(tmp),[]);
+  }finally{fs.rmSync(tmp,{recursive:true,force:true});}
+});
+
+test('an Edge whose process exits first and writes the PDF later (as the current Edge does) gives the PDF once it is there, whole and still, and removes the folder afterwards',async()=>{
+  const tmp=tmpFolder();
+  try{
+    const started=Date.now(),seen=[];
+    const made=await makePdf(PAGE,{edge:'e',run:detachedRun([{after:150,text:TAGGED}],{seen}),tmp,timeoutMs:5000,...FAST});
+    assert.ok(Date.now()-started>=140,'it waited for the file, not for the process');
+    assert.equal(made.bytes.toString('latin1'),TAGGED);assert.equal(made.tagged,true);
+    assert.equal(seen.length,1,'Edge is started once, and not again to find the file');
+    assert.deepEqual(leftOver(tmp),[],'the folder is removed once Edge is done');
+    // A file that is being written is not taken half-way: first the start of it, then more of it, then all of it.
+    const stages=[{after:40,text:TAGGED.slice(0,50)},{after:90,text:TAGGED.slice(0,TAGGED.length-12)},{after:140,text:TAGGED}];
+    const whole=await makePdf(PAGE,{edge:'e',run:detachedRun(stages),tmp,timeoutMs:5000,...FAST});
+    assert.equal(whole.bytes.toString('latin1'),TAGGED,'only the whole PDF is given');
+    // A PDF that is whole is not taken the moment it is seen either: its size has to be the same twice running.
+    const grown=TAGGED.replace('\n%%EOF\n','\n'+'y'.repeat(40)+'\n%%EOF\n');
+    const later=await makePdf(PAGE,{edge:'e',run:detachedRun([{after:30,text:TAGGED},{after:35,text:grown}]),tmp,timeoutMs:5000,pollMs:20});
+    assert.equal(later.bytes.toString('latin1'),grown,'the PDF that stopped growing, not the one seen on the way');
+    assert.deepEqual(leftOver(tmp),[]);
+  }finally{fs.rmSync(tmp,{recursive:true,force:true});}
+});
+
+test('an Edge whose process exits and whose PDF never comes gives timeout when the time is up (not before), a failed one gives no-output, and nothing is left behind',async()=>{
+  const tmp=tmpFolder();
+  try{
+    const started=Date.now();
+    await assert.rejects(makePdf(PAGE,{edge:'e',run:detachedRun([]),tmp,timeoutMs:300,...FAST}),e=>e instanceof PdfError&&e.code==='timeout'&&/in time/.test(e.message));
+    assert.ok(Date.now()-started>=290,'it went on looking until the time was up');
+    assert.deepEqual(leftOver(tmp),[]);
+    // The PDF that comes after the time is up is too late, and the folder it would be written to is already gone.
+    await assert.rejects(makePdf(PAGE,{edge:'e',run:detachedRun([{after:600,text:TAGGED}]),tmp,timeoutMs:200,...FAST}),{code:'timeout'});
+    assert.deepEqual(leftOver(tmp),[]);
+    // A process that failed (code 1) and left no file is a failure that is said so after a short wait, not after the whole time.
+    const failedAt=Date.now();
+    await assert.rejects(makePdf(PAGE,{edge:'e',run:detachedRun([],{code:1}),tmp,timeoutMs:5000,failGraceMs:100,...FAST}),{code:'no-output',message:'Edge did not make a PDF.'});
+    assert.ok(Date.now()-failedAt<2000);
+    // ...but a PDF that comes within that wait is taken, whatever the code was.
+    const late=await makePdf(PAGE,{edge:'e',run:detachedRun([{after:60,text:TAGGED}],{code:1}),tmp,timeoutMs:5000,failGraceMs:2000,...FAST});
+    assert.equal(late.tagged,true);
+    assert.deepEqual(leftOver(tmp),[]);
+  }finally{fs.rmSync(tmp,{recursive:true,force:true});}
+});
+
+test('the folder is removed only when Edge lets go of it: removal is tried again, the page goes first, and a folder that stays busy is tried once more later',async()=>{
+  const tmp=tmpFolder();
+  try{
+    const calls=[];let busy=3;
+    const rm=async(target,opts)=>{
+      calls.push(path.basename(target));
+      if(path.basename(target).startsWith('osg-pdf-')&&busy-->0)throw Object.assign(new Error('EBUSY: resource busy or locked'),{code:'EBUSY'});
+      return fs.promises.rm(target,opts);
+    };
+    const made=await makePdf(PAGE,{edge:'e',run:fakeRun(TAGGED),tmp,...FAST,cleanup:{rm,delayMs:5}});
+    assert.equal(made.tagged,true,'a busy folder does not spoil the PDF');
+    assert.equal(calls[0],'page.html','the guide\'s page is the first thing removed');
+    assert.equal(calls.filter(c=>c.startsWith('osg-pdf-')).length,4,'busy three times, then gone');
+    assert.deepEqual(leftOver(tmp),[]);
+    // A folder that never lets go: the page is gone anyway, the PDF is still given, and one more try is made later.
+    const later=[];
+    const stuck=async(target,opts)=>{
+      if(path.basename(target).startsWith('osg-pdf-')){later.push(Date.now());throw Object.assign(new Error('EPERM'),{code:'EPERM'});}
+      return fs.promises.rm(target,opts);
+    };
+    const made2=await makePdf(PAGE,{edge:'e',run:fakeRun(TAGGED),tmp,...FAST,cleanup:{rm:stuck,tries:3,delayMs:5,laterMs:60}});
+    assert.equal(made2.tagged,true);
+    const [folder]=leftOver(tmp);assert.ok(folder,'the folder is still there, as Edge holds it');
+    assert.deepEqual(fs.readdirSync(path.join(tmp,folder)).filter(n=>n==='page.html'),[],'but the guide\'s page is not in it');
+    assert.equal(later.length,3);
+    await new Promise(r=>setTimeout(r,150));
+    assert.equal(later.length,4,'and one more try is made later');
   }finally{fs.rmSync(tmp,{recursive:true,force:true});}
 });
 
