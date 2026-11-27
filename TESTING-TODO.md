@@ -37,7 +37,7 @@ computer's presentation program) is there too; what is below needs a person.
 - [ ] **The Word files in a real word processor.** Open in Word (and, if you have it, LibreOffice) a guide, a workbook, a handout pack, a guide with **each block's icon in a column** and **a slide's picture
   beside its script**, a **bulleted list**, a **picture in a table cell**, and the **course map** and **evaluation plan** tables put in a guide from the design desk (landscape form). They pass the Word schema
   validator and were never opened in a real Word. Look for: icons beside their words, pictures where they were put, bullets, the landscape pages.
-- [ ] **A second computer.** Install the alpha 10 setup from its page on GitHub (its checksum is on the page), start it, make a guide, save it as Word, web page and PDF, and uninstall. Needs Edge for the PDF (Windows 11 has it). Does
+- [ ] **A second computer.** Install the alpha 11 setup (the latest release) from its page on GitHub (its checksum is on the page), start it, make a guide, save it as Word, web page and PDF, and uninstall. Needs Edge for the PDF (Windows 11 has it). Does
   Check for updates say what it should?
 
 ## Publishing
@@ -48,7 +48,10 @@ computer's presentation program) is there too; what is below needs a person.
 - [x] **Alpha 10 is pushed and published** (2026-11-16): `main` is on GitHub, the tag is `v0.1.0-alpha.10`, and the release is a plain release (not marked pre-release) with the signed setup and its checksum.
   Alpha 9 was built but never published; its fixes are in alpha 10 (the other session's worktree and its branch `alpha9-fixes` were left alone). How it was built and checked is
   in section 10 of `docs/BUILD-STATUS-CHECKLIST-2026-11-15.md` and in `shell/README.md`.
-- Nothing is waiting to be pushed or released. The checks below are held for later (2026-11-16): none of them blocks this stage, and each one found wrong is a fix for the next alpha.
+- [ ] **Waiting to be pushed** (2026-11-27): `main` holds commits made after alpha 11 that are not on GitHub: menus sized to their widest row, Save as PDF with the current Edge, the Reference Manager token kept in the
+  program's data folder, the WebView2 bootstrapper carried in the setup, machine paths taken out of tracked files, the launcher and the window's allowed addresses tightened, the page read before it is printed, and
+  Author's published format 0.52.0. Say whether they go out as alpha 12; nothing is built or tagged for it yet. The checks below are held for later (2026-11-16): none of them blocks this stage, and each one found
+  wrong is a fix for the next alpha.
 
 ## Item 2: alpha 8 and the Forms
 
@@ -85,11 +88,10 @@ computer's presentation program) is there too; what is below needs a person.
 
 ## Things I noticed and did not fix
 
-- **OpenStage Author is moving ahead of the format its list named.** The list said Author's validator expects schema 0.49; that is what Author has published (its `main` and the branch it is on, checked
-  in its committed `tools/validate.py`), and Guide writes 0.49.0, which that validator passes with 0 errors. Author's working copy, being worked on by its own session, is now at 0.50 (it adds the
-  optional `accessibilityBlockers`, the opt-in publish blockers) and then 0.51, unpublished, and its validator says a 0.49 project "needs updating" (its editor offers to). So the two tests that run
-  Author's validator **skip, with that reason printed, while Author's working copy is ahead**, and fail for any other finding. When Author publishes its new version, Guide should write it: it is one
-  constant (`AUTHOR_SCHEMA_VERSION` in `src/guide-author.mjs`) and a look at what the new version asks.
+- **OpenStage Author's format** (fixed 2026-11-27). Guide writes 0.52.0, the format Author has published (its `main`, `tools/validate.py`, read 2026-11-27). 0.50 to 0.52 add only optional things (the
+  opt-in accessibility blockers, a video's `seekMedia` and `pauseMedia`, a video's `presenter`), none of which a storyboard fills in, so the project is the same apart from its version, and Author's published
+  validator passes it with 0 errors. The two tests that run Author's validator still **skip, with the reason printed, if the validator they are given is ahead** of the version Guide writes, and fail for any
+  other finding. When Author publishes a newer format, read what it adds and change `AUTHOR_SCHEMA_VERSION` in `src/guide-author.mjs`.
 - Running the whole automatic suite at once, one test of `guide-lesson-details` failed once while another session was changing the same working folder, and passes by itself (17 of 17). I think it was that.
 - Rows added to the guide with Insert > Block come with no words. The Review warns of a block with no words (BLOCK-EMPTY); it does not stop anything.
 - The Reference Manager port has to be told (23119 unless changed): it has no way to be found. The token is kept in `OpenStage Guide Reference Manager.json` in the program's own data folder (`%APPDATA%\org.openstage.guide`), not among your guides, and is not shown to the page. A file that alpha 11 or earlier left in the guides folder is moved there the first time the program starts, and the old copy is deleted.

@@ -3,8 +3,8 @@
 Things OpenStage Guide needs from `openstage-core` that the core does not offer yet. Guide does not build its own version of a shared piece when the core could offer it; where it
 had to write something to finish its list, the entry says what and says what replaces it once the core has the piece. Newest last.
 
-Core as read, 2026-11-16: `CORE-NOTES.md` (second round, updated 2026-11-15): `pstat-v1.2.0` (PSTAT-1 revision 1.2), `item-analysis-v1.1.0`, `prismqda-stats-v1.0.0`, `capture-v0.1.0`.
-Its table says the accessibility rules (C2) and the bank reader (C4) are not started, and that is what is assumed here: nothing unpublished was read or used.
+Core as read, 2026-11-27: `CORE-NOTES.md` on its GitHub `main`, and its tags `pstat-v1.2.0`, `pstat-v1.3.0`, `item-analysis-v1.1.0`, `item-analysis-v2.0.0`, `prismqda-stats-v1.0.0`, `capture-v0.1.0`,
+`a11y-v0.1.0` and `bank-v0.1.0`. The accessibility rules (C2) and the bank reader (C4) are published; Guide uses neither yet (see G2 and G3). Nothing unpublished was read or used.
 
 **What Guide builds on from the core, as published.** `@openstage/pstat` 1.2.0 (from its release, no sign-in) is a development dependency: Guide's tests check every `.pstat` file it
 writes with the package's `checkPstat`, and the browser checks do the same on the files the program saves. Guide writes the files itself, as the core's notes say a tool with no runtime
@@ -42,12 +42,20 @@ back findings, each with a rule id, the success criterion, a status in the core'
 opt-in blockers as a setting the caller passes. Guide will run it on the web export in the Review (Accessibility), list the findings, and never stop a save or a PDF because of one. It writes no rule
 of its own meanwhile.
 
+**Partly answered (2026-11-27).** The core published A11Y-1 revision 1.0 (tag `a11y-v0.1.0`): the engine, in Rust with a command-line program, checks web pages, Word and PowerPoint among others (PDFs not
+yet), and `@openstage/a11y` 0.1.0 gives the catalogue, the status words, contrast and the settings in JavaScript, but does not check a page. A build of the engine for the browser is on the core's roadmap.
+Guide uses neither yet; the request for a call that takes a page's HTML stands.
+
 ## G3. The bank reader (C4)
 
 **For:** the design desk (items 7 to 11) and the existing bank import.
 
 Guide reads OpenAssess's `.openassess` banks in `src/guide-bank.mjs` (it reads format 1 and takes the questions with their objectives, levels and chapters). The core lists C4 as not started and
 Guide's list names it as a user. Asked: when C4 is made, start from what that file does, and say when to move Guide onto it; it holds no code the core would need to keep.
+
+**Answered (2026-11-27).** `@openstage/bank` 0.1.0 (tag `bank-v0.1.0`, BANK-1 revision 1.0) started from `src/guide-bank.mjs`. Guide has not moved onto it yet. The core's notes for the move: keep
+`questionToItem` (what a guide item can hold) and read `q.key` and `q.options` in place of the raw body; the reader hands over retired questions (`metadata.status` "retired") and leaves the choice to
+Guide; a picture is in `q.pictures`, an equation in `q.equations`, and their placeholders are in `q.stem.html`.
 
 ## G4. How a design hands item slots to OpenAssess
 
@@ -65,7 +73,7 @@ is written. Guide will write that instead of the placeholder stems.
 
 **For:** development list item 10 (a skeleton into Author or Scroll).
 
-OpenStage Author's project (schema 0.49) and OpenScroll's course (schema 3) have no field for a lesson's objectives or their Bloom level; both refuse unknown keys. Guide writes them as words: a slide
+OpenStage Author's project (schema 0.52) and OpenScroll's course (schema 3) have no field for a lesson's objectives or their Bloom level; both refuse unknown keys. Guide writes them as words: a slide
 and a note in Author's hand-off notes file, a statement and a list on the lesson's page in Scroll. Asked: an optional list of objectives (their words, level and id) on a scene or lesson in both formats, so a
 skeleton keeps what a design said and a bank (C4) can be linked to it.
 
