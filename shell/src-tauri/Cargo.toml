@@ -1,6 +1,6 @@
 [package]
 name = "openstage-guide-shell"
-version = "0.1.0"
+version = "1.0.0"
 description = "The OpenStage Guide window: a Tauri shell around the program's local server"
 authors = ["Jason S. Wrench"]
 license = "Apache-2.0"
