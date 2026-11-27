@@ -41,6 +41,6 @@ Making the tag is part of building. Pushing a tag, pushing `main`, and publishin
 An audit on 2026-11-17 found these, all made before the rules, all published, and all under every release tag:
 
 - Seventeen commits of 2026-11-13, from `d561dc7` ("Add the OpenStage Guide program and the guide core it runs") to `d9b0c23` ("The font pack: ..."), end with `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>`.
-- The root commit `e7158a0` ("Initial commit", the licence, made on GitHub) has the author email `jasonswrench@gmail.com` and GitHub as committer.
+- The root commit `e7158a0` ("Initial commit", the licence, made on GitHub) has a personal address as its author email (not the one above) and GitHub as committer.
 
 Nothing else broke them: every other commit has the identity above, no message has a "Generated with" line, no release note has one, and every release tag points at the commit its build is recorded as coming from. Do not rewrite those commits, force-push, or move any tag to remove them without the owner's explicit yes.
