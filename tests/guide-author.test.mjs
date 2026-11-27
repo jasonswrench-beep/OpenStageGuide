@@ -38,10 +38,10 @@ test('the project has a folder, its manifest and theme, a slide for each screen 
   assert.equal(authorZipName('Safety: the basics'),'Safety - the basics - OpenStage Author project.zip');
 });
 
-test('the project is written in the current format of OpenStage Author, 0.49.0', () => {
-  assert.equal(AUTHOR_SCHEMA_VERSION, '0.49.0');
+test('the project is written in the current format of OpenStage Author, 0.52.0', () => {
+  assert.equal(AUTHOR_SCHEMA_VERSION, '0.52.0');
   const project = JSON.parse(text(authorProject(screens, { title: 'Safety basics', today: '2026-11-16' }), 'Safety basics.osproj/project.json'));
-  assert.equal(project.schemaVersion, '0.49.0');
+  assert.equal(project.schemaVersion, '0.52.0');
 });
 
 test('the version and the course code are written only when they hold something, trimmed, and refused when too long', () => {
@@ -113,7 +113,7 @@ test('the project passes OpenStage Author\'s own validator with no errors',{skip
     const zip=await JSZip.loadAsync(bytes);
     for(const [name,entry] of Object.entries(zip.files))if(!entry.dir){fs.mkdirSync(path.dirname(path.join(dir,name)),{recursive:true});fs.writeFileSync(path.join(dir,name),await entry.async('nodebuffer'));}
     const run=validateProject(path.join(dir,'Safety basics.osproj'));
-    if(run.staleOnly)return t.skip(`Author's working copy is at ${run.newerVersion}, ahead of the 0.49.0 it published: it asks for the project to be updated, which its editor offers. Nothing else was found.`);
+    if(run.staleOnly)return t.skip(`Author's validator is at ${run.newerVersion}, ahead of the ${AUTHOR_SCHEMA_VERSION} Guide writes: it asks for the project to be updated, which its editor offers. Nothing else was found.`);
     assert.equal(run.status,0,`${run.stdout}\n${run.stderr}`);
     assert.deepEqual(JSON.parse(run.stdout),[]);
   }finally{fs.rmSync(dir,{recursive:true,force:true});}

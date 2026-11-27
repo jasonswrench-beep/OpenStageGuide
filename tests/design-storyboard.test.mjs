@@ -9,7 +9,7 @@ import JSZip from 'jszip';
 import {DOMParser,XMLSerializer} from '@xmldom/xmldom';
 import {createDemoAdapter} from '../src/guide-word.mjs';
 import {readGuide,readBlock,guideIssues,updatePlan,blockSpan} from '../src/guide-model.mjs';
-import {authorProject} from '../src/guide-author.mjs';
+import {authorProject,AUTHOR_SCHEMA_VERSION} from '../src/guide-author.mjs';
 import {zipWorkbook} from '../src/guide-workbook.mjs';
 import {planBody,authorScreens,scrollCourse,scrollBytes,scrollFileName,scrollId,itemSlots,itemSlotsCsv,SLOT_COLUMNS,needStoryboard} from '../src/design-storyboard.mjs';
 import {design} from './helpers/design-fixture.mjs';
@@ -97,7 +97,7 @@ test('the Author skeleton passes OpenStage Author\'s own validator with no error
     const zip=await JSZip.loadAsync(bytes);
     for(const [name,entry] of Object.entries(zip.files))if(!entry.dir){fs.mkdirSync(path.dirname(path.join(dir,name)),{recursive:true});fs.writeFileSync(path.join(dir,name),await entry.async('nodebuffer'));}
     const run=validateProject(path.join(dir,'Coaching first.osproj'));
-    if(run.staleOnly)return t.skip(`Author's working copy is at ${run.newerVersion}, ahead of the 0.49.0 it published: it asks for the project to be updated. Nothing else was found.`);
+    if(run.staleOnly)return t.skip(`Author's validator is at ${run.newerVersion}, ahead of the ${AUTHOR_SCHEMA_VERSION} Guide writes: it asks for the project to be updated. Nothing else was found.`);
     assert.equal(run.status,0,`${run.stdout}\n${run.stderr}`);
     assert.deepEqual(JSON.parse(run.stdout),[]);
   }finally{fs.rmSync(dir,{recursive:true,force:true});}

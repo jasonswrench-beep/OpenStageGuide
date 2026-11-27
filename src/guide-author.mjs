@@ -6,9 +6,11 @@
 // animation, media, accessibility and developer notes) goes into a plain "hand-off notes" file beside the project.
 import {esc} from './guide-ooxml.mjs';
 
-// 0.49.0 is Author's current format (its tools/validate.py refuses 0.48.0 and asks for the project to be updated). 0.49 added two optional
-// words to a project's `meta`, `version` and `courseCode`; they are written only when they hold something (an empty one is an error).
-export const AUTHOR_SCHEMA_VERSION='0.49.0';
+// 0.52.0 is Author's current published format (its tools/validate.py refuses an older one and asks for the project to be updated). 0.49 added two
+// optional words to a project's `meta`, `version` and `courseCode`; they are written only when they hold something (an empty one is an error).
+// 0.50 to 0.52 add only optional things a storyboard does not fill in (the opt-in accessibility blockers, a video's seekMedia and pauseMedia, a
+// video's presenter), so what is written here is the same apart from the version.
+export const AUTHOR_SCHEMA_VERSION='0.52.0';
 export const META_LIMITS=Object.freeze({version:20,courseCode:40});
 // The theme Author's own sample projects start from (its "Classic" theme).
 const THEME=Object.freeze({
