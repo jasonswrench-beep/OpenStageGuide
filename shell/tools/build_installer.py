@@ -12,7 +12,8 @@ What it does:
   2. Builds with the repository's and Cargo's folders remapped, so that the program holds no folder name of the computer that built it.
   3. With --sign: Tauri signs, through its sign command (sign_windows.py, beside this file), the window, the installer's plugins, the uninstaller and
      the setup. Then the setup is unpacked with 7-Zip and every program in it, and the setup, must be signed and timestamped by the same
-     publisher (OPENSTAGE_SIGN_PUBLISHER, when it is set). The Node that runs the server keeps its makers' signature, which must be valid.
+     publisher (OPENSTAGE_SIGN_PUBLISHER, when it is set). The Node that runs the server and Microsoft's WebView2 bootstrapper keep their makers'
+     signatures, which must be valid.
   4. Writes the setup's SHA-256 beside it (after signing: it is always the hash of the file that is published).
 
 The signing account comes from the environment (the top of sign_windows.py says which variables); nothing about it is written into the repository.
@@ -41,8 +42,9 @@ SEVEN_ZIP = Path(os.environ.get("PROGRAMFILES", r"C:\Program Files")) / "7-Zip" 
 # The release this build is. Raise it for every release: the installed copy compares it with the published ones (docs/UPDATE-CHECK.md).
 RELEASE = "v1.0.0"
 
-# Programs in the setup that their makers sign, which are never signed here: the Node that runs the server (the OpenJS Foundation's).
-MAKERS = {"node.exe": "OpenJS Foundation"}
+# Programs in the setup that their makers sign, which are never signed here: the Node that runs the server (the OpenJS Foundation's), and the
+# WebView2 bootstrapper the setup carries (webviewInstallMode embedBootstrapper in tauri.conf.json; Microsoft's). Names in lower case.
+MAKERS = {"node.exe": "OpenJS Foundation", "microsoftedgewebview2setup.exe": "Microsoft Corporation"}
 PROGRAM_FILES = (".exe", ".dll", ".pyd")
 
 
