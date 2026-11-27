@@ -56,10 +56,11 @@ a real browser were checked; what is below needs a person.
 - [x] **Alpha 10 is pushed and published** (2026-11-16): `main` is on GitHub, the tag is `v0.1.0-alpha.10`, and the release is a plain release (not marked pre-release) with the signed setup and its checksum.
   Alpha 9 was built but never published; its fixes are in alpha 10 (the other session's worktree and its branch `alpha9-fixes` were left alone). How it was built and checked is
   in section 10 of `docs/BUILD-STATUS-CHECKLIST-2026-11-15.md` and in `shell/README.md`.
-- [ ] **Waiting to be pushed** (2026-11-27): `main` holds commits made after alpha 11 that are not on GitHub: menus sized to their widest row, Save as PDF with the current Edge, the Reference Manager token kept in the
-  program's data folder, the WebView2 bootstrapper carried in the setup, machine paths taken out of tracked files, the launcher and the window's allowed addresses tightened, the page read before it is printed, and
-  Author's published format 0.52.0. Say whether they go out as alpha 12; nothing is built or tagged for it yet. The checks below are held for later (2026-11-16): none of them blocks this stage, and each one found
-  wrong is a fix for the next alpha.
+- [x] **Pushed, not released** (2026-11-27): `main` is on GitHub with the commits made after alpha 11: menus sized to their widest row, Save as PDF with the current Edge, the Reference Manager token kept in
+  the program's data folder, the WebView2 bootstrapper carried in the setup, machine paths taken out of tracked files, the launcher and the window's allowed addresses tightened, the page read before it is
+  printed, Author's published format 0.52.0, the rebuild planning note taken out of the repository, and the bank import on the core's reader. Say whether these go out as alpha 12; nothing is built or tagged
+  for it yet. The checks below are held for later (2026-11-16): none of them blocks this stage, and each one found wrong is a fix
+  for the next alpha.
 
 ## Item 2: alpha 8 and the Forms
 
