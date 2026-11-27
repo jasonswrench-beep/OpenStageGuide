@@ -54,7 +54,10 @@ The icons in `src-tauri/icons` are made from the product icon (`public/assets/ri
 
 ## State (2026-11-15)
 
-**Built, not published: v1.0.0** (2026-11-27; release label on `c79174d`, which the lightweight tag `v1.0.0` points at and which the build came from, a clean checkout of that tag in a worktree of the
+**Published: v1.0.0** (2026-11-27, a plain release, the latest, with `OpenStage-Guide-1.0.0-Setup.exe` and its `.sha256.txt`, and the release notes kept as `.local/release-v1.0.0/RELEASE-NOTES.md`; `main` was
+fast-forwarded to `0d32abf` and pushed with the tag, and the release was downloaded again without signing in: same size, same SHA-256 and a valid, timestamped signature by Jason Wrench; the update check, run on the
+real list of releases, tells alpha 8, alpha 10 and alpha 11 that 1.0.0 is out and 1.0.0 that it is the newest.)
+(2026-11-27; release label on `c79174d`, which the lightweight tag `v1.0.0` points at and which the build came from, a clean checkout of that tag in a worktree of the
 repository, removed afterwards (`git describe --tags --exact-match HEAD` printed the tag and `git status --porcelain` nothing before it was built); the tag is not pushed. `OpenStage Guide_1.0.0_x64-setup.exe`,
 31,068,632 bytes, SHA-256 `80e7f787dea5f6b4259dd7f815c3b901a29b949306bfb8fd8c1121c3b98f3351`, About reads version 1.0.0, build `54806263`), built with `python -I tools/build_installer.py --sign`. It is alpha 11 and what
 was pushed to `main` after it (`TESTING-TODO.md`, Publishing), released as 1.0 by the owner's decision, with url 2.5.9 and cookie 0.18.3 in the window's lock (the security review's R-N1). **The build script stopped
@@ -67,7 +70,7 @@ Unpacked with 7-Zip: the 299 program files of `src`, `program` and `public` are 
 `package.json`, and `release.txt` says `v1.0.0`. The seven browser checks pass on the unpacked files with the setup's own Node (193, 29, 289, 42, 7, 6 and 30), and its signed window, started from the unpacked
 folder with its own WebView2 profile and a scratch guides folder and driven through its debug port, showed the program with fifteen menus, its About read "Version 1.0.0, build 54806263.", and when it was closed
 the page saved first, the server said `OPENSTAGE_CLOSE_READY` and stopped by itself in 25 ms. The setup is kept as `.local/release-v1.0.0/OpenStage-Guide-1.0.0-Setup.exe` with its `.sha256.txt` (not in the
-repository). **Not done:** the tag, `main` and the release are not pushed or published; the setup was not installed; nothing was opened in a real Word or with a screen reader.
+repository). **Not done:** the setup was not installed; nothing was opened in a real Word or with a screen reader.
 
 **Published: v0.1.0-alpha.11** (2026-11-24, a plain release, the latest, with `OpenStage-Guide-0.1.0-alpha.11-Setup.exe` and its `.sha256.txt`; `main` was fast-forwarded to `375da41` and pushed with the tag, and the release was
 downloaded again without signing in: same size, same SHA-256 and a valid, timestamped signature by Jason Wrench; the update check, run on the real list of releases, tells alpha 8 and alpha 10 that alpha 11 is out and alpha 11 that it

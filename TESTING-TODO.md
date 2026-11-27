@@ -29,7 +29,7 @@ computer's presentation program) is there too; what is below needs a person.
   `OPENSTAGE_DOCX_VALIDATOR_LIBS` / `OPENSTAGE_PPTX_VALIDATOR_LIBS`, a folder that holds a stand-in) are set. Run by hand with a stand-in they all passed.
 - [ ] **An AI helper.** None is built in and nothing is sent anywhere. Say whether you want one, which, and what may leave the computer.
 
-## The bank import on the core's reader (2026-11-27, not released)
+## The bank import on the core's reader (2026-11-27, in 1.0)
 
 The import from an OpenAssess bank now reads the file with the shared core's `@openstage/bank` 0.1.0 (`CORE-REQUESTS.md` G3). The tests, a bank OpenAssess's own code wrote, and the program's tools page in
 a real browser were checked; what is below needs a person.
@@ -45,23 +45,24 @@ a real browser were checked; what is below needs a person.
 - [ ] **The Word files in a real word processor.** Open in Word (and, if you have it, LibreOffice) a guide, a workbook, a handout pack, a guide with **each block's icon in a column** and **a slide's picture
   beside its script**, a **bulleted list**, a **picture in a table cell**, and the **course map** and **evaluation plan** tables put in a guide from the design desk (landscape form). They pass the Word schema
   validator and were never opened in a real Word. Look for: icons beside their words, pictures where they were put, bullets, the landscape pages.
-- [ ] **A second computer.** Install the alpha 11 setup (the latest release) from its page on GitHub (its checksum is on the page), start it, make a guide, save it as Word, web page and PDF, and uninstall. Needs Edge for the PDF (Windows 11 has it). Does
+- [ ] **A second computer.** Install the 1.0 setup (the latest release) from its page on GitHub (its checksum is on the page), start it, make a guide, save it as Word, web page and PDF, and uninstall. Needs Edge for the PDF (Windows 11 has it). Does
   Check for updates say what it should?
 
 ## Publishing
 
-- [ ] **1.0 is built, not published** (2026-11-27): your decision was that the work after alpha 11 goes out as release 1.0, not alpha 12. The tag `v1.0.0` (on `c79174d`, the commit the setup was built from)
-  is made here and not pushed; the signed setup and its checksum are in `.local/release-v1.0.0`, and how it was built and checked is in `shell/README.md`. Waiting for your yes: push `main` and the tag, then
-  publish the release with the setup and its checksum.
+- [x] **1.0 is pushed and published** (2026-11-27): your decision was that the work after alpha 11 goes out as release 1.0, not alpha 12. `main` is on GitHub at `0d32abf`, the tag is `v1.0.0` (at `c79174d`,
+  the commit the setup was built from), and the release is a plain release, the latest, with the signed setup and its checksum, downloaded again without signing in (same SHA-256, valid timestamped signature).
+  Check for updates on alpha 8, 10 and 11 says 1.0.0 is out. How it was built and checked is in `shell/README.md`; its page says what was not checked (not installed, no screen reader, alpha 11's Word files
+  not opened in a real Word, no real bank imported). The checks above are still yours, now on 1.0.
 - [x] **Alpha 11 is pushed and published** (2026-11-24): `main` is on GitHub at `375da41`, the tag is `v0.1.0-alpha.11` (at `eed6d87`, the commit the setup was built from), and the release is a plain release (not marked
   pre-release) with the signed setup and its checksum, downloaded again without signing in (same SHA-256, valid timestamped signature). Its page says what was not checked: the unpacked setup was not driven by the browser
   checks and its signed window was not started. The checks of "Alpha 11" above are still yours.
 - [x] **Alpha 10 is pushed and published** (2026-11-16): `main` is on GitHub, the tag is `v0.1.0-alpha.10`, and the release is a plain release (not marked pre-release) with the signed setup and its checksum.
   Alpha 9 was built but never published; its fixes are in alpha 10 (the other session's worktree and its branch `alpha9-fixes` were left alone). How it was built and checked is
   in section 10 of `docs/BUILD-STATUS-CHECKLIST-2026-11-15.md` and in `shell/README.md`.
-- [x] **Pushed, not released** (2026-11-27): `main` is on GitHub with the commits made after alpha 11: menus sized to their widest row, Save as PDF with the current Edge, the Reference Manager token kept in
+- [x] **Pushed, then released as 1.0** (2026-11-27): `main` is on GitHub with the commits made after alpha 11: menus sized to their widest row, Save as PDF with the current Edge, the Reference Manager token kept in
   the program's data folder, the WebView2 bootstrapper carried in the setup, machine paths taken out of tracked files, the launcher and the window's allowed addresses tightened, the page read before it is
-  printed, Author's published format 0.52.0, the rebuild planning note taken out of the repository, and the bank import on the core's reader. They go out as 1.0 (the line above). The checks below are held for later (2026-11-16): none of them blocks this stage, and each one found wrong is a fix
+  printed, Author's published format 0.52.0, the rebuild planning note taken out of the repository, and the bank import on the core's reader. They went out in 1.0 (the first line of this section). The checks below are held for later (2026-11-16): none of them blocks this stage, and each one found wrong is a fix
   for the next alpha.
 
 ## Item 2: alpha 8 and the Forms
