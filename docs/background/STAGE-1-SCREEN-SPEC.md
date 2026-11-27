@@ -1,6 +1,6 @@
 # Stage 1 screen spec: Start a guide, Add, Review
 
-Draft 2026-10-30, for the author's sign-off before any add-in code is written. It follows `REBUILD-PLAN-2026-10-30.md`. Layout details assume the cue-label layout wins the Stage 0 comparison; if it does not, only the inserted paragraphs change, not the screens.
+Draft 2026-10-30, for the author's sign-off before any add-in code is written. It follows the rebuild plan of 2026-10-30 (kept outside the repository). Layout details assume the cue-label layout wins the Stage 0 comparison; if it does not, only the inserted paragraphs change, not the screens.
 
 ## The rules every screen follows
 
@@ -95,7 +95,7 @@ Assessment items, the learner workbook, looks and brand colours, slide import, d
 
 - **Build screen order:** add a module or lesson, add a block, tidy (Update guide, Review guide, Refresh), then Contents. Contents moved to the bottom so the most used controls come first.
 - **Transition:** Add module inserts the heading and a Transition block. A Transition counts as the module's block, not any one lesson's, so a lesson with only the Transition is still reported as having no blocks. Add lesson puts new lessons before it as long as the cursor is on the module heading or inside the module.
-- **Cumulative time** is the minutes taught before a lesson starts, as in LeaderGuide Pro, not the running total at its end. The sample lessons from Stage 0 showed the other reading; tell me if you prefer it.
+- **Cumulative time** is the minutes taught before a lesson starts, not the running total at its end. The sample lessons from Stage 0 showed the other reading; tell me if you prefer it.
 - **Minutes:** a lesson's time is the sum of its block minutes when any block has minutes, otherwise the number in its time block. Update guide writes that back. It also renumbers modules and lessons that are written as "Module N: Title" and "Lesson M.N: Title".
 - **Start guide** also sets the document's title property, so Word's check does not report a missing title.
 - **Built since:** keyboard shortcuts and the pane opening with its document (2026-11-01: see "Keyboard shortcuts and opening with the document" below), the Graphic Cues page and the generated Training at a Glance table (2026-10-31: see "Getting Started pages" below).

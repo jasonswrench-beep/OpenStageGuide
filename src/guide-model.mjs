@@ -315,7 +315,7 @@ const cueLabel=id=>(allCues().find(c=>c.id===id)||{label:'Cue'}).label;
 
 // What "Update guide" would change: heading numbers, each lesson's time block, question numbers, and the numbers and citations of forms.
 // `options.forms` is the guide's form settings (guide-forms.mjs readSettings); without it forms are numbered the automatic way.
-// Cumulative time is the minutes taught before the lesson starts, as in LeaderGuide Pro, so a facilitator
+// Cumulative time is the minutes taught before the lesson starts, so a facilitator
 // can see at the top of a lesson where the clock should stand.
 export function updatePlan(paras,options={}){
   const guide=readGuide(paras),edits=[];

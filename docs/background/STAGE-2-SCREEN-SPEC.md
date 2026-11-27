@@ -1,6 +1,6 @@
 # Stage 2 screen spec: the assessment gallery
 
-Draft 2026-10-31, for the author's sign-off before any code is written. It follows `REBUILD-PLAN-2026-10-30.md` (Stage 2) and the Stage 1 rules (`STAGE-1-SCREEN-SPEC.md`). Stage 1 is proven in the author's Word; this stage reuses its machinery: styles for audience, block-aware placement, Edit, Update guide, Undo, and a real-Word check after each step.
+Draft 2026-10-31, for the author's sign-off before any code is written. It follows the rebuild plan of 2026-10-30 (kept outside the repository) (Stage 2) and the Stage 1 rules (`STAGE-1-SCREEN-SPEC.md`). Stage 1 is proven in the author's Word; this stage reuses its machinery: styles for audience, block-aware placement, Edit, Update guide, Undo, and a real-Word check after each step.
 
 ## What was asked
 
@@ -132,7 +132,7 @@ What the recording showed in real Word: Level One, Two and Three sections, the h
 
 ## As built, slice C (2026-10-31): four more item types
 
-Added from the plan's own list (`REBUILD-PLAN-2026-10-30.md`, "Proposed assessment item types"), from the same patterns, with no new kind of risk in Word beyond the tables and check boxes of slice B.
+Added from the plan's own list (the rebuild plan of 2026-10-30 (kept outside the repository), "Proposed assessment item types"), from the same patterns, with no new kind of risk in Word beyond the tables and check boxes of slice B.
 
 - **Ordering (Level Two).** The author types the items in the right order, one to a line (3 to 8, each different). In the document they are a lettered list in a fixed mixed-up order (alphabetical, or backwards if that is already the right order), with a line "Your order, by letter:". The key gives the right order by letter: "Answer key (ordering): c, b, a."
 - **Performance task (Level Two).** A task, with "Your response or notes:" and lines to write on (6 by default). The checklist goes in the key, one paragraph for each criterion with optional points ("Criterion 1: Listens without interrupting (2 points)"), so the learner workbook leaves it out like any key. The author types a criterion and, after a | , its points.

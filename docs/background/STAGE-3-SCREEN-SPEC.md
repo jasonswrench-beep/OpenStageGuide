@@ -1,6 +1,6 @@
 # Stage 3 screen spec: the learner workbook and its looks
 
-Draft 2026-10-31, for the author's sign-off before any code is written. It follows `REBUILD-PLAN-2026-10-30.md` (Stage 3) and reuses the Stage 1 and 2 machinery: audience is a style, the document is the source of truth, and each step is checked in real Word.
+Draft 2026-10-31, for the author's sign-off before any code is written. It follows the rebuild plan of 2026-10-30 (kept outside the repository) (Stage 3) and reuses the Stage 1 and 2 machinery: audience is a style, the document is the source of truth, and each step is checked in real Word.
 
 ## What was asked
 

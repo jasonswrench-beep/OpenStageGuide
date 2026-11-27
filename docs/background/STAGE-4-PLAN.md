@@ -1,6 +1,6 @@
 # Stage 4: accessibility and print
 
-Written 2026-10-31. The plan's test for this stage (`REBUILD-PLAN-2026-10-30.md`): "A review list separates errors, warnings and human checks. Screen-reader pass (only when you are away, as agreed). Grayscale and print check. A reviewed PDF export route." The author asked for building to continue without sign-off documents, so this is a plan, not a request for approval; the choices it makes are small and easy to change.
+Written 2026-10-31. The plan's test for this stage (the rebuild plan of 2026-10-30 (kept outside the repository)): "A review list separates errors, warnings and human checks. Screen-reader pass (only when you are away, as agreed). Grayscale and print check. A reviewed PDF export route." The author asked for building to continue without sign-off documents, so this is a plan, not a request for approval; the choices it makes are small and easy to change.
 
 ## What already exists
 
