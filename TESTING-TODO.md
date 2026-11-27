@@ -50,6 +50,9 @@ a real browser were checked; what is below needs a person.
 
 ## Publishing
 
+- [ ] **1.0 is built, not published** (2026-11-27): your decision was that the work after alpha 11 goes out as release 1.0, not alpha 12. The tag `v1.0.0` (on `c79174d`, the commit the setup was built from)
+  is made here and not pushed; the signed setup and its checksum are in `.local/release-v1.0.0`, and how it was built and checked is in `shell/README.md`. Waiting for your yes: push `main` and the tag, then
+  publish the release with the setup and its checksum.
 - [x] **Alpha 11 is pushed and published** (2026-11-24): `main` is on GitHub at `375da41`, the tag is `v0.1.0-alpha.11` (at `eed6d87`, the commit the setup was built from), and the release is a plain release (not marked
   pre-release) with the signed setup and its checksum, downloaded again without signing in (same SHA-256, valid timestamped signature). Its page says what was not checked: the unpacked setup was not driven by the browser
   checks and its signed window was not started. The checks of "Alpha 11" above are still yours.
@@ -58,8 +61,7 @@ a real browser were checked; what is below needs a person.
   in section 10 of `docs/BUILD-STATUS-CHECKLIST-2026-11-15.md` and in `shell/README.md`.
 - [x] **Pushed, not released** (2026-11-27): `main` is on GitHub with the commits made after alpha 11: menus sized to their widest row, Save as PDF with the current Edge, the Reference Manager token kept in
   the program's data folder, the WebView2 bootstrapper carried in the setup, machine paths taken out of tracked files, the launcher and the window's allowed addresses tightened, the page read before it is
-  printed, Author's published format 0.52.0, the rebuild planning note taken out of the repository, and the bank import on the core's reader. Say whether these go out as alpha 12; nothing is built or tagged
-  for it yet. The checks below are held for later (2026-11-16): none of them blocks this stage, and each one found wrong is a fix
+  printed, Author's published format 0.52.0, the rebuild planning note taken out of the repository, and the bank import on the core's reader. They go out as 1.0 (the line above). The checks below are held for later (2026-11-16): none of them blocks this stage, and each one found wrong is a fix
   for the next alpha.
 
 ## Item 2: alpha 8 and the Forms
