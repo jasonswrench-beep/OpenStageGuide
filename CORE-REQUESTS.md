@@ -4,11 +4,13 @@ Things OpenStage Guide needs from `openstage-core` that the core does not offer 
 had to write something to finish its list, the entry says what and says what replaces it once the core has the piece. Newest last.
 
 Core as read, 2026-11-27: `CORE-NOTES.md` on its GitHub `main`, and its tags `pstat-v1.2.0`, `pstat-v1.3.0`, `item-analysis-v1.1.0`, `item-analysis-v2.0.0`, `prismqda-stats-v1.0.0`, `capture-v0.1.0`,
-`a11y-v0.1.0` and `bank-v0.1.0`. The accessibility rules (C2) and the bank reader (C4) are published; Guide uses neither yet (see G2 and G3). Nothing unpublished was read or used.
+`a11y-v0.1.0` and `bank-v0.1.0`. The accessibility rules (C2) and the bank reader (C4) are published; Guide reads banks with the bank reader (G3) and does not use the accessibility rules yet
+(G2). Nothing unpublished was read or used.
 
 **What Guide builds on from the core, as published.** `@openstage/pstat` 1.2.0 (from its release, no sign-in) is a development dependency: Guide's tests check every `.pstat` file it
 writes with the package's `checkPstat`, and the browser checks do the same on the files the program saves. Guide writes the files itself, as the core's notes say a tool with no runtime
-dependency may (the program's page makes the zip with JSZip), and writes no profile, because the core has none for what Guide sends (G1). Nothing of the core's code is copied.
+dependency may (the program's page makes the zip with JSZip), and writes no profile, because the core has none for what Guide sends (G1). `@openstage/bank` 0.1.0 reads OpenAssess banks: it is
+the one piece of the core's code Guide carries, in `src/openstage-bank`, copied from the release with the changes G3 lists.
 
 ## G1. A `.pstat` profile for an instrument and its scoring guide, and one for an evaluation plan
 
@@ -53,9 +55,19 @@ Guide uses neither yet; the request for a call that takes a page's HTML stands.
 Guide reads OpenAssess's `.openassess` banks in `src/guide-bank.mjs` (it reads format 1 and takes the questions with their objectives, levels and chapters). The core lists C4 as not started and
 Guide's list names it as a user. Asked: when C4 is made, start from what that file does, and say when to move Guide onto it; it holds no code the core would need to keep.
 
-**Answered (2026-11-27).** `@openstage/bank` 0.1.0 (tag `bank-v0.1.0`, BANK-1 revision 1.0) started from `src/guide-bank.mjs`. Guide has not moved onto it yet. The core's notes for the move: keep
-`questionToItem` (what a guide item can hold) and read `q.key` and `q.options` in place of the raw body; the reader hands over retired questions (`metadata.status` "retired") and leaves the choice to
-Guide; a picture is in `q.pictures`, an equation in `q.equations`, and their placeholders are in `q.stem.html`.
+**Answered, and Guide is on it (2026-11-27).** `@openstage/bank` 0.1.0 (tag `bank-v0.1.0`, BANK-1 revision 1.0) started from `src/guide-bank.mjs`, and Guide now reads banks with it:
+`readBankFile` calls the reader, and `questionToItem` (what a guide item can hold) reads the reader's `q.key`, `q.options`, `q.pictures` and `q.equations` in place of the raw body. Retired
+questions are left out, as before. A question file the reader skips is listed with the reader's reason; a file that is not a bank at all is refused in Guide's words, by the reader's code (BANK-1
+7.1). Guide's own zip and text reading is gone, and JSZip is no longer used to read a bank.
+
+How it is carried: the package is a development dependency, and `scripts/vendor-bank.mjs` (run by `npm run assets`) copies its three files into `src/openstage-bank`, because the program serves
+only its own `.mjs` files and refuses any import in them that is not a relative path to another of them (`scripts/build-snapshot.mjs`). The copy is the package's code with three changes: the files
+are named `.mjs` (and the imports between them say so), a first line says where they came from, and `zip.js`'s fallback to `node:zlib` is taken out (an `import("node:zlib")` the server would refuse;
+Node 20, the program's window and Word's pane on Windows (both Edge's engine) have `DecompressionStream`, so it was never reached there; Word's pane on a Mac needs Safari 16.4 or later for it).
+`tests/vendor-bank.test.mjs` holds the copy to the installed release.
+
+Asked: a form of the reader a browser page can carry unchanged: files named `.mjs`, or no `node:` import in the code a browser loads (the fallback could be a separate entry, or left to the
+`inflateRaw` option that is already there). Guide would then copy it with no changes at all.
 
 ## G4. How a design hands item slots to OpenAssess
 

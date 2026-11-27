@@ -42,6 +42,11 @@ Fonts that come with the program (program/fonts: drawn by the program's page, an
   Source Serif 4: Copyright 2014-2024 Adobe, with Reserved Font Name Source. https://github.com/adobe-fonts/source-serif
     (license: program/fonts/LICENSE-SourceSerif4.md)
 
+@openstage/bank 0.1.0 (src/openstage-bank, the shared core's reader of OpenAssess question banks, used by the bank import)
+  https://github.com/jasonswrench-beep/openstage-core (tag bank-v0.1.0, packages/bank)
+  Apache License 2.0, Copyright 2026 Jason S. Wrench (the same owner). Copied from its release by scripts/vendor-bank.mjs, which
+  says what was changed: the file names, a first line in each, and the fallback to node:zlib, taken out.
+
 acorn 8.19.0 (used only by scripts/build-snapshot.mjs to check the source before the server serves it; not sent to the browser)
   https://github.com/acornjs/acorn
   MIT License, Copyright (C) 2012-2022 by various contributors.

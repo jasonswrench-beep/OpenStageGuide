@@ -1,10 +1,12 @@
-// Importing questions from an OpenAssess bank file (.openassess): a zip of manifest.json, questions/q_*.json and folders.json.
-// Proven against stand-ins for Word and a bank written the way OpenAssess's model describes, not a bank OpenAssess made.
+// Importing questions from an OpenAssess bank file (.openassess): a zip of manifest.json, questions/q_*.json and folders.json, read by the
+// shared core's bank reader (src/openstage-bank). Proven against stand-ins for Word, banks written the way OpenAssess's model describes, and
+// one bank OpenAssess's own code wrote.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import JSZip from 'jszip';
-import {richToText,questionToItem,readBankFile,MAX_BANK_ADD} from '../src/guide-bank.mjs';
+import {questionToItem,readBankFile,MAX_BANK_ADD} from '../src/guide-bank.mjs';
+import {readQuestion} from '../src/openstage-bank/index.mjs';
 import {readItem,readAssessments} from '../src/guide-model.mjs';
 import {started,WORD_QUIRKS,click,submit,addModule,addLesson} from './helpers/guide-harness.mjs';
 
@@ -12,7 +14,7 @@ const rt=html=>({format:'rich',content:html});
 const opt=(id,text,correct=false)=>({id,content:rt(`<p>${text}</p>`),correct});
 let counter=0;
 const Q=(type,body,o={})=>{
-  const n=++counter,id=`q_${String(n).padStart(3,'0')}`;
+  const n=++counter,id=`q_${String(n).padStart(26,'0')}`;
   return {id,version:1,type,title:o.title??`Question ${n}`,stem:rt(o.stem??`<p>Stem ${n}?</p>`),points:o.points??1,body,feedback:o.feedback??{},metadata:{tags:[],status:'draft',...(o.metadata||{})},media:o.media??[],math:o.math??[],findings:[],history:[]};
 };
 async function bankBytes(questions,{manifest={},folders}={}){
@@ -24,19 +26,19 @@ async function bankBytes(questions,{manifest={},folders}={}){
 }
 const MC=(o={})=>Q('multipleChoice',{shuffle:true,options:[opt('a','Einstein'),opt('b','Michelson',true),opt('c','Edison')]},o);
 
-// ---- rich text
-test('rich text becomes plain lines: paragraphs, breaks and list items on a line each, entities decoded, tags dropped',()=>{
-  assert.equal(richToText(rt('<p>One &amp; two</p><p>Three<br>four</p>')),'One & two\nThree\nfour');
-  assert.equal(richToText(rt('<ul><li>a</li><li>b</li></ul>')),'a\nb');
-  assert.equal(richToText(rt('<table><tr><td>x</td><td>y</td></tr></table>')),'x y');
-  assert.equal(richToText(rt('<p><strong>Bold</strong> and <em>em</em> &lt;b&gt; &#65; &#x42; &nbsp;gap</p>')),'Bold and em <b> A B gap');
-  assert.equal(richToText({format:'plain',content:'Line one\n\nLine two'}),'Line one\nLine two');
-  assert.equal(richToText(undefined),'');
-});
+// ---- each type (a question file as the bank reader gives it)
+const read=raw=>{const r=readQuestion(raw);assert.ok(r.question,r.problem);return r.question;};
+const toItem=raw=>questionToItem(read(raw));
+const item=q=>{const r=toItem(q);assert.ok(r.item,JSON.stringify(r.problem));return r.item;};
+const problem=q=>{const r=toItem(q);assert.ok(r.problem,'expected a problem');return r.problem.message;};
 
-// ---- each type
-const item=q=>{const r=questionToItem(q);assert.ok(r.item,JSON.stringify(r.problem));return r.item;};
-const problem=q=>{const r=questionToItem(q);assert.ok(r.problem,'expected a problem');return r.problem.message;};
+test('the words come as the reader gives them: the stem keeps its lines, an option or a reason is one line, entities decoded, tags dropped',()=>{
+  const mc=item(MC({stem:'<p>One &amp; two</p><p>Three<br>four</p><ul><li>a</li><li>b</li></ul>',feedback:{correct:rt('<p><strong>Bold</strong> and <em>em</em></p><p>&lt;b&gt; &#65; &#x42;</p>')}}));
+  assert.equal(mc.stem,'One & two\nThree\nfour\na\nb');
+  assert.equal(mc.why,'Bold and em <b> A B');
+  assert.equal(item({...Q('trueFalse',{correct:true}),stem:{format:'plain',content:'Line one\n\nLine two'}}).stem,'Line one\nLine two');
+  assert.equal(item(Q('trueFalse',{correct:true},{stem:'<table><tr><td>x</td><td>y</td></tr></table>'})).stem,'x y');
+});
 
 test('multiple choice, multiple response and true or false carry their options and keys, points, objective and why',()=>{
   const mc=item(MC({points:2,metadata:{objective:'Name the scientist.'},feedback:{correct:rt('<p>He measured it in 1887.</p>')}}));
@@ -61,7 +63,7 @@ test('numeric: exact, tolerance and range, with units; a range is written as its
   assert.deepEqual([exact.answer,exact.tolerance,exact.units],['60','','km per hour']);
   const tol=item(Q('numeric',{mode:'tolerance',value:60.5,tolerance:0.5}));
   assert.deepEqual([tol.answer,tol.tolerance],['60.5','0.5']);
-  const r=questionToItem(Q('numeric',{mode:'range',min:59,max:61.5},{title:'Speed'}));
+  const r=toItem(Q('numeric',{mode:'range',min:59,max:61.5},{title:'Speed'}));
   assert.deepEqual([r.item.answer,r.item.tolerance],['60.25','1.25']);
   assert.match(r.notes[0],/Speed: the range 59 to 61\.5 is written as 60\.25 plus or minus 1\.25/);
 });
@@ -70,7 +72,7 @@ test('an essay becomes a reflection: its model answer and rubric in the key, or 
   const full=item(Q('essay',{modelAnswer:rt('<p>A good answer names the ether wind.</p>'),rubric:[{criterion:'Names the ether wind',points:2,description:'Says what it was'},{criterion:'Clear',points:1}]}));
   assert.equal(full.type,'reflection');
   assert.equal(full.answer,'A good answer names the ether wind.\nRubric:\nNames the ether wind: Says what it was (2 points)\nClear (1 point)');
-  const bare=questionToItem(Q('essay',{},{title:'Discuss'}));
+  const bare=toItem(Q('essay',{},{title:'Discuss'}));
   assert.equal(bare.item.answer,'Add a model answer, or what to look for.');
   assert.match(bare.notes[0],/Discuss: an essay with no model answer gets a placeholder/);
 });
@@ -87,35 +89,40 @@ test('what the guide cannot hold is refused with the reason, and nothing is gues
   assert.match(problem(Q('multipleChoice',{shuffle:true,options:Array.from({length:7},(_,i)=>opt(`o${i}`,`Option ${i}`,i===0))})),/7 options and a guide question can have up to 6/);
   assert.match(problem(Q('matching',{shuffle:true,distractors:[],pairs:Array.from({length:11},(_,i)=>({id:`p${i}`,left:rt(`L${i}`),right:`R${i}`}))})),/11 pairs and a guide matching question can have up to 10/);
   assert.match(problem(Q('ordering',{items:[{id:'1',content:rt('A'),position:1},{id:'2',content:rt('B'),position:2}]})),/2 items and a guide ordering question has 3 to 8/);
-  assert.match(problem(MC({stem:'<p></p>'})),/The question has no text/);
-  assert.match(problem({id:'q_x',type:'multipleChoice'}),/could not be read/);
+  assert.match(questionToItem(null).problem.message,/could not be read/);
 });
 
 // ---- the file
-test('a file that is not a bank is refused with the reason',async()=>{
-  await assert.rejects(readBankFile(new TextEncoder().encode('not a zip').buffer,{Zip:JSZip}),/could not be opened as an OpenAssess bank/);
+test('a file that is not a bank is refused with the reason, in the guide\'s words',async()=>{
+  await assert.rejects(readBankFile(new TextEncoder().encode('not a zip').buffer),/^Error: This file could not be opened as an OpenAssess bank\. It may be damaged, or it may not be a bank\.$/);
+  await assert.rejects(readBankFile(new ArrayBuffer(0)),/could not be opened as an OpenAssess bank/);
   const noManifest=new JSZip();noManifest.file('questions/q_1.json','{}');
-  await assert.rejects(readBankFile(await noManifest.generateAsync({type:'arraybuffer'}),{Zip:JSZip}),/no manifest\.json/);
-  await assert.rejects(readBankFile(await bankBytes([],{manifest:{format:'something-else'}}),{Zip:JSZip}),/says it is "something-else", not an OpenAssess bank/);
-  await assert.rejects(readBankFile(await bankBytes([],{manifest:{formatVersion:2}}),{Zip:JSZip}),/newer OpenAssess \(format 2\)/);
-  await assert.rejects(readBankFile(new ArrayBuffer(0),{}),/could not load what it needs/);
+  await assert.rejects(readBankFile(await noManifest.generateAsync({type:'arraybuffer'})),/no manifest\.json/);
+  const badManifest=new JSZip();badManifest.file('manifest.json','{ not json');
+  await assert.rejects(readBankFile(await badManifest.generateAsync({type:'arraybuffer'})),/The bank's manifest could not be read, so the file may be damaged\./);
+  await assert.rejects(readBankFile(await bankBytes([],{manifest:{format:'something-else'}})),/This file says it is "something-else", not an OpenAssess bank\./);
+  await assert.rejects(readBankFile(await bankBytes([],{manifest:{formatVersion:undefined}})),/does not say which version of the bank format/);
+  await assert.rejects(readBankFile(await bankBytes([],{manifest:{formatVersion:2}})),/newer OpenAssess than this guide can read \(it reads bank format 1\)\. Update OpenStage Guide/);
+  // The bytes may come as an ArrayBuffer (from a file) or a Uint8Array.
+  assert.equal((await readBankFile(new Uint8Array(await bankBytes([MC()])))).all.length,1);
 });
 
-test('a bank is read in the author\'s folder order, then the rest; retired and damaged questions are handled and named',async()=>{
-  const a=MC({title:'A'}),b=MC({title:'B'}),c=MC({title:'C'}),d=MC({title:'D',metadata:{status:'retired'}}),e=MC({title:'E'});
-  const bytes=await bankBytes([a,b,c,d,e],{folders:{filters:[],root:[{id:'f1',name:'Chapter 1',questionIds:[c.id],children:[{id:'f2',name:'Quiz',questionIds:[a.id],children:[]}]},{id:'f3',name:'Empty',questionIds:[],children:[]}]}});
+test('a bank is read in the author\'s folder order, then the rest; retired, damaged and unreadable questions are handled and named',async()=>{
+  const a=MC({title:'A'}),b=MC({title:'B'}),c=MC({title:'C'}),d=MC({title:'D',metadata:{status:'retired'}}),e=MC({title:'E'}),empty=MC({title:'F',stem:'<p></p>'});
+  const bytes=await bankBytes([a,b,c,d,e,empty],{folders:{filters:[],root:[{id:'f1',name:'Chapter 1',questionIds:[c.id,empty.id],children:[{id:'f2',name:'Quiz',questionIds:[a.id,d.id],children:[]}]},{id:'f3',name:'Empty',questionIds:[],children:[]}]}});
   // the damaged file needs a name
   const zip=await JSZip.loadAsync(bytes);zip.file('questions/q_bad.json','{ not json');
-  const bank=await readBankFile(await zip.generateAsync({type:'arraybuffer'}),{Zip:JSZip});
+  const bank=await readBankFile(await zip.generateAsync({type:'arraybuffer'}));
   assert.equal(bank.title,'Light and radio');
-  assert.deepEqual(bank.all.map(q=>q.title),['C','A','B','E','q_bad'],'folder order, then the rest in id order; the retired one is left out');
-  assert.match(bank.all.at(-1).problem.message,/could not be read/);
-  assert.deepEqual(bank.folders.map(f=>[f.name,f.depth,f.ids.length]),[['Chapter 1',0,2],['Quiz',1,1]],'a folder holds the ones under it; empty folders are not offered');
+  assert.deepEqual(bank.all.map(q=>q.title),['C','A','B','E',empty.id,'q_bad'],'folder order, then the rest in id order, then the files that could not be read; the retired one is left out');
+  assert.match(bank.all.at(-2).problem.message,/^The question has no stem \(no question text\)\.$/);
+  assert.match(bank.all.at(-1).problem.message,/^The question file could not be read/);
+  assert.deepEqual(bank.folders.map(f=>[f.name,f.depth,f.ids.length]),[['Chapter 1',0,2],['Quiz',1,1]],'a folder holds the ones under it, not the retired or unreadable; empty folders are not offered');
 });
 
 test('a bank written by OpenAssess\'s own code (a real file, not one built here) reads: seven questions come across, the hotspot is named',async()=>{
   const bytes=fs.readFileSync(new URL('./fixtures/openassess-written-by-openassess.openassess',import.meta.url));
-  const bank=await readBankFile(bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength),{Zip:JSZip});
+  const bank=await readBankFile(bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength));
   assert.equal(bank.title,'Cross-check bank');
   assert.deepEqual(bank.all.filter(q=>q.item).map(q=>q.item.type).sort(),['fill-blank','matching','multiple-choice','numeric','ordering','reflection','true-false']);
   assert.match(bank.all.find(q=>q.problem).problem.message,/"hotspot" is not read here/);

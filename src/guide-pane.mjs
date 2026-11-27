@@ -2026,8 +2026,7 @@ export function mountGuidePane(doc,{adapter,soon=fn=>setTimeout(fn,600),timeoutM
     const file=$('guide-bank-file').files?.[0];
     if(!file){drawBank();return;}
     try{
-      const ZipClass=Zip||globalThis.JSZip;
-      const read=await readBankFile(await file.arrayBuffer(),{Zip:ZipClass});
+      const read=await readBankFile(await file.arrayBuffer());
       bank=read;
       const options=[{value:'',text:`All questions (${read.all.length})`},...read.folders.map(f=>({value:f.id,text:`${'  '.repeat(f.depth)}${f.name} (${f.ids.length})`}))];
       $('guide-bank-folder').replaceChildren(...options.map(o=>{const op=doc.createElement('option');op.value=o.value;op.textContent=o.text;return op;}));

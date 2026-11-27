@@ -29,6 +29,14 @@ computer's presentation program) is there too; what is below needs a person.
   `OPENSTAGE_DOCX_VALIDATOR_LIBS` / `OPENSTAGE_PPTX_VALIDATOR_LIBS`, a folder that holds a stand-in) are set. Run by hand with a stand-in they all passed.
 - [ ] **An AI helper.** None is built in and nothing is sent anywhere. Say whether you want one, which, and what may leave the computer.
 
+## The bank import on the core's reader (2026-11-27, not released)
+
+The import from an OpenAssess bank now reads the file with the shared core's `@openstage/bank` 0.1.0 (`CORE-REQUESTS.md` G3). The tests, a bank OpenAssess's own code wrote, and the program's tools page in
+a real browser were checked; what is below needs a person.
+
+- [ ] **One of your own banks, in Word's pane and in the program.** On the assessments screen (in the program, Assessment > Assessments), under Import from an OpenAssess bank, choose a bank you use. The count of questions, the folders and the list of what cannot be added
+  should be as before; a question with a picture or an equation is still listed as one that cannot be added. If you use Word on a Mac, try it there too: reading a bank now needs Safari 16.4 or later.
+
 ## Item 5 of the list: your checks
 
 - [ ] **A screen reader pass (NVDA) of the whole program.** It records everything spoken on the computer, so it waits for your go. Include what is new: **Insert > Block...** (the chooser, then typing in the block
