@@ -56,6 +56,16 @@ Two tests are skipped unless `OPENSTAGE_AUTHOR_VALIDATOR` names the `validate.py
 
 OpenStage Guide began as an add-in for Microsoft Word, in the repository [OpenStage-Guide](https://github.com/jasonswrench-beep/OpenStage-Guide). The two share one core: the same guide model, the same tools and the same checks. This repository holds the program only. The add-in's manifest, installer, certificate and publishing scripts stay in that repository. The code that drives Word (`src/word.mjs`, and the Word half of `src/guide-word.mjs`) is still here because the tools' pane reads and writes its document through one small adapter; the program uses the adapter that keeps the guide in the project file and never loads Office.js.
 
+## Shared pieces and what counts as installed
+
+The OpenStage and Prism apps follow one rule for finding things on the computer:
+
+- **Shared pieces live in one fixed folder each, directly under `%ProgramData%`** (found with Windows' known-folder call, not from the environment): the GPU Voice Pack in `%ProgramData%\GPU Voice Pack`, and voice models (speech recognition, voice detection, speaker models and voices) in `%ProgramData%\Voice Models`. Every app and both hubs (OpenStage Hub and Prism Hub) look for them there and nowhere else. A piece counts as installed only when its files are there and its folder can be changed only by the account that installed it, SYSTEM and the Administrators.
+- **Apps are found where they are installed**: in Windows' installed apps list, or in the app's own per-user folder (`%LOCALAPPDATA%\<app name>`). Never on `PATH`.
+- **Runtimes ship inside the app's own installer** (Node.js, Python, a speech engine). Nothing has to be installed separately, and an installed app never falls back to a copy it finds on `PATH`.
+
+OpenStage Guide uses no shared pieces. Its Node.js ships inside its installer, and an installed Guide never runs a Node.js found on `PATH` (it says to reinstall instead).
+
 ## Licence
 
 Apache License 2.0 for the code and the product icon (see `LICENSE` and `NOTICE`). The original fourteen training icons are by Jason S. Wrench under CC BY-NC-SA 4.0; the terms are in `public/assets/ICON-LICENSE.txt`. Third-party components are listed in `NOTICE`.

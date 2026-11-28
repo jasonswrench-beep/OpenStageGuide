@@ -165,15 +165,17 @@ fn plain(path: PathBuf) -> PathBuf {
     }
 }
 
-/// The folder that holds `scripts/project-server.mjs`: the one the installer put beside the window, one named by the person running it,
-/// or, when it is run from a build in the repository, the repository.
+/// The folder that holds `scripts/project-server.mjs`: the one the installer put beside the window. A development build may also use one
+/// named by `OPENSTAGE_GUIDE_APP_ROOT`, or the repository it was built in; an installed window uses only its own files.
 fn app_root(resources: &Path) -> Option<PathBuf> {
     let mut candidates: Vec<PathBuf> = Vec::new();
+    #[cfg(debug_assertions)]
     if let Ok(root) = std::env::var("OPENSTAGE_GUIDE_APP_ROOT") {
         candidates.push(PathBuf::from(root));
     }
     candidates.push(resources.join("resources").join("app"));
     candidates.push(resources.join("app"));
+    #[cfg(debug_assertions)]
     if let Ok(exe) = std::env::current_exe() {
         for up in 1..=8 {
             if let Some(dir) = exe.ancestors().nth(up) {
@@ -186,16 +188,17 @@ fn app_root(resources: &Path) -> Option<PathBuf> {
         .find(|c| c.join("scripts").join("project-server.mjs").exists())
 }
 
-/// The Node that runs the server: the one carried with the window, or the one on the path.
-fn node_path(resources: &Path) -> PathBuf {
+/// The Node that runs the server: the one the installer put beside the window. Only a development build falls back to the one on the
+/// path; an installed window never runs whatever Node the computer happens to have, and says it needs reinstalling instead.
+fn node_path(resources: &Path) -> Option<PathBuf> {
     let name = if cfg!(windows) { "node.exe" } else { "node" };
     for dir in [resources.join("resources").join("node"), resources.join("node")] {
         let candidate = dir.join(name);
-        if candidate.exists() {
-            return candidate;
+        if candidate.is_file() {
+            return Some(candidate);
         }
     }
-    PathBuf::from(name)
+    cfg!(debug_assertions).then(|| PathBuf::from(name))
 }
 
 /// Says in the window what went wrong, in words, for a failure to start.
@@ -295,7 +298,12 @@ fn main() {
                 .filter(|folder| folder.is_absolute())
                 .unwrap_or_else(|| plain(app.path().document_dir().unwrap_or_else(|_| PathBuf::from("."))).join("OpenStage Guides"));
 
-            let mut command = Command::new(node_path(&resources));
+            let Some(node) = node_path(&resources) else {
+                note("the Node carried with the window was not found");
+                say(&window, "OpenStage Guide could not find its own files. Reinstall it.");
+                return Ok(());
+            };
+            let mut command = Command::new(&node);
             command
                 .arg(&script)
                 .arg("--port")
@@ -315,7 +323,7 @@ fn main() {
             #[cfg(windows)]
             command.creation_flags(0x0800_0000);
 
-            note(&format!("starting {} with guides in {}", node_path(&resources).display(), guides.display()));
+            note(&format!("starting {} with guides in {}", node.display(), guides.display()));
             let mut child = match command.spawn() {
                 Ok(child) => child,
                 Err(error) => {
